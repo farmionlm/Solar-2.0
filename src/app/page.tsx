@@ -312,7 +312,10 @@ function HomeContent() {
                 <input 
                   type="number" 
                   value={modulePower}
-                  onChange={(e) => setModulePower(e.target.value ? Number(e.target.value) : "")}
+                  onChange={(e) => {
+                    setModulePower(e.target.value ? Number(e.target.value) : "");
+                    if (error && e.target.value) setError("");
+                  }}
                   placeholder="Ex: 550"
                   className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none bg-white font-mono"
                 />
