@@ -12,6 +12,8 @@ type Project = {
   modulePower: number;
   totalKwp: number;
   totalModules: number;
+  moduleModel: string | null;
+  inverterModel: string | null;
   _count: {
     units: number;
   };
@@ -29,8 +31,6 @@ type Project = {
     phone: string | null;
     email: string | null;
     address: string | null;
-    moduleModel: string | null;
-    inverterModel: string | null;
   } | null;
 };
 
@@ -72,8 +72,8 @@ export default function Historico() {
       ["Endereço:", client?.address || "-"],
       [],
       ["2. EQUIPAMENTOS SUGERIDOS"],
-      ["Modelo do Módulo:", client?.moduleModel || "Não definido"],
-      ["Modelo do Inversor:", client?.inverterModel || "Não definido"],
+      ["Modelo do Módulo:", project.moduleModel || "Não definido"],
+      ["Modelo do Inversor:", project.inverterModel || "Não definido"],
       ["Potência do Módulo Base:", `${project.modulePower} W`],
       [],
       ["3. RESUMO DO PROJETO"],

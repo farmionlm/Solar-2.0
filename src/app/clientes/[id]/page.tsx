@@ -77,10 +77,6 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
       ["E-mail:", client.email || "-"],
       ["Endereço:", client.address || "-"],
       [],
-      ["Equipamentos"],
-      ["Modelo do Módulo:", client.moduleModel || "Não definido"],
-      ["Modelo do Inversor:", client.inverterModel || "Não definido"],
-      [],
       ["Resumo dos Projetos"],
       ["Total de Projetos:", client.projects.length],
     ];

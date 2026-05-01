@@ -11,8 +11,6 @@ type Client = {
   phone: string | null;
   email: string | null;
   address: string | null;
-  moduleModel: string | null;
-  inverterModel: string | null;
   createdAt: string;
   _count: { projects: number };
 };
@@ -25,7 +23,7 @@ export default function Clientes() {
   const [showModal, setShowModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [newClient, setNewClient] = useState({
-    name: "", cpfCnpj: "", phone: "", email: "", address: "", moduleModel: "", inverterModel: ""
+    name: "", cpfCnpj: "", phone: "", email: "", address: ""
   });
 
   const fetchClients = () => {
@@ -59,7 +57,7 @@ export default function Clientes() {
       });
       if (!res.ok) throw new Error("Erro ao salvar");
       setShowModal(false);
-      setNewClient({ name: "", cpfCnpj: "", phone: "", email: "", address: "", moduleModel: "", inverterModel: "" });
+      setNewClient({ name: "", cpfCnpj: "", phone: "", email: "", address: "" });
       fetchClients();
     } catch (err) {
       alert("Erro ao criar cliente.");
@@ -182,12 +180,6 @@ export default function Clientes() {
                     {client.address && <p className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {client.address}</p>}
                   </div>
 
-                  {(client.moduleModel || client.inverterModel) && (
-                    <div className="mt-4 pt-3 border-t border-slate-100 space-y-1 text-sm">
-                      {client.moduleModel && <p className="text-slate-600"><span className="font-semibold">Módulo:</span> {client.moduleModel}</p>}
-                      {client.inverterModel && <p className="text-slate-600"><span className="font-semibold">Inversor:</span> {client.inverterModel}</p>}
-                    </div>
-                  )}
                 </div>
 
                 <Link href={`/clientes/${client.id}`}
