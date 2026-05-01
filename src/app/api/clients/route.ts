@@ -39,8 +39,6 @@ export async function POST(request: Request) {
         phone: phone?.trim() || null,
         email: email?.trim() || null,
         address: address?.trim() || null,
-        moduleModel: moduleModel?.trim() || null,
-        inverterModel: inverterModel?.trim() || null,
       }
     });
 
@@ -69,8 +67,6 @@ export async function PUT(request: Request) {
         ...(phone !== undefined && { phone: phone?.trim() || null }),
         ...(email !== undefined && { email: email?.trim() || null }),
         ...(address !== undefined && { address: address?.trim() || null }),
-        ...(moduleModel !== undefined && { moduleModel: moduleModel?.trim() || null }),
-        ...(inverterModel !== undefined && { inverterModel: inverterModel?.trim() || null }),
       }
     });
 
