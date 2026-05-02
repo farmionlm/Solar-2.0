@@ -55,10 +55,9 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   doc.text(client.installationNumber || "", 75, 220);
 
   setFontBold();
-  doc.text("Endereço/Município: ", 30, 230);
+  doc.text("Município: ", 30, 230);
   setFontNormal();
-  const fullAddress = [client.address, client.neighborhood, client.city].filter(Boolean).join(', ');
-  doc.text(fullAddress || "", 75, 230);
+  doc.text(client.city || "", 52, 230);
 
   doc.addPage();
   yPos = 20;
