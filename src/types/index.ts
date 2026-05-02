@@ -34,6 +34,15 @@ export type ClientListItem = {
   _count?: { projects: number };
 };
 
+export type Inverter = {
+  id?: string;
+  manufacturer: string | null;
+  model: string | null;
+  outputPower: number | null;
+  outputCurrent: number | null;
+  quantity: number;
+};
+
 export type Project = {
   id: string;
   name: string;
@@ -55,6 +64,7 @@ export type Project = {
   professionalName?: string | null;
   professionalCrt?: string | null;
   units: ProcessedUnit[];
+  inverters?: Inverter[];
   _count?: { units: number };
   client?: ClientListItem | null;
 };

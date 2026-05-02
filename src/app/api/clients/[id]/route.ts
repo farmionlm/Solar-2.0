@@ -18,6 +18,7 @@ export async function GET(
           orderBy: { createdAt: 'desc' },
           include: {
             units: true,
+            inverters: true,
             _count: {
               select: { units: true }
             }

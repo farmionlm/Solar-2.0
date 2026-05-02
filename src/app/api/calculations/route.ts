@@ -128,7 +128,8 @@ export async function PUT(request: Request) {
       id, moduleModel, inverterModel,
       generationKwh, reductionPercent, moduleManufacturer, moduleArea,
       moduleCurrent, inverterManufacturer, inverterOutputPower,
-      inverterOutputCurrent, areaOccupied, professionalName, professionalCrt
+      inverterOutputCurrent, areaOccupied, professionalName, professionalCrt,
+      inverters
     } = body;
 
     if (!id) {
@@ -153,6 +154,22 @@ export async function PUT(request: Request) {
         ...(professionalCrt !== undefined && { professionalCrt: professionalCrt?.trim() || null }),
       }
     });
+
+    if (Array.isArray(inverters)) {
+      await prisma.projectInverter.deleteMany({ where: { projectId: id } });
+      if (inverters.length > 0) {
+        await prisma.projectInverter.createMany({
+          data: inverters.map((inv: any) => ({
+            projectId: id,
+            manufacturer: inv.manufacturer || null,
+            model: inv.model || null,
+            outputPower: inv.outputPower ? Number(inv.outputPower) : null,
+            outputCurrent: inv.outputCurrent ? Number(inv.outputCurrent) : null,
+            quantity: inv.quantity ? Number(inv.quantity) : 1
+          }))
+        });
+      }
+    }
 
     return NextResponse.json(project);
   } catch (error) {

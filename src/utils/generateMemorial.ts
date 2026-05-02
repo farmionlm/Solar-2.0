@@ -114,16 +114,33 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   doc.text(`Potência máxima: ${project.modulePower || 0} WP`, 14, yPos); yPos += 5;
   doc.text(`Corrente máxima: ${project.moduleCurrent || "-"} A`, 14, yPos); yPos += 10;
 
-  setFontBold();
-  doc.text("4.2 – Inversor 01", 14, yPos);
-  yPos += 8;
-  setFontNormal();
-  doc.text(`Fabricante: ${project.inverterManufacturer || "-"}`, 14, yPos); yPos += 5;
-  doc.text(`Modelo: ${project.inverterModel || "-"}`, 14, yPos); yPos += 5;
-  doc.text(`Quantidade de inversores: 1`, 14, yPos); yPos += 5;
-  doc.text(`Potência máxima de saída: ${project.inverterOutputPower || "-"} W`, 14, yPos); yPos += 5;
-  doc.text(`Corrente máxima de saída: ${project.inverterOutputCurrent || "-"} A`, 14, yPos); yPos += 5;
-  doc.text(`Fator de potência: 0,8 capacitivo a 0,8 indutivo`, 14, yPos); yPos += 10;
+  if (project.inverters && project.inverters.length > 0) {
+    project.inverters.forEach((inv: any, index: number) => {
+      setFontBold();
+      doc.text(`4.2 – Inversor ${String(index + 1).padStart(2, "0")}`, 14, yPos);
+      yPos += 8;
+      setFontNormal();
+      doc.text(`Fabricante: ${inv.manufacturer || "-"}`, 14, yPos); yPos += 5;
+      doc.text(`Modelo: ${inv.model || "-"}`, 14, yPos); yPos += 5;
+      doc.text(`Quantidade de inversores: ${inv.quantity || 1}`, 14, yPos); yPos += 5;
+      doc.text(`Potência máxima de saída: ${inv.outputPower || "-"} kW`, 14, yPos); yPos += 5;
+      doc.text(`Corrente máxima de saída: ${inv.outputCurrent || "-"} A`, 14, yPos); yPos += 5;
+      yPos += 5;
+    });
+    setFontNormal();
+    doc.text(`Fator de potência: 0,8 capacitivo a 0,8 indutivo`, 14, yPos); yPos += 10;
+  } else {
+    setFontBold();
+    doc.text("4.2 – Inversor 01", 14, yPos);
+    yPos += 8;
+    setFontNormal();
+    doc.text(`Fabricante: ${project.inverterManufacturer || "-"}`, 14, yPos); yPos += 5;
+    doc.text(`Modelo: ${project.inverterModel || "-"}`, 14, yPos); yPos += 5;
+    doc.text(`Quantidade de inversores: 1`, 14, yPos); yPos += 5;
+    doc.text(`Potência máxima de saída: ${project.inverterOutputPower || "-"} kW`, 14, yPos); yPos += 5;
+    doc.text(`Corrente máxima de saída: ${project.inverterOutputCurrent || "-"} A`, 14, yPos); yPos += 5;
+    doc.text(`Fator de potência: 0,8 capacitivo a 0,8 indutivo`, 14, yPos); yPos += 10;
+  }
 
   doc.addPage();
   yPos = 20;
