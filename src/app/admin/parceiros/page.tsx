@@ -11,6 +11,14 @@ import { UserMenu } from '@/components/UserMenu';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+type Partner = {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  _count?: { clients: number };
+};
+
 export default function AdminPartnersPage() {
   const { data: session, isLoading, mutate } = useSWR('/api/users', fetcher);
   const authSession = useSession();
@@ -20,11 +28,11 @@ export default function AdminPartnersPage() {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   
   // Edit State
-  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editingUser, setEditingUser] = useState<Partner | null>(null);
   const [editFormData, setEditFormData] = useState({ name: '', email: '', password: '' });
   
   // Delete State
-  const [deletingUser, setDeletingUser] = useState<any>(null);
+  const [deletingUser, setDeletingUser] = useState<Partner | null>(null);
   const [adminPassword, setAdminPassword] = useState('');
 
   const [error, setError] = useState('');
@@ -63,7 +71,7 @@ export default function AdminPartnersPage() {
     }
   };
 
-  const handleEditClick = (user: any) => {
+  const handleEditClick = (user: Partner) => {
     setEditingUser(user);
     setEditFormData({ name: user.name, email: user.email, password: '' });
     setError('');
@@ -95,7 +103,7 @@ export default function AdminPartnersPage() {
     }
   };
 
-  const handleDeleteClick = (user: any) => {
+  const handleDeleteClick = (user: Partner) => {
     setDeletingUser(user);
     setAdminPassword('');
     setError('');
@@ -264,7 +272,7 @@ export default function AdminPartnersPage() {
           ) : session.length === 0 ? (
             <div className="p-8 text-center text-slate-500">Nenhuma empresa parceira cadastrada ainda.</div>
           ) : (
-            session.map((user: any) => (
+            session.map((user: Partner) => (
               <div key={user.id} className="p-4 grid grid-cols-12 gap-4 items-center hover:bg-slate-50/50 transition-colors">
                 <div className="col-span-4 font-bold text-slate-800 flex items-center gap-3 truncate">
                   <div className="w-8 h-8 rounded bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-xs flex-shrink-0">

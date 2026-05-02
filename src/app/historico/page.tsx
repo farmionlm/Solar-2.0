@@ -20,6 +20,7 @@ export default function Historico() {
     const projName = project.name || "Projeto_Salvo";
     const client = project.client;
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const exportData: any[][] = [
       ["RELATÓRIO DE DIMENSIONAMENTO FOTOVOLTAICO"],
       [],

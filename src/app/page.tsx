@@ -92,6 +92,7 @@ function HomeContent() {
         const workbook = XLSX.read(data, { type: "array" });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
 
         if (jsonData.length < 2) {
@@ -110,6 +111,7 @@ function HomeContent() {
     reader.readAsArrayBuffer(file);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const calculateAndDisplay = (data: any[][]) => {
     const headers = data[0].map((h) => String(h).toLowerCase());
 
@@ -177,6 +179,7 @@ function HomeContent() {
 
     const projName = projectName || "Dimensionamento Solar";
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const exportData: any[][] = [
       ["Relatório de Dimensionamento Fotovoltaico"],
       ["Projeto:", projName],
@@ -222,6 +225,7 @@ function HomeContent() {
     setError("");
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload: any = {
         name: projectName || 'Projeto sem nome',
         modulePower,

@@ -26,7 +26,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Este e-mail já está sendo usado por outro usuário.' }, { status: 400 });
     }
 
-    const updateData: any = { name, email };
+    const updateData: { name: string; email: string; passwordHash?: string } = { name, email };
     
     // If password is provided, hash and update it
     if (password && password.trim() !== '') {
