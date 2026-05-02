@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { Project, ClientDetail } from "@/types";
 
 export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
@@ -61,7 +61,7 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   // --- 3. DADOS DO SISTEMA FOTOVOLTAICO ---
   addSectionTitle("3. DADOS DO SISTEMA FOTOVOLTAICO");
   addLine("Nome do Projeto:", project.name);
-  addLine("Potência Total Instalada (kWp):", project.totalKwp.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  addLine("Potência Total Instalada (kWp):", project.totalKwp?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
   addLine("Geração Mensal Estimada (kWh/mês):", project.generationKwh);
   addLine("Redução Estimada na Fatura (%):", project.reductionPercent);
   addLine("Área Total Ocupada (m²):", project.areaOccupied);
@@ -101,23 +101,23 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   // --- 5. UNIDADES CONSUMIDORAS ---
   addSectionTitle("5. RATEIO POR UNIDADES CONSUMIDORAS");
   
-  const tableData = project.units.map(u => [
+  const tableData = (project.units || []).map(u => [
     u.code,
     u.name,
-    u.monthlyCons.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-    u.requiredKwp.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-    u.requiredModules.toString()
+    u.monthlyCons?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+    u.requiredKwp?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+    u.requiredModules?.toString()
   ]);
 
   tableData.push([
     "TOTAL",
     "-",
-    project.units.reduce((acc, u) => acc + u.monthlyCons, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-    project.totalKwp.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-    project.totalModules.toString()
+    (project.units || []).reduce((acc, u) => acc + (u.monthlyCons || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+    (project.totalKwp || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+    (project.totalModules || 0).toString()
   ]);
 
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: yPos,
     head: [['Código', 'Nome da Unidade', 'Média (kWh)', 'kWp', 'Módulos']],
     body: tableData,
