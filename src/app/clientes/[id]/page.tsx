@@ -7,16 +7,7 @@ import { fetcher } from "@/utils/fetcher";
 import * as XLSX from "xlsx";
 import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X } from "lucide-react";
 
-type Unit = { code: string; name: string; monthlyCons: number; dailyCons: number; requiredKwp: number; requiredModules: number };
-type Project = { 
-  id: string; name: string; createdAt: string; modulePower: number; totalKwp: number; totalModules: number; 
-  moduleModel: string | null; inverterModel: string | null;
-  units: Unit[]; _count: { units: number } 
-};
-type ClientDetail = {
-  id: string; name: string; cpfCnpj: string | null; phone: string | null; email: string | null; address: string | null;
-  createdAt: string; projects: Project[];
-};
+import { ProcessedUnit, Project, ClientDetail } from "@/types";
 
 export default function ClienteDetalhe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

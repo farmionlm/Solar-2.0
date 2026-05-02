@@ -20,4 +20,26 @@ export type ClientListItem = {
   name: string;
   cpfCnpj?: string | null;
   email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  createdAt?: string;
+  _count?: { projects: number };
+};
+
+export type Project = {
+  id: string;
+  name: string;
+  createdAt: string;
+  modulePower: number;
+  totalKwp: number;
+  totalModules: number;
+  moduleModel: string | null;
+  inverterModel: string | null;
+  units: ProcessedUnit[];
+  _count?: { units: number };
+  client?: ClientListItem | null;
+};
+
+export type ClientDetail = ClientListItem & {
+  projects: Project[];
 };

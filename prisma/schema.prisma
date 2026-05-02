@@ -21,6 +21,9 @@ model Client {
   address   String?
 
   projects  Project[]
+
+  @@index([name])
+  @@index([cpfCnpj])
 }
 
 model Project {
@@ -39,6 +42,9 @@ model Project {
   client       Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
 
   units        ConsumerUnit[]
+
+  @@index([clientId])
+  @@index([createdAt])
 }
 
 model ConsumerUnit {

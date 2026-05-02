@@ -7,35 +7,7 @@ import { fetcher } from "@/utils/fetcher";
 import { ArrowLeft, Calendar, Zap, LayoutGrid, Sun, Download, Trash2, Users, Home } from "lucide-react";
 import * as XLSX from "xlsx";
 
-type Project = {
-  id: string;
-  name: string;
-  createdAt: string;
-  modulePower: number;
-  totalKwp: number;
-  totalModules: number;
-  moduleModel: string | null;
-  inverterModel: string | null;
-  _count: {
-    units: number;
-  };
-  units: {
-    code: string;
-    name: string;
-    monthlyCons: number;
-    dailyCons: number;
-    requiredKwp: number;
-    requiredModules: number;
-  }[];
-  client?: {
-    id: string;
-    name: string;
-    cpfCnpj: string | null;
-    phone: string | null;
-    email: string | null;
-    address: string | null;
-  } | null;
-};
+import { Project } from "@/types";
 
 export default function Historico() {
   const { data: projects, error: swrError, isLoading, mutate } = useSWR<Project[]>("/api/calculations", fetcher);

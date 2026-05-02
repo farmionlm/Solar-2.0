@@ -6,16 +6,7 @@ import useSWR, { useSWRConfig } from "swr";
 import { fetcher } from "@/utils/fetcher";
 import { ArrowLeft, Users, Search, Trash2, ChevronRight, Phone, Mail, MapPin, FileText, Home } from "lucide-react";
 
-type Client = {
-  id: string;
-  name: string;
-  cpfCnpj: string | null;
-  phone: string | null;
-  email: string | null;
-  address: string | null;
-  createdAt: string;
-  _count: { projects: number };
-};
+import { ClientListItem as Client } from "@/types";
 
 export default function Clientes() {
   const { data: clients, error: swrError, isLoading, mutate } = useSWR<Client[]>("/api/clients", fetcher);
