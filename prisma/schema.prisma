@@ -18,7 +18,9 @@ model Client {
   cpfCnpj   String?
   phone     String?
   email     String?
-  address   String?
+  address            String?
+  installationNumber String?
+  cep                String?
 
   projects  Project[]
 
@@ -35,8 +37,23 @@ model Project {
   totalModules Int
   
   // Equipamentos vinculados ao projeto
-  moduleModel   String?
-  inverterModel String?
+  moduleModel           String?
+  inverterModel         String?
+  
+  // Dados Técnicos e Geração
+  generationKwh         Float?
+  reductionPercent      Float?
+  moduleManufacturer    String?
+  moduleArea            Float?
+  moduleCurrent         Float?
+  inverterManufacturer  String?
+  inverterOutputPower   Float?
+  inverterOutputCurrent Float?
+  areaOccupied          Float?
+  
+  // Responsável Técnico
+  professionalName      String?
+  professionalCrt       String?
 
   clientId     String?
   client       Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)

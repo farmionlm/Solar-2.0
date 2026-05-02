@@ -102,7 +102,12 @@ export async function DELETE(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, moduleModel, inverterModel } = body;
+    const { 
+      id, moduleModel, inverterModel,
+      generationKwh, reductionPercent, moduleManufacturer, moduleArea,
+      moduleCurrent, inverterManufacturer, inverterOutputPower,
+      inverterOutputCurrent, areaOccupied, professionalName, professionalCrt
+    } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'ID do projeto é obrigatório.' }, { status: 400 });
@@ -111,8 +116,19 @@ export async function PUT(request: Request) {
     const project = await prisma.project.update({
       where: { id },
       data: {
-        moduleModel: moduleModel?.trim() || null,
-        inverterModel: inverterModel?.trim() || null,
+        ...(moduleModel !== undefined && { moduleModel: moduleModel?.trim() || null }),
+        ...(inverterModel !== undefined && { inverterModel: inverterModel?.trim() || null }),
+        ...(generationKwh !== undefined && { generationKwh: generationKwh ? Number(generationKwh) : null }),
+        ...(reductionPercent !== undefined && { reductionPercent: reductionPercent ? Number(reductionPercent) : null }),
+        ...(moduleManufacturer !== undefined && { moduleManufacturer: moduleManufacturer?.trim() || null }),
+        ...(moduleArea !== undefined && { moduleArea: moduleArea ? Number(moduleArea) : null }),
+        ...(moduleCurrent !== undefined && { moduleCurrent: moduleCurrent ? Number(moduleCurrent) : null }),
+        ...(inverterManufacturer !== undefined && { inverterManufacturer: inverterManufacturer?.trim() || null }),
+        ...(inverterOutputPower !== undefined && { inverterOutputPower: inverterOutputPower ? Number(inverterOutputPower) : null }),
+        ...(inverterOutputCurrent !== undefined && { inverterOutputCurrent: inverterOutputCurrent ? Number(inverterOutputCurrent) : null }),
+        ...(areaOccupied !== undefined && { areaOccupied: areaOccupied ? Number(areaOccupied) : null }),
+        ...(professionalName !== undefined && { professionalName: professionalName?.trim() || null }),
+        ...(professionalCrt !== undefined && { professionalCrt: professionalCrt?.trim() || null }),
       }
     });
 

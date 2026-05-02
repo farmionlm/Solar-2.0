@@ -13,6 +13,8 @@ export type ClientData = {
   phone: string;
   email: string;
   address: string;
+  installationNumber?: string;
+  cep?: string;
 };
 
 export type ClientListItem = {
@@ -22,6 +24,8 @@ export type ClientListItem = {
   email?: string | null;
   phone?: string | null;
   address?: string | null;
+  installationNumber?: string | null;
+  cep?: string | null;
   createdAt?: string;
   _count?: { projects: number };
 };
@@ -35,6 +39,17 @@ export type Project = {
   totalModules: number;
   moduleModel: string | null;
   inverterModel: string | null;
+  generationKwh?: number | null;
+  reductionPercent?: number | null;
+  moduleManufacturer?: string | null;
+  moduleArea?: number | null;
+  moduleCurrent?: number | null;
+  inverterManufacturer?: string | null;
+  inverterOutputPower?: number | null;
+  inverterOutputCurrent?: number | null;
+  areaOccupied?: number | null;
+  professionalName?: string | null;
+  professionalCrt?: string | null;
   units: ProcessedUnit[];
   _count?: { units: number };
   client?: ClientListItem | null;

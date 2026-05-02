@@ -21,25 +21,25 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
   const [isEditingClient, setIsEditingClient] = useState(false);
   const [editClientData, setEditClientData] = useState({
-    name: "", cpfCnpj: "", phone: "", email: "", address: ""
+    name: "", cpfCnpj: "", phone: "", email: "", address: "", cep: "", installationNumber: ""
   });
 
-  const saveProjectEquipment = async (projId: string, modModel: string, invModel: string) => {
+  const saveProjectEquipment = async (projId: string, equipData: any) => {
     setIsSaving(true);
     setSaveMsg("");
     try {
       const res = await fetch("/api/calculations", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: projId, moduleModel: modModel, inverterModel: invModel }),
+        body: JSON.stringify({ id: projId, ...equipData }),
       });
       if (!res.ok) throw new Error("Erro");
       await res.json();
       
       await mutate();
-      setSaveMsg("Equipamentos do projeto salvos!");
+      setSaveMsg("Dados técnicos do projeto salvos!");
       setTimeout(() => setSaveMsg(""), 3000);
-    } catch { setError("Erro ao salvar equipamentos do projeto."); }
+    } catch { setError("Erro ao salvar dados técnicos."); }
     finally { setIsSaving(false); }
   };
   
@@ -72,7 +72,9 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
       cpfCnpj: client.cpfCnpj || "",
       phone: client.phone || "",
       email: client.email || "",
-      address: client.address || ""
+      address: client.address || "",
+      cep: client.cep || "",
+      installationNumber: client.installationNumber || ""
     });
     setIsEditingClient(true);
   };
@@ -201,16 +203,13 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     XLSX.writeFile(wb, `Projeto_${(proj.name || "SemNome").replace(/[^a-z0-9]/gi, "_")}.xlsx`);
   };
 
-  const [projectEquipments, setProjectEquipments] = useState<Record<string, { module: string, inverter: string }>>({});
+  const [projectEquipments, setProjectEquipments] = useState<Record<string, any>>({});
 
-  const handleEquipmentChange = (projId: string, field: 'module' | 'inverter', value: string) => {
+  const handleEquipmentChange = (projId: string, field: string, value: string | number) => {
     setProjectEquipments(prev => ({
       ...prev,
       [projId]: {
-        ...(prev[projId] || { 
-          module: client?.projects.find(p => p.id === projId)?.moduleModel || "", 
-          inverter: client?.projects.find(p => p.id === projId)?.inverterModel || "" 
-        }),
+        ...(prev[projId] || {}),
         [field]: value
       }
     }));
@@ -316,8 +315,16 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                 <Input type="email" value={editClientData.email} onChange={(e) => setEditClientData({...editClientData, email: e.target.value})} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Endereço</label>
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">CEP</label>
+                <Input type="text" value={editClientData.cep} onChange={(e) => setEditClientData({...editClientData, cep: e.target.value})} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Endereço Completo</label>
                 <Input type="text" value={editClientData.address} onChange={(e) => setEditClientData({...editClientData, address: e.target.value})} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Número da Instalação (Concessionária)</label>
+                <Input type="text" value={editClientData.installationNumber} onChange={(e) => setEditClientData({...editClientData, installationNumber: e.target.value})} />
               </div>
             </div>
           ) : (
@@ -325,7 +332,9 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
               <p className="flex items-center gap-2 text-slate-600"><FileText className="w-4 h-4 text-slate-400" /> {client.cpfCnpj || "CPF/CNPJ não informado"}</p>
               <p className="flex items-center gap-2 text-slate-600"><Phone className="w-4 h-4 text-slate-400" /> {client.phone || "Telefone não informado"}</p>
               <p className="flex items-center gap-2 text-slate-600"><Mail className="w-4 h-4 text-slate-400" /> {client.email || "E-mail não informado"}</p>
-              <p className="flex items-center gap-2 text-slate-600"><MapPin className="w-4 h-4 text-slate-400" /> {client.address || "Endereço não informado"}</p>
+              <p className="flex items-center gap-2 text-slate-600"><MapPin className="w-4 h-4 text-slate-400" /> {client.cep ? `CEP: ${client.cep}` : "CEP não informado"}</p>
+              <p className="flex items-center gap-2 text-slate-600 md:col-span-2"><MapPin className="w-4 h-4 text-slate-400" /> {client.address || "Endereço não informado"}</p>
+              <p className="flex items-center gap-2 text-slate-600 md:col-span-2"><Zap className="w-4 h-4 text-slate-400" /> Num. Instalação: <span className="font-semibold">{client.installationNumber || "Não informado"}</span></p>
             </div>
           )}
         </div>
@@ -344,9 +353,21 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
           ) : (
             <div className="space-y-4">
               {client.projects.map((proj) => {
-                const currentEquip = projectEquipments[proj.id] || { 
-                  module: proj.moduleModel || "", 
-                  inverter: proj.inverterModel || "" 
+                const currentEquip = {
+                  moduleModel: proj.moduleModel || "",
+                  inverterModel: proj.inverterModel || "",
+                  generationKwh: proj.generationKwh || "",
+                  reductionPercent: proj.reductionPercent || "",
+                  moduleManufacturer: proj.moduleManufacturer || "",
+                  moduleArea: proj.moduleArea || "",
+                  moduleCurrent: proj.moduleCurrent || "",
+                  inverterManufacturer: proj.inverterManufacturer || "",
+                  inverterOutputPower: proj.inverterOutputPower || "",
+                  inverterOutputCurrent: proj.inverterOutputCurrent || "",
+                  areaOccupied: proj.areaOccupied || "",
+                  professionalName: proj.professionalName || "",
+                  professionalCrt: proj.professionalCrt || "",
+                  ...projectEquipments[proj.id]
                 };
 
                 return (
@@ -379,24 +400,79 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
                     {expandedProject === proj.id && (
                       <div className="border-t border-slate-200 p-6 bg-slate-50/30">
-                        {/* Equipamentos do Projeto */}
-                        <div className="bg-white rounded-2xl p-5 border border-slate-200 mb-6 shadow-sm">
-                          <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Equipamentos do Projeto</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        {/* Dados Técnicos do Projeto para Memorial */}
+                        <div className="bg-white rounded-2xl p-6 border border-slate-200 mb-6 shadow-sm">
+                          <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
+                            <FileText className="w-4 h-4" /> Dados para o Memorial Descritivo
+                          </h4>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Geração Mensal Estimada (kWh)</label>
+                              <Input type="number" value={currentEquip.generationKwh} onChange={(e) => handleEquipmentChange(proj.id, 'generationKwh', e.target.value)} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Percentual de Redução (%)</label>
+                              <Input type="number" value={currentEquip.reductionPercent} onChange={(e) => handleEquipmentChange(proj.id, 'reductionPercent', e.target.value)} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Área Ocupada (m²)</label>
+                              <Input type="number" value={currentEquip.areaOccupied} onChange={(e) => handleEquipmentChange(proj.id, 'areaOccupied', e.target.value)} />
+                            </div>
+
+                            <div className="col-span-full border-t border-slate-100 my-2"></div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Fabricante do Módulo</label>
+                              <Input type="text" value={currentEquip.moduleManufacturer} onChange={(e) => handleEquipmentChange(proj.id, 'moduleManufacturer', e.target.value)} />
+                            </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Modelo do Módulo</label>
-                              <Input type="text" value={currentEquip.module} onChange={(e) => handleEquipmentChange(proj.id, 'module', e.target.value)}
-                                placeholder="Ex: Canadian Solar 550W" />
+                              <Input type="text" value={currentEquip.moduleModel} onChange={(e) => handleEquipmentChange(proj.id, 'moduleModel', e.target.value)} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Área do Módulo (m²)</label>
+                              <Input type="number" value={currentEquip.moduleArea} onChange={(e) => handleEquipmentChange(proj.id, 'moduleArea', e.target.value)} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Corrente do Módulo (Imp - A)</label>
+                              <Input type="number" value={currentEquip.moduleCurrent} onChange={(e) => handleEquipmentChange(proj.id, 'moduleCurrent', e.target.value)} />
+                            </div>
+
+                            <div className="col-span-full border-t border-slate-100 my-2"></div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Fabricante do Inversor</label>
+                              <Input type="text" value={currentEquip.inverterManufacturer} onChange={(e) => handleEquipmentChange(proj.id, 'inverterManufacturer', e.target.value)} />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Modelo do Inversor</label>
-                              <Input type="text" value={currentEquip.inverter} onChange={(e) => handleEquipmentChange(proj.id, 'inverter', e.target.value)}
-                                placeholder="Ex: Growatt 6000W" />
+                              <Input type="text" value={currentEquip.inverterModel} onChange={(e) => handleEquipmentChange(proj.id, 'inverterModel', e.target.value)} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Potência de Saída Inversor (kW)</label>
+                              <Input type="number" value={currentEquip.inverterOutputPower} onChange={(e) => handleEquipmentChange(proj.id, 'inverterOutputPower', e.target.value)} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Corrente de Saída Inversor (A)</label>
+                              <Input type="number" value={currentEquip.inverterOutputCurrent} onChange={(e) => handleEquipmentChange(proj.id, 'inverterOutputCurrent', e.target.value)} />
+                            </div>
+
+                            <div className="col-span-full border-t border-slate-100 my-2"></div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Nome do Resp. Técnico</label>
+                              <Input type="text" value={currentEquip.professionalName} onChange={(e) => handleEquipmentChange(proj.id, 'professionalName', e.target.value)} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Registro Profissional (CRT/CREA)</label>
+                              <Input type="text" value={currentEquip.professionalCrt} onChange={(e) => handleEquipmentChange(proj.id, 'professionalCrt', e.target.value)} />
                             </div>
                           </div>
-                          <Button onClick={() => saveProjectEquipment(proj.id, currentEquip.module, currentEquip.inverter)} disabled={isSaving}
-                            className="bg-slate-800 hover:bg-slate-900 text-white rounded-lg shadow-md active:scale-95 disabled:opacity-50">
-                            <Save className="w-4 h-4 mr-2" /> {isSaving ? "Salvando..." : "Salvar Equipamentos"}
+                          
+                          <Button onClick={() => saveProjectEquipment(proj.id, currentEquip)} disabled={isSaving}
+                            className="w-full md:w-auto bg-slate-800 hover:bg-slate-900 text-white rounded-xl shadow-md active:scale-95 disabled:opacity-50 h-12 px-8">
+                            <Save className="w-4 h-4 mr-2" /> {isSaving ? "Salvando..." : "Salvar Todos os Dados Técnicos"}
                           </Button>
                         </div>
 
