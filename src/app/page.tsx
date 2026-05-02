@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import Link from "next/link";
-import { Sun, History, Upload, Save, Download, Users, Zap, Search, X } from "lucide-react";
+import { Sun, History, Upload, Save, Download, Users, Zap, Search, X, ArrowLeft } from "lucide-react";
 import { ProcessedUnit, ClientData, ClientListItem } from "@/types";
 import { ResultCards } from "@/components/ResultCards";
 import { SimulationTable } from "@/components/SimulationTable";
