@@ -1,0 +1,13 @@
+===================================================
+CREDENCIAIS DE ACESSO - PLATAFORMA SOLAR 2.0
+===================================================
+
+PERFIL: Administrador Master (Dono)
+E-MAIL: admin@solar.com
+SENHA:  admin123
+
+===================================================
+Atenção: Estas credenciais são para o ambiente local. 
+Lembre-se de não compartilhar este arquivo e, se for 
+usar em produção, altere a senha imediatamente pelo 
+Painel Administrativo.

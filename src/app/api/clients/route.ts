@@ -1,12 +1,22 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../auth/[...nextauth]/route";
 
 export const dynamic = 'force-dynamic';
 
 // GET - Listar todos os clientes
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+    }
+
+    const whereClause = session.user.role === 'ADMIN' ? {} : { userId: session.user.id };
+
     const clients = await prisma.client.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         _count: {
@@ -25,6 +35,11 @@ export async function GET() {
 // POST - Criar novo cliente
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { name, cpfCnpj, phone, email, address, neighborhood, city, installationNumber, cep } = body;
 
@@ -43,6 +58,7 @@ export async function POST(request: Request) {
         city: city?.trim() || null,
         installationNumber: installationNumber?.trim() || null,
         cep: cep?.trim() || null,
+        userId: session.user.id,
       }
     });
 
@@ -56,6 +72,11 @@ export async function POST(request: Request) {
 // PUT - Atualizar cliente (equipamentos, dados)
 export async function PUT(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, name, cpfCnpj, phone, email, address, neighborhood, city, installationNumber, cep } = body;
 

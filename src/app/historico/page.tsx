@@ -8,6 +8,7 @@ import { ArrowLeft, Calendar, Zap, LayoutGrid, Sun, Download, Trash2, Users, Hom
 import * as XLSX from "xlsx";
 
 import { Project } from "@/types";
+import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -135,8 +136,9 @@ export default function Historico() {
             </Link>
             <Link href="/" className="flex items-center gap-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
               <ArrowLeft className="w-5 h-5" />
-              Nova Simulação
+              <span className="hidden sm:inline">Nova Simulação</span>
             </Link>
+            <UserMenu />
           </div>
         </header>
 

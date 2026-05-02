@@ -6,25 +6,46 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("POSTGRES_URL") // uses connection pooling
+  provider = "postgresql"
+  url      = env("POSTGRES_URL") // uses connection pooling
 }
 
+enum Role {
+  ADMIN
+  PARTNER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  role          Role      @default(PARTNER)
+  resetToken    String?
+  resetTokenExp DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  clients       Client[]
+}
 
 model Client {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  name      String
-  cpfCnpj   String?
-  phone     String?
-  email     String?
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  name               String
+  cpfCnpj            String?
+  phone              String?
+  email              String?
   address            String?
   neighborhood       String?
   city               String?
   installationNumber String?
   cep                String?
 
-  projects  Project[]
+  userId             String?
+  user               User?    @relation(fields: [userId], references: [id])
+
+  projects           Project[]
 
   @@index([name])
   @@index([cpfCnpj])

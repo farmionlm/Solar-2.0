@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../auth/[...nextauth]/route";
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+
     const body = await request.json();
     const { name, modulePower, totalKwp, totalModules, units, clientId, clientData, moduleModel, inverterModel } = body;
 
@@ -27,6 +32,7 @@ export async function POST(request: Request) {
           neighborhood: clientData.neighborhood?.trim() || null,
           city: clientData.city?.trim() || null,
           cep: clientData.cep?.trim() || null,
+          userId: session.user.id,
         }
       });
       resolvedClientId = newClient.id;
@@ -64,7 +70,13 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+
+    const whereClause = session.user.role === 'ADMIN' ? {} : { client: { userId: session.user.id } };
+
     const projects = await prisma.project.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         _count: {
@@ -84,6 +96,9 @@ export async function GET() {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -104,6 +119,9 @@ export async function DELETE(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+
     const body = await request.json();
     const { 
       id, moduleModel, inverterModel,

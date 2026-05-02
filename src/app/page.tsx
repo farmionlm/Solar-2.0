@@ -9,6 +9,7 @@ import { ProcessedUnit, ClientData, ClientListItem } from "@/types";
 import { ResultCards } from "@/components/ResultCards";
 import { SimulationTable } from "@/components/SimulationTable";
 import { ClientLinkingForm } from "@/components/ClientLinkingForm";
+import { UserMenu } from "@/components/UserMenu";
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -268,12 +269,13 @@ function HomeContent() {
           <div className="flex gap-3">
             <Link href="/clientes" className="flex items-center gap-2 bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-700 px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
               <Users className="w-5 h-5" />
-              Clientes
+              <span className="hidden sm:inline">Clientes</span>
             </Link>
             <Link href="/historico" className="flex items-center gap-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
               <History className="w-5 h-5" />
-              Histórico
+              <span className="hidden sm:inline">Histórico</span>
             </Link>
+            <UserMenu />
           </div>
         </header>
 
