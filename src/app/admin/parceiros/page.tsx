@@ -8,6 +8,7 @@ import { Users, Plus, ShieldCheck, Mail, Building, Trash2, Edit2, AlertTriangle,
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UserMenu } from '@/components/UserMenu';
+import Link from 'next/link';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -141,9 +142,11 @@ export default function AdminPartnersPage() {
     <div className="max-w-5xl mx-auto p-4 md:p-8 animate-in fade-in slide-in-from-bottom-4">
       <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
-            <ShieldCheck className="w-6 h-6 text-violet-600" />
-          </div>
+          <Link href="/" title="Voltar à página inicial">
+            <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center hover:bg-violet-200 transition-all cursor-pointer">
+              <ShieldCheck className="w-6 h-6 text-violet-600" />
+            </div>
+          </Link>
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Gestão de Parceiros</h1>
             <p className="text-slate-500 text-sm font-medium">Controle as contas das empresas parceiras (B2B)</p>
