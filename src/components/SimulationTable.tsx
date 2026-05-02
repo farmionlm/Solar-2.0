@@ -1,5 +1,13 @@
 import React from 'react';
 import { ProcessedUnit } from '@/types';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 interface SimulationTableProps {
   units: ProcessedUnit[];
@@ -7,33 +15,31 @@ interface SimulationTableProps {
 
 export const SimulationTable: React.FC<SimulationTableProps> = ({ units }) => {
   return (
-    <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="p-4 font-semibold text-slate-600 text-sm uppercase tracking-wider">Código</th>
-              <th className="p-4 font-semibold text-slate-600 text-sm uppercase tracking-wider">Nome da Unidade</th>
-              <th className="p-4 font-semibold text-slate-600 text-sm uppercase tracking-wider text-right">Média (kWh)</th>
-              <th className="p-4 font-semibold text-slate-600 text-sm uppercase tracking-wider text-right">Diário (kWh)</th>
-              <th className="p-4 font-semibold text-slate-600 text-sm uppercase tracking-wider text-right">kWp</th>
-              <th className="p-4 font-semibold text-slate-600 text-sm uppercase tracking-wider text-right">Módulos</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {units.map((unit, idx) => (
-              <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                <td className="p-4 text-slate-700 font-medium">{unit.code}</td>
-                <td className="p-4 text-slate-700">{unit.name}</td>
-                <td className="p-4 text-slate-600 text-right font-mono">{unit.monthlyCons.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td className="p-4 text-slate-600 text-right font-mono">{unit.dailyCons.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td className="p-4 text-slate-900 font-semibold text-right font-mono">{unit.requiredKwp.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td className="p-4 text-slate-900 font-bold text-right">{unit.requiredModules}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+      <Table>
+        <TableHeader className="bg-slate-50">
+          <TableRow>
+            <TableHead className="font-semibold text-slate-600 uppercase tracking-wider h-12">Código</TableHead>
+            <TableHead className="font-semibold text-slate-600 uppercase tracking-wider h-12">Nome da Unidade</TableHead>
+            <TableHead className="font-semibold text-slate-600 uppercase tracking-wider text-right h-12">Média (kWh)</TableHead>
+            <TableHead className="font-semibold text-slate-600 uppercase tracking-wider text-right h-12">Diário (kWh)</TableHead>
+            <TableHead className="font-semibold text-slate-600 uppercase tracking-wider text-right h-12">kWp</TableHead>
+            <TableHead className="font-semibold text-slate-600 uppercase tracking-wider text-right h-12">Módulos</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {units.map((unit, idx) => (
+            <TableRow key={idx} className="hover:bg-slate-50 transition-colors">
+              <TableCell className="font-medium text-slate-700 py-4">{unit.code}</TableCell>
+              <TableCell className="text-slate-700 py-4">{unit.name}</TableCell>
+              <TableCell className="text-slate-600 text-right font-mono py-4">{unit.monthlyCons.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+              <TableCell className="text-slate-600 text-right font-mono py-4">{unit.dailyCons.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+              <TableCell className="text-slate-900 font-semibold text-right font-mono py-4">{unit.requiredKwp.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+              <TableCell className="text-slate-900 font-bold text-right py-4">{unit.requiredModules}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 };

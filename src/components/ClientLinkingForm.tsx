@@ -1,6 +1,8 @@
 import React from 'react';
 import { Users, ChevronDown, ChevronUp, Search, ChevronRight, X } from 'lucide-react';
 import { ClientData, ClientListItem } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface ClientLinkingFormProps {
   showClientForm: boolean;
@@ -86,12 +88,12 @@ export const ClientLinkingForm: React.FC<ClientLinkingFormProps> = ({
                 <div className="space-y-4">
                   <div className="relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input 
+                    <Input 
                       type="text"
                       placeholder="Buscar cliente por nome ou CPF..."
                       value={clientSearchTerm}
                       onChange={(e) => setClientSearchTerm(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none"
+                      className="w-full pl-12 h-12"
                     />
                   </div>
                   
@@ -132,28 +134,28 @@ export const ClientLinkingForm: React.FC<ClientLinkingFormProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
                   <div>
                     <label className="block text-sm font-semibold text-slate-600 mb-1">Nome do Cliente *</label>
-                    <input type="text" value={clientData.name} onChange={(e) => setClientData({...clientData, name: e.target.value})}
-                      placeholder="Ex: João da Silva" className="w-full p-3 rounded-xl border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none" />
+                    <Input type="text" value={clientData.name} onChange={(e) => setClientData({...clientData, name: e.target.value})}
+                      placeholder="Ex: João da Silva" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-600 mb-1">CPF / CNPJ</label>
-                    <input type="text" value={clientData.cpfCnpj} onChange={(e) => setClientData({...clientData, cpfCnpj: e.target.value})}
-                      placeholder="000.000.000-00" className="w-full p-3 rounded-xl border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none" />
+                    <Input type="text" value={clientData.cpfCnpj} onChange={(e) => setClientData({...clientData, cpfCnpj: e.target.value})}
+                      placeholder="000.000.000-00" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-600 mb-1">Telefone</label>
-                    <input type="text" value={clientData.phone} onChange={(e) => setClientData({...clientData, phone: e.target.value})}
-                      placeholder="(00) 00000-0000" className="w-full p-3 rounded-xl border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none" />
+                    <Input type="text" value={clientData.phone} onChange={(e) => setClientData({...clientData, phone: e.target.value})}
+                      placeholder="(00) 00000-0000" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-600 mb-1">E-mail</label>
-                    <input type="email" value={clientData.email} onChange={(e) => setClientData({...clientData, email: e.target.value})}
-                      placeholder="email@exemplo.com" className="w-full p-3 rounded-xl border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none" />
+                    <Input type="email" value={clientData.email} onChange={(e) => setClientData({...clientData, email: e.target.value})}
+                      placeholder="email@exemplo.com" />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-slate-600 mb-1">Endereço / Cidade</label>
-                    <input type="text" value={clientData.address} onChange={(e) => setClientData({...clientData, address: e.target.value})}
-                      placeholder="Rua, Nº - Cidade/UF" className="w-full p-3 rounded-xl border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none" />
+                    <Input type="text" value={clientData.address} onChange={(e) => setClientData({...clientData, address: e.target.value})}
+                      placeholder="Rua, Nº - Cidade/UF" />
                   </div>
                 </div>
               )}

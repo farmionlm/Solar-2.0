@@ -8,6 +8,9 @@ import * as XLSX from "xlsx";
 import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X } from "lucide-react";
 
 import { ProcessedUnit, Project, ClientDetail } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function ClienteDetalhe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -254,13 +257,13 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
           </div>
           <div className="flex gap-3">
             <Link href={`/?clientId=${id}`}
-              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-md shadow-violet-500/20 active:scale-95">
+              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-md shadow-violet-500/20 active:scale-95 h-12">
               <Zap className="w-5 h-5" /> Novo Projeto
             </Link>
-            <button onClick={exportClientExcel}
-              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-md shadow-emerald-500/20 active:scale-95">
-              <Download className="w-5 h-5" /> Planilha de Projetos (Abas)
-            </button>
+            <Button onClick={exportClientExcel}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-md shadow-emerald-500/20 active:scale-95 h-12 px-6 text-base">
+              <Download className="w-5 h-5 mr-2" /> Planilha de Projetos (Abas)
+            </Button>
           </div>
         </header>
 
@@ -269,27 +272,27 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold text-slate-800">Dados do Cliente</h2>
             {!isEditingClient ? (
-              <button 
+              <Button variant="ghost"
                 onClick={startEditing}
-                className="flex items-center gap-1.5 text-violet-600 hover:bg-violet-50 px-3 py-1.5 rounded-lg font-semibold transition-all text-sm"
+                className="text-violet-600 hover:bg-violet-50 hover:text-violet-700 font-semibold text-sm"
               >
-                <Pencil className="w-4 h-4" /> Editar Dados
-              </button>
+                <Pencil className="w-4 h-4 mr-1.5" /> Editar Dados
+              </Button>
             ) : (
               <div className="flex gap-2">
-                <button 
+                <Button variant="ghost"
                   onClick={() => setIsEditingClient(false)}
-                  className="flex items-center gap-1 text-slate-500 hover:bg-slate-100 px-3 py-1.5 rounded-lg font-semibold transition-all text-sm"
+                  className="text-slate-500 hover:bg-slate-100 font-semibold text-sm"
                 >
-                  <X className="w-4 h-4" /> Cancelar
-                </button>
-                <button 
+                  <X className="w-4 h-4 mr-1" /> Cancelar
+                </Button>
+                <Button 
                   onClick={handleUpdateClient}
                   disabled={isSaving}
-                  className="flex items-center gap-1 bg-violet-600 hover:bg-violet-700 text-white px-4 py-1.5 rounded-lg font-semibold transition-all shadow-sm text-sm disabled:opacity-50"
+                  className="bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm disabled:opacity-50"
                 >
-                  <Save className="w-4 h-4" /> {isSaving ? "Salvando..." : "Salvar"}
-                </button>
+                  <Save className="w-4 h-4 mr-1" /> {isSaving ? "Salvando..." : "Salvar"}
+                </Button>
               </div>
             )}
           </div>
@@ -298,28 +301,23 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Nome Completo</label>
-                <input type="text" value={editClientData.name} onChange={(e) => setEditClientData({...editClientData, name: e.target.value})}
-                  className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none text-sm" />
+                <Input type="text" value={editClientData.name} onChange={(e) => setEditClientData({...editClientData, name: e.target.value})} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">CPF / CNPJ</label>
-                <input type="text" value={editClientData.cpfCnpj} onChange={(e) => setEditClientData({...editClientData, cpfCnpj: e.target.value})}
-                  className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none text-sm" />
+                <Input type="text" value={editClientData.cpfCnpj} onChange={(e) => setEditClientData({...editClientData, cpfCnpj: e.target.value})} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Telefone</label>
-                <input type="text" value={editClientData.phone} onChange={(e) => setEditClientData({...editClientData, phone: e.target.value})}
-                  className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none text-sm" />
+                <Input type="text" value={editClientData.phone} onChange={(e) => setEditClientData({...editClientData, phone: e.target.value})} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">E-mail</label>
-                <input type="email" value={editClientData.email} onChange={(e) => setEditClientData({...editClientData, email: e.target.value})}
-                  className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none text-sm" />
+                <Input type="email" value={editClientData.email} onChange={(e) => setEditClientData({...editClientData, email: e.target.value})} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Endereço</label>
-                <input type="text" value={editClientData.address} onChange={(e) => setEditClientData({...editClientData, address: e.target.value})}
-                  className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none text-sm" />
+                <Input type="text" value={editClientData.address} onChange={(e) => setEditClientData({...editClientData, address: e.target.value})} />
               </div>
             </div>
           ) : (
@@ -387,19 +385,19 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Modelo do Módulo</label>
-                              <input type="text" value={currentEquip.module} onChange={(e) => handleEquipmentChange(proj.id, 'module', e.target.value)}
-                                placeholder="Ex: Canadian Solar 550W" className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none text-sm" />
+                              <Input type="text" value={currentEquip.module} onChange={(e) => handleEquipmentChange(proj.id, 'module', e.target.value)}
+                                placeholder="Ex: Canadian Solar 550W" />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Modelo do Inversor</label>
-                              <input type="text" value={currentEquip.inverter} onChange={(e) => handleEquipmentChange(proj.id, 'inverter', e.target.value)}
-                                placeholder="Ex: Growatt 6000W" className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none text-sm" />
+                              <Input type="text" value={currentEquip.inverter} onChange={(e) => handleEquipmentChange(proj.id, 'inverter', e.target.value)}
+                                placeholder="Ex: Growatt 6000W" />
                             </div>
                           </div>
-                          <button onClick={() => saveProjectEquipment(proj.id, currentEquip.module, currentEquip.inverter)} disabled={isSaving}
-                            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all shadow-md active:scale-95 disabled:opacity-50">
-                            <Save className="w-4 h-4" /> {isSaving ? "Salvando..." : "Salvar Equipamentos"}
-                          </button>
+                          <Button onClick={() => saveProjectEquipment(proj.id, currentEquip.module, currentEquip.inverter)} disabled={isSaving}
+                            className="bg-slate-800 hover:bg-slate-900 text-white rounded-lg shadow-md active:scale-95 disabled:opacity-50">
+                            <Save className="w-4 h-4 mr-2" /> {isSaving ? "Salvando..." : "Salvar Equipamentos"}
+                          </Button>
                         </div>
 
                         <div className="grid grid-cols-3 gap-4 mb-4">
@@ -418,28 +416,28 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                         </div>
 
                         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-                          <table className="w-full text-left text-sm">
-                            <thead>
-                              <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="p-3 font-semibold text-slate-600">Código</th>
-                                <th className="p-3 font-semibold text-slate-600">Unidade</th>
-                                <th className="p-3 font-semibold text-slate-600 text-right">Média (kWh)</th>
-                                <th className="p-3 font-semibold text-slate-600 text-right">kWp</th>
-                                <th className="p-3 font-semibold text-slate-600 text-right">Módulos</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 bg-white">
+                          <Table>
+                            <TableHeader className="bg-slate-50">
+                              <TableRow>
+                                <TableHead className="font-semibold text-slate-600">Código</TableHead>
+                                <TableHead className="font-semibold text-slate-600">Unidade</TableHead>
+                                <TableHead className="font-semibold text-slate-600 text-right">Média (kWh)</TableHead>
+                                <TableHead className="font-semibold text-slate-600 text-right">kWp</TableHead>
+                                <TableHead className="font-semibold text-slate-600 text-right">Módulos</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
                               {proj.units.map((u, i) => (
-                                <tr key={i} className="hover:bg-slate-50">
-                                  <td className="p-3 text-slate-700 font-medium">{u.code}</td>
-                                  <td className="p-3 text-slate-700">{u.name}</td>
-                                  <td className="p-3 text-slate-600 text-right font-mono">{u.monthlyCons.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
-                                  <td className="p-3 text-slate-900 font-semibold text-right font-mono">{u.requiredKwp.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
-                                  <td className="p-3 text-slate-900 font-bold text-right">{u.requiredModules}</td>
-                                </tr>
+                                <TableRow key={i} className="hover:bg-slate-50">
+                                  <TableCell className="text-slate-700 font-medium py-3">{u.code}</TableCell>
+                                  <TableCell className="text-slate-700 py-3">{u.name}</TableCell>
+                                  <TableCell className="text-slate-600 text-right font-mono py-3">{u.monthlyCons.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell className="text-slate-900 font-semibold text-right font-mono py-3">{u.requiredKwp.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell className="text-slate-900 font-bold text-right py-3">{u.requiredModules}</TableCell>
+                                </TableRow>
                               ))}
-                            </tbody>
-                          </table>
+                            </TableBody>
+                          </Table>
                         </div>
                       </div>
                     )}

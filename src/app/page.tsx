@@ -10,6 +10,8 @@ import { ResultCards } from "@/components/ResultCards";
 import { SimulationTable } from "@/components/SimulationTable";
 import { ClientLinkingForm } from "@/components/ClientLinkingForm";
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -299,17 +301,16 @@ function HomeContent() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Nome do Projeto (Opcional)</label>
-                <input 
+                <Input 
                   type="text" 
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder="Ex: Escolas Municipais"
-                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none bg-white"
                 />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Potência do Módulo (W)</label>
-                <input 
+                <Input 
                   type="number" 
                   value={modulePower}
                   onChange={(e) => {
@@ -317,7 +318,7 @@ function HomeContent() {
                     if (error && e.target.value) setError("");
                   }}
                   placeholder="Ex: 550"
-                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none bg-white font-mono"
+                  className="font-mono"
                 />
               </div>
               <div>
@@ -360,17 +361,17 @@ function HomeContent() {
               />
 
               <div className="flex flex-wrap gap-4 mb-6">
-                <button onClick={exportToExcel}
-                  className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 active:scale-95">
-                  <Download className="w-5 h-5" /> Exportar Planilha
-                </button>
-                <button onClick={saveToDatabase} disabled={isSaving || saved}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all shadow-md active:scale-95 ${
-                    saved ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30'
+                <Button onClick={exportToExcel}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-md h-12 px-6 shadow-emerald-500/20 active:scale-95 text-base">
+                  <Download className="w-5 h-5 mr-2" /> Exportar Planilha
+                </Button>
+                <Button onClick={saveToDatabase} disabled={isSaving || saved}
+                  className={`rounded-xl shadow-md h-12 px-6 active:scale-95 text-base ${
+                    saved ? 'bg-slate-200 text-slate-500 cursor-not-allowed hover:bg-slate-200' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20'
                   }`}>
-                  <Save className="w-5 h-5" />
+                  <Save className="w-5 h-5 mr-2" />
                   {isSaving ? "Salvando..." : saved ? "Projeto Salvo!" : "Salvar no Histórico"}
-                </button>
+                </Button>
               </div>
 
               <SimulationTable units={results.units} />

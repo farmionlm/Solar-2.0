@@ -7,6 +7,8 @@ import { fetcher } from "@/utils/fetcher";
 import { ArrowLeft, Users, Search, Trash2, ChevronRight, Phone, Mail, MapPin, FileText, Home } from "lucide-react";
 
 import { ClientListItem as Client } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function Clientes() {
   const { data: clients, error: swrError, isLoading, mutate } = useSWR<Client[]>("/api/clients", fetcher);
@@ -78,10 +80,10 @@ export default function Clientes() {
             </div>
           </Link>
           <div className="flex gap-3">
-            <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-md active:scale-95">
-              <Users className="w-5 h-5" />
+            <Button onClick={() => setShowModal(true)} className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg shadow-md active:scale-95 h-10 px-5">
+              <Users className="w-5 h-5 mr-2" />
               Novo Cliente
-            </button>
+            </Button>
             <Link href="/" className="flex items-center gap-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
               <ArrowLeft className="w-5 h-5" />
               Nova Simulação
@@ -95,12 +97,12 @@ export default function Clientes() {
         <div className="mb-6">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
+            <Input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar por nome, CPF/CNPJ ou e-mail..."
-              className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none bg-white shadow-sm"
+              className="w-full pl-12 h-12 shadow-sm bg-white"
             />
           </div>
         </div>
@@ -188,39 +190,39 @@ export default function Clientes() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-slate-600 mb-1">Nome Completo *</label>
-                  <input type="text" required value={newClient.name} onChange={(e) => setNewClient({...newClient, name: e.target.value})}
-                    placeholder="Ex: João da Silva" className="w-full p-3 rounded-xl border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none" />
+                  <Input type="text" required value={newClient.name} onChange={(e) => setNewClient({...newClient, name: e.target.value})}
+                    placeholder="Ex: João da Silva" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-1">CPF / CNPJ</label>
-                  <input type="text" value={newClient.cpfCnpj} onChange={(e) => setNewClient({...newClient, cpfCnpj: e.target.value})}
-                    placeholder="000.000.000-00" className="w-full p-3 rounded-xl border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none" />
+                  <Input type="text" value={newClient.cpfCnpj} onChange={(e) => setNewClient({...newClient, cpfCnpj: e.target.value})}
+                    placeholder="000.000.000-00" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-1">Telefone</label>
-                  <input type="text" value={newClient.phone} onChange={(e) => setNewClient({...newClient, phone: e.target.value})}
-                    placeholder="(00) 00000-0000" className="w-full p-3 rounded-xl border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none" />
+                  <Input type="text" value={newClient.phone} onChange={(e) => setNewClient({...newClient, phone: e.target.value})}
+                    placeholder="(00) 00000-0000" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-1">E-mail</label>
-                  <input type="email" value={newClient.email} onChange={(e) => setNewClient({...newClient, email: e.target.value})}
-                    placeholder="email@exemplo.com" className="w-full p-3 rounded-xl border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none" />
+                  <Input type="email" value={newClient.email} onChange={(e) => setNewClient({...newClient, email: e.target.value})}
+                    placeholder="email@exemplo.com" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-1">Endereço</label>
-                  <input type="text" value={newClient.address} onChange={(e) => setNewClient({...newClient, address: e.target.value})}
-                    placeholder="Rua, Número, Cidade/UF" className="w-full p-3 rounded-xl border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none" />
+                  <Input type="text" value={newClient.address} onChange={(e) => setNewClient({...newClient, address: e.target.value})}
+                    placeholder="Rua, Número, Cidade/UF" />
                 </div>
               </div>
               <div className="flex gap-3 justify-end mt-8">
-                <button type="button" onClick={() => setShowModal(false)}
-                  className="px-6 py-3 rounded-xl font-semibold text-slate-500 hover:bg-slate-100 transition-all">
+                <Button variant="outline" type="button" onClick={() => setShowModal(false)}
+                  className="rounded-xl h-12 px-6 text-base">
                   Cancelar
-                </button>
-                <button type="submit" disabled={isSaving}
-                  className="bg-violet-600 hover:bg-violet-700 text-white px-8 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-violet-200 disabled:opacity-50">
+                </Button>
+                <Button type="submit" disabled={isSaving}
+                  className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl shadow-lg shadow-violet-200 disabled:opacity-50 h-12 px-8 text-base">
                   {isSaving ? "Salvando..." : "Criar Cliente"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

@@ -8,6 +8,8 @@ import { ArrowLeft, Calendar, Zap, LayoutGrid, Sun, Download, Trash2, Users, Hom
 import * as XLSX from "xlsx";
 
 import { Project } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Historico() {
   const { data: projects, error: swrError, isLoading, mutate } = useSWR<Project[]>("/api/calculations", fetcher);
@@ -156,72 +158,78 @@ export default function Historico() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project) => (
-              <div key={project.id} className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all border border-slate-100 p-6 flex flex-col h-full group">
-                <div className="mb-4">
-                  <h3 className="text-xl font-bold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">{project.name}</h3>
-                  <div className="flex flex-col gap-1 mt-1">
-                    {project.client && (
-                      <Link href={`/clientes/${project.client.id}`} className="flex items-center gap-1.5 text-violet-600 font-bold text-xs uppercase tracking-wider hover:underline">
-                        <Users className="w-3.5 h-3.5" />
-                        {project.client.name}
-                      </Link>
-                    )}
-                    <div className="flex items-center gap-1 text-slate-500 text-sm">
-                      <Calendar className="w-4 h-4" />
-                      {new Date(project.createdAt).toLocaleDateString("pt-BR", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+              <Card key={project.id} className="hover:shadow-xl transition-all border-slate-100 flex flex-col h-full group overflow-hidden">
+                <CardContent className="p-6 flex flex-col h-full">
+                  <div className="mb-4">
+                    <h3 className="text-xl font-bold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">{project.name}</h3>
+                    <div className="flex flex-col gap-1 mt-1">
+                      {project.client && (
+                        <Link href={`/clientes/${project.client.id}`} className="flex items-center gap-1.5 text-violet-600 font-bold text-xs uppercase tracking-wider hover:underline">
+                          <Users className="w-3.5 h-3.5" />
+                          {project.client.name}
+                        </Link>
+                      )}
+                      <div className="flex items-center gap-1 text-slate-500 text-sm">
+                        <Calendar className="w-4 h-4" />
+                        {new Date(project.createdAt).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-6 flex-grow">
-                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                    <div className="flex items-center gap-1 text-slate-500 text-xs uppercase font-bold mb-1 tracking-wider">
-                      <Zap className="w-3 h-3 text-amber-500" />
-                      Potência Total
+                  <div className="grid grid-cols-2 gap-4 mb-6 flex-grow">
+                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                      <div className="flex items-center gap-1 text-slate-500 text-xs uppercase font-bold mb-1 tracking-wider">
+                        <Zap className="w-3 h-3 text-amber-500" />
+                        Potência Total
+                      </div>
+                      <div className="text-lg font-bold text-slate-800">{project.totalKwp.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-slate-500">kWp</span></div>
                     </div>
-                    <div className="text-lg font-bold text-slate-800">{project.totalKwp.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-slate-500">kWp</span></div>
-                  </div>
-                  
-                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                    <div className="flex items-center gap-1 text-slate-500 text-xs uppercase font-bold mb-1 tracking-wider">
-                      <LayoutGrid className="w-3 h-3 text-blue-500" />
-                      Qtd Módulos
+                    
+                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                      <div className="flex items-center gap-1 text-slate-500 text-xs uppercase font-bold mb-1 tracking-wider">
+                        <LayoutGrid className="w-3 h-3 text-blue-500" />
+                        Qtd Módulos
+                      </div>
+                      <div className="text-lg font-bold text-slate-800">{project.totalModules} <span className="text-xs font-normal text-slate-500">unid.</span></div>
                     </div>
-                    <div className="text-lg font-bold text-slate-800">{project.totalModules} <span className="text-xs font-normal text-slate-500">unid.</span></div>
                   </div>
-                </div>
 
-                <div className="pt-4 border-t border-slate-100 flex justify-between items-center text-sm">
-                  <span className="text-slate-500 font-medium">
-                    {project._count?.units || 0} {project._count?.units === 1 ? "unidade" : "unidades"}
-                  </span>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => exportToExcel(project)}
-                      title="Baixar Planilha"
-                      className="p-1 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-md transition-colors"
-                    >
-                      <Download className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={() => deleteProject(project.id)}
-                      title="Apagar Projeto"
-                      className="p-1 text-red-500 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                    <span className="text-blue-600 font-medium flex items-center bg-blue-50 px-2 py-1 rounded-md">
-                      {project.modulePower}W
+                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center text-sm">
+                    <span className="text-slate-500 font-medium">
+                      {project._count?.units || 0} {project._count?.units === 1 ? "unidade" : "unidades"}
                     </span>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => exportToExcel(project)}
+                        title="Baixar Planilha"
+                        className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteProject(project.id)}
+                        title="Apagar Projeto"
+                        className="text-red-500 bg-red-50 hover:bg-red-100"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                      <span className="text-blue-600 font-medium flex items-center bg-blue-50 px-2 py-1 rounded-md">
+                        {project.modulePower}W
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
