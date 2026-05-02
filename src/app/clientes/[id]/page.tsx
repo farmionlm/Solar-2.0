@@ -75,6 +75,14 @@ function formatPhone(value: string): string {
 }
 
 
+function formatCep(value: string): string {
+  const clean = value.replace(/\D/g, "").slice(0, 8);
+  let formatted = "";
+  if (clean.length > 0) formatted += clean.substring(0, Math.min(clean.length, 5));
+  if (clean.length > 5) formatted += "-" + clean.substring(5, clean.length);
+  return formatted;
+}
+
 export default function ClienteDetalhe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: client, error: swrError, isLoading, mutate } = useSWR<ClientDetail>(`/api/clients/${id}`, fetcher);
@@ -381,7 +389,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">CEP</label>
-                <Input type="text" value={editClientData.cep} onChange={(e) => setEditClientData({...editClientData, cep: e.target.value})} />
+                <Input type="text" value={editClientData.cep} onChange={(e) => setEditClientData({...editClientData, cep: formatCep(e.target.value)})} placeholder="00000-000" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Endereço (Rua, Número)</label>

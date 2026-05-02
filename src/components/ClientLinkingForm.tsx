@@ -66,6 +66,14 @@ function formatPhone(value: string): string {
   }
 }
 
+function formatCep(value: string): string {
+  const clean = value.replace(/\D/g, "").slice(0, 8);
+  let formatted = "";
+  if (clean.length > 0) formatted += clean.substring(0, Math.min(clean.length, 5));
+  if (clean.length > 5) formatted += "-" + clean.substring(5, clean.length);
+  return formatted;
+}
+
 interface ClientLinkingFormProps {
   showClientForm: boolean;
   setShowClientForm: (show: boolean) => void;
@@ -216,7 +224,7 @@ export const ClientLinkingForm: React.FC<ClientLinkingFormProps> = ({
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-slate-600 mb-1">CEP</label>
-                    <Input type="text" value={clientData.cep || ""} onChange={(e) => setClientData({...clientData, cep: e.target.value})}
+                    <Input type="text" value={clientData.cep || ""} onChange={(e) => setClientData({...clientData, cep: formatCep(e.target.value)})}
                       placeholder="00000-000" />
                   </div>
                   <div className="md:col-span-2">

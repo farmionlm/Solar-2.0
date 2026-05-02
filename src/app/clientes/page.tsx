@@ -72,6 +72,14 @@ function formatPhone(value: string): string {
   }
 }
 
+function formatCep(value: string): string {
+  const clean = value.replace(/\D/g, "").slice(0, 8);
+  let formatted = "";
+  if (clean.length > 0) formatted += clean.substring(0, Math.min(clean.length, 5));
+  if (clean.length > 5) formatted += "-" + clean.substring(5, clean.length);
+  return formatted;
+}
+
 export default function Clientes() {
   const { data: clients, error: swrError, isLoading, mutate } = useSWR<Client[]>("/api/clients", fetcher);
   const [error, setError] = useState("");
