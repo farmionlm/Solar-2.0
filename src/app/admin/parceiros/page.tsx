@@ -83,6 +83,7 @@ export default function AdminPartnersPage() {
     setLoading(true);
 
     try {
+      if (!editingUser) return;
       const res = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -115,6 +116,7 @@ export default function AdminPartnersPage() {
     setLoading(true);
 
     try {
+      if (!deletingUser) return;
       const res = await fetch(`/api/users/${deletingUser.id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
