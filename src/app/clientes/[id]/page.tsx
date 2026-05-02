@@ -11,6 +11,7 @@ import { ProcessedUnit, Project, ClientDetail } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { generateMemorialPDF } from "@/utils/generateMemorial";
 
 export default function ClienteDetalhe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -384,17 +385,33 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           </div>
                         </div>
                       </button>
-                      <div className="flex items-center gap-3">
-                        <button 
-                          onClick={() => exportProjectExcel(proj)}
-                          className="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all shadow-sm"
-                          title="Exportar este projeto"
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            // Merge saved project data with current un-saved form state so the PDF reflects what the user sees
+                            const currentEquip = projectEquipments[proj.id] || {};
+                            const mergedProject = { ...proj, ...currentEquip };
+                            generateMemorialPDF(client, mergedProject);
+                          }}
+                          className="text-violet-600 bg-violet-50 hover:bg-violet-100"
+                          title="Gerar Memorial Descritivo (PDF)"
                         >
-                          <Download className="w-5 h-5" />
-                        </button>
-                        <button onClick={() => setExpandedProject(expandedProject === proj.id ? null : proj.id)} className="p-1">
+                          <FileText className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => { e.stopPropagation(); exportProjectExcel(proj); }}
+                          className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
+                          title="Exportar Planilha Excel"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setExpandedProject(expandedProject === proj.id ? null : proj.id)}>
                           {expandedProject === proj.id ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
