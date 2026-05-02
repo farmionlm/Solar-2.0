@@ -24,8 +24,6 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
-  const [moduleModel, setModuleModel] = useState("");
-  const [inverterModel, setInverterModel] = useState("");
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
   const [isEditingClient, setIsEditingClient] = useState(false);
   const [editClientData, setEditClientData] = useState({
@@ -42,15 +40,9 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         body: JSON.stringify({ id: projId, moduleModel: modModel, inverterModel: invModel }),
       });
       if (!res.ok) throw new Error("Erro");
-      const updated = await res.json();
+      await res.json();
       
-      setClient((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          projects: prev.projects.map(p => p.id === projId ? { ...p, moduleModel: updated.moduleModel, inverterModel: updated.inverterModel } : p)
-        };
-      });
+      await mutate();
       setSaveMsg("Equipamentos do projeto salvos!");
       setTimeout(() => setSaveMsg(""), 3000);
     } catch { setError("Erro ao salvar equipamentos do projeto."); }
@@ -67,8 +59,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         body: JSON.stringify({ id, ...editClientData }),
       });
       if (!res.ok) throw new Error("Erro");
-      const updated = await res.json();
-      mutate();
+      await res.json();
+      await mutate();
       setIsEditingClient(false);
       setSaveMsg("Dados do cliente atualizados!");
       setTimeout(() => setSaveMsg(""), 3000);
@@ -230,7 +222,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     }));
   };
 
-  if (isLoading) {
+  if (isLoading && !client) {
     return (
       <div className="min-h-screen bg-slate-50 flex justify-center items-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
@@ -238,11 +230,11 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     );
   }
 
-  if (error || !client) {
+  if (swrError || error || !client) {
     return (
       <div className="min-h-screen bg-slate-50 p-8">
         <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border p-12 text-center">
-          <p className="text-red-600 font-medium mb-4">{error || "Cliente não encontrado."}</p>
+          <p className="text-red-600 font-medium mb-4">{swrError?.message || error || "Cliente não encontrado."}</p>
           <div className="flex justify-center gap-4">
             <Link href="/" className="text-slate-500 font-semibold hover:underline">Ir para Início</Link>
             <Link href="/clientes" className="text-violet-600 font-semibold hover:underline">Voltar para Clientes</Link>

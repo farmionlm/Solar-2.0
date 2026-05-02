@@ -129,7 +129,7 @@ export default function Historico() {
       const res = await fetch(`/api/calculations?id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error("Erro ao deletar");
       
-      setProjects(projects.filter(p => p.id !== id));
+      await mutate();
     } catch (err) {
       console.error(err);
       alert("Não foi possível deletar o projeto.");
@@ -166,13 +166,13 @@ export default function Historico() {
           </div>
         </header>
 
-        {error && <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 border border-red-100 font-medium">{error}</div>}
+        {(swrError || error) && <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 border border-red-100 font-medium">{swrError?.message || error}</div>}
 
-        {isLoading ? (
+        {isLoading && !projects ? (
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
-        ) : projects.length === 0 ? (
+        ) : !projects || projects.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
             <Sun className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-slate-700 mb-2">Nenhum projeto salvo</h3>
