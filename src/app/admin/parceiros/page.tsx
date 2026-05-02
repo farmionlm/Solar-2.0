@@ -140,7 +140,7 @@ export default function AdminPartnersPage() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 animate-in fade-in slide-in-from-bottom-4">
-      <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex items-center gap-4">
           <Link href="/" title="Voltar à página inicial">
             <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center hover:bg-violet-200 transition-all cursor-pointer">
@@ -148,24 +148,24 @@ export default function AdminPartnersPage() {
             </div>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Gestão de Parceiros</h1>
-            <p className="text-slate-500 text-sm font-medium">Controle as contas das empresas parceiras (B2B)</p>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight">Gestão de Parceiros</h1>
+            <p className="text-slate-500 text-xs md:text-sm font-medium">Controle as contas das empresas parceiras (B2B)</p>
           </div>
         </div>
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-3 items-center w-full md:w-auto justify-between md:justify-end">
           <Button 
             onClick={() => { setIsCreating(!isCreating); setEditingUser(null); setDeletingUser(null); setError(''); }}
-            className="bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-lg shadow-violet-200"
+            className="bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-lg shadow-violet-200 text-sm"
           >
-            {isCreating ? "Cancelar" : <><Plus className="w-4 h-4 mr-2" /> Nova Empresa</>}
+            {isCreating ? "Cancelar" : <><Plus className="w-4 h-4 mr-1 md:mr-2" /> Nova Empresa</>}
           </Button>
           <UserMenu />
         </div>
       </div>
 
       {isCreating && (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-violet-100 mb-8 animate-in fade-in">
-          <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-violet-100 mb-8 animate-in fade-in">
+          <h2 className="text-base md:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
             <Building className="w-5 h-5 text-violet-500" /> Criar Conta de Parceiro
           </h2>
           <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -183,7 +183,7 @@ export default function AdminPartnersPage() {
             </div>
             {error && <div className="md:col-span-3 text-red-500 text-sm font-bold">{error}</div>}
             <div className="md:col-span-3 flex justify-end mt-2">
-              <Button type="submit" disabled={loading} className="bg-violet-600 hover:bg-violet-700">
+              <Button type="submit" disabled={loading} className="bg-violet-600 hover:bg-violet-700 w-full md:w-auto">
                 {loading ? "Criando..." : "Salvar Empresa Parceira"}
               </Button>
             </div>
@@ -192,12 +192,12 @@ export default function AdminPartnersPage() {
       )}
 
       {editingUser && (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-200 mb-8 animate-in fade-in">
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-blue-200 mb-8 animate-in fade-in">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <Edit2 className="w-5 h-5 text-blue-500" /> Editar Parceiro: {editingUser.name}
+            <h2 className="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2">
+              <Edit2 className="w-5 h-5 text-blue-500" /> Editar Parceiro
             </h2>
-            <Button variant="ghost" onClick={() => setEditingUser(null)} className="text-slate-500">Cancelar</Button>
+            <Button variant="ghost" onClick={() => setEditingUser(null)} className="text-slate-500 text-sm h-8">Cancelar</Button>
           </div>
           <form onSubmit={handleEditSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -214,7 +214,7 @@ export default function AdminPartnersPage() {
             </div>
             {error && <div className="md:col-span-3 text-red-500 text-sm font-bold">{error}</div>}
             <div className="md:col-span-3 flex justify-end mt-2">
-              <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700">
+              <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto">
                 {loading ? "Salvando..." : "Atualizar Dados"}
               </Button>
             </div>
@@ -223,24 +223,24 @@ export default function AdminPartnersPage() {
       )}
 
       {deletingUser && (
-        <div className="bg-red-50 p-6 rounded-2xl shadow-sm border border-red-200 mb-8 animate-in fade-in">
+        <div className="bg-red-50 p-4 md:p-6 rounded-2xl shadow-sm border border-red-200 mb-8 animate-in fade-in">
           <div className="flex items-start gap-4 mb-4">
-            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-5 h-5 md:w-6 md:h-6 text-red-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-red-800">Excluir Parceiro Definitivamente?</h2>
-              <p className="text-red-700 text-sm font-medium mt-1">
-                Você está prestes a excluir a empresa <strong>{deletingUser.name}</strong>. 
-                Isso apagará também TODOS os clientes e projetos criados por eles. Essa ação não pode ser desfeita.
+              <h2 className="text-base md:text-lg font-bold text-red-800">Excluir Parceiro Definitivamente?</h2>
+              <p className="text-red-700 text-xs md:text-sm font-medium mt-1">
+                Você está prestes a excluir <strong>{deletingUser.name}</strong>. 
+                Isso apagará também TODOS os clientes e projetos criados por eles.
               </p>
             </div>
           </div>
-          <form onSubmit={handleDeleteSubmit} className="bg-white p-4 rounded-xl border border-red-100">
-            <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+          <form onSubmit={handleDeleteSubmit} className="bg-white p-3 md:p-4 rounded-xl border border-red-100">
+            <label className="block text-xs md:text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
               <KeyRound className="w-4 h-4" /> Para confirmar, digite sua Senha de Administrador:
             </label>
-            <div className="flex gap-4 items-start">
+            <div className="flex flex-col md:flex-row gap-3 md:items-start">
               <div className="flex-1">
                 <Input 
                   required 
@@ -248,23 +248,25 @@ export default function AdminPartnersPage() {
                   placeholder="Sua senha de admin" 
                   value={adminPassword} 
                   onChange={e => setAdminPassword(e.target.value)} 
-                  className="border-red-200 focus-visible:ring-red-500"
+                  className="border-red-200 focus-visible:ring-red-500 text-sm"
                 />
-                {error && <p className="text-red-600 text-sm font-bold mt-2">{error}</p>}
+                {error && <p className="text-red-600 text-xs font-bold mt-2">{error}</p>}
               </div>
-              <Button type="button" variant="ghost" onClick={() => setDeletingUser(null)} disabled={loading}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loading || !adminPassword} className="bg-red-600 hover:bg-red-700 text-white font-bold">
-                {loading ? "Excluindo..." : "Confirmar Exclusão"}
-              </Button>
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="ghost" onClick={() => setDeletingUser(null)} disabled={loading} className="text-sm h-10">
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={loading || !adminPassword} className="bg-red-600 hover:bg-red-700 text-white font-bold text-sm h-10">
+                  {loading ? "Excluindo..." : "Confirmar"}
+                </Button>
+              </div>
             </div>
           </form>
         </div>
       )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-4 bg-slate-50 border-b border-slate-100 grid grid-cols-12 gap-4 text-xs font-bold text-slate-500 uppercase">
+        <div className="hidden md:grid p-4 bg-slate-50 border-b border-slate-100 grid-cols-12 gap-4 text-xs font-bold text-slate-500 uppercase">
           <div className="col-span-4">Empresa / Parceiro</div>
           <div className="col-span-3">E-mail</div>
           <div className="col-span-2 text-center">Clientes Salvos</div>
@@ -278,39 +280,40 @@ export default function AdminPartnersPage() {
             <div className="p-8 text-center text-slate-500">Nenhuma empresa parceira cadastrada ainda.</div>
           ) : (
             session.map((user: Partner) => (
-              <div key={user.id} className="p-4 grid grid-cols-12 gap-4 items-center hover:bg-slate-50/50 transition-colors">
-                <div className="col-span-4 font-bold text-slate-800 flex items-center gap-3 truncate">
+              <div key={user.id} className="p-4 flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 md:items-center hover:bg-slate-50/50 transition-colors">
+                <div className="md:col-span-4 font-bold text-slate-800 flex items-center gap-3 truncate">
                   <div className="w-8 h-8 rounded bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-xs flex-shrink-0">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                   <span className="truncate">{user.name}</span>
                 </div>
-                <div className="col-span-3 text-slate-600 text-sm flex items-center gap-2 truncate">
+                <div className="md:col-span-3 text-slate-600 text-sm flex items-center gap-2 truncate">
                   <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" /> <span className="truncate">{user.email}</span>
                 </div>
-                <div className="col-span-2 text-center">
+                <div className="md:col-span-2 text-left md:text-center flex md:block justify-between items-center text-sm">
+                  <span className="md:hidden text-xs text-slate-400 font-bold uppercase">Clientes Salvos:</span>
                   <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">
                     {user._count?.clients || 0}
                   </span>
                 </div>
-                <div className="col-span-3 flex justify-end gap-2">
+                <div className="md:col-span-3 flex justify-end gap-2 border-t md:border-t-0 pt-2 md:pt-0">
                   <Button 
                     variant="ghost" 
                     size="icon"
                     onClick={() => handleEditClick(user)}
-                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 w-8"
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-9 w-9 md:h-8 md:w-8"
                     title="Editar"
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 className="w-4.5 h-4.5 md:w-4 md:h-4" />
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="icon"
                     onClick={() => handleDeleteClick(user)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 h-9 w-9 md:h-8 md:w-8"
                     title="Excluir"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4.5 h-4.5 md:w-4 md:h-4" />
                   </Button>
                 </div>
               </div>
