@@ -140,14 +140,14 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     if (!client) return;
     setEditClientData({
       name: client.name,
-      cpfCnpj: client.cpfCnpj || "",
-      phone: client.phone || "",
+      cpfCnpj: formatCpfCnpj(client.cpfCnpj || ""),
+      phone: formatPhone(client.phone || ""),
       email: client.email || "",
       address: client.address || "",
       neighborhood: client.neighborhood || "",
       city: client.city || "",
-      cep: client.cep || "",
-      installationNumber: client.installationNumber || ""
+      cep: formatCep(client.cep || ""),
+      installationNumber: formatUnidadeConsumidora(client.installationNumber || "")
     });
     setIsEditingClient(true);
   };
