@@ -12,7 +12,12 @@ async function main() {
   });
 
   if (existingAdmin) {
-    console.log('O usuário Admin já existe no banco de dados!');
+    const passwordHash = await bcrypt.hash('admin123', 10);
+    await prisma.user.update({
+      where: { id: existingAdmin.id },
+      data: { passwordHash }
+    });
+    console.log('✅ SUCESSO: A senha do Administrador foi resetada para: admin123');
     return;
   }
 

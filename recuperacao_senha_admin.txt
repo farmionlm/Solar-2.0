@@ -1,0 +1,43 @@
+========================================================================
+           RECUPERAÇÃO DE SENHA DO ADMINISTRADOR - SOLAR 2.0
+========================================================================
+
+Caso você tenha esquecido a senha do administrador principal (farmion.lm@gmail.com), 
+você pode resetá-la para a senha padrão "admin123" usando o script de Seed.
+
+Siga os passos abaixo:
+
+------------------------------------------------------------------------
+OPÇÃO 1: Executar Localmente (Caso o Banco seja o mesmo da Produção)
+------------------------------------------------------------------------
+
+Se você tiver o projeto em seu computador conectado ao banco de dados:
+1. Abra o terminal na pasta raiz do projeto.
+2. Execute o comando:
+   npx tsx prisma/seed.ts
+
+3. O terminal exibirá a confirmação:
+   "✅ SUCESSO: A senha do Administrador foi resetada para: admin123"
+
+4. Agora você já pode fazer login normalmente com "admin123".
+
+------------------------------------------------------------------------
+OPÇÃO 2: Executar no Vercel (Caso precise resetar na nuvem)
+------------------------------------------------------------------------
+
+Caso precise disparar o comando direto na nuvem do Vercel:
+1. Acesse o painel do seu projeto no Vercel (vercel.com).
+2. Vá na aba "Settings" > "Environment Variables" e garanta que a variável
+   POSTGRES_URL está correta.
+3. Se você fizer o deploy do projeto novamente, ele rodará a seed automaticamente,
+   pois o comando do build está configurado como:
+   "prisma generate && prisma db push && next build"
+   
+4. Caso precise disparar manualmente via console no Vercel:
+   Acesse a aba "Deployments", clique no seu último deploy, clique nos três pontinhos (...)
+   e clique em "Redeploy".
+   Durante o processo de Build, a senha será resetada automaticamente para "admin123".
+
+========================================================================
+⚠️ IMPORTANTE: Assim que resetar e entrar, lembre-se de atualizar sua senha!
+========================================================================
