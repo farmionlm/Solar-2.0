@@ -132,6 +132,7 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   });
 
   // Salva o arquivo
-  const fileName = `Memorial_${client.name.replace(/[^a-z0-9]/gi, "_")}_${project.name.replace(/[^a-z0-9]/gi, "_")}.pdf`;
+  const projName = project.name || "SemNome";
+  const fileName = `Memorial_${client.name.replace(/[^a-z0-9]/gi, "_")}_${projName.replace(/[^a-z0-9]/gi, "_")}.pdf`;
   doc.save(fileName);
 };

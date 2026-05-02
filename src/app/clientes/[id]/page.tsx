@@ -389,11 +389,16 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => {
-                            // Merge saved project data with current un-saved form state so the PDF reflects what the user sees
-                            const currentEquip = projectEquipments[proj.id] || {};
-                            const mergedProject = { ...proj, ...currentEquip };
-                            generateMemorialPDF(client, mergedProject);
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            try {
+                              const currentEquip = projectEquipments[proj.id] || {};
+                              const mergedProject = { ...proj, ...currentEquip };
+                              generateMemorialPDF(client, mergedProject);
+                            } catch (err) {
+                              console.error("Erro ao gerar PDF:", err);
+                              alert("Ocorreu um erro ao gerar o PDF. Verifique os dados.");
+                            }
                           }}
                           className="text-violet-600 bg-violet-50 hover:bg-violet-100"
                           title="Gerar Memorial Descritivo (PDF)"
