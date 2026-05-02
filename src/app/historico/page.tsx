@@ -26,6 +26,7 @@ type Project = {
     requiredModules: number;
   }[];
   client?: {
+    id: string;
     name: string;
     cpfCnpj: string | null;
     phone: string | null;
@@ -203,15 +204,23 @@ export default function Historico() {
               <div key={project.id} className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all border border-slate-100 p-6 flex flex-col h-full group">
                 <div className="mb-4">
                   <h3 className="text-xl font-bold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">{project.name}</h3>
-                  <div className="flex items-center gap-1 text-slate-500 text-sm mt-1">
-                    <Calendar className="w-4 h-4" />
-                    {new Date(project.createdAt).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                  <div className="flex flex-col gap-1 mt-1">
+                    {project.client && (
+                      <Link href={`/clientes/${project.client.id}`} className="flex items-center gap-1.5 text-violet-600 font-bold text-xs uppercase tracking-wider hover:underline">
+                        <Users className="w-3.5 h-3.5" />
+                        {project.client.name}
+                      </Link>
+                    )}
+                    <div className="flex items-center gap-1 text-slate-500 text-sm">
+                      <Calendar className="w-4 h-4" />
+                      {new Date(project.createdAt).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
                   </div>
                 </div>
 

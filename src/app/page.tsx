@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import Link from "next/link";
-import { Sun, History, Upload, Save, Download, Users, ChevronDown, ChevronUp, Zap, ArrowLeft, Search, X } from "lucide-react";
+import { Sun, History, Upload, Save, Download, Users, ChevronDown, ChevronUp, Zap, ArrowLeft, Search, X, ChevronRight } from "lucide-react";
 
 type ProcessedUnit = {
   code: string;
@@ -239,8 +239,8 @@ function HomeContent() {
         clientId: preSelectedClient?.id || null
       };
 
-      // Se tem dados de cliente preenchidos, envia junto
-      if (clientData.name.trim()) {
+      // Se NÃO tem cliente pré-selecionado e tem dados de novo cliente, envia para criação
+      if (!preSelectedClient?.id && clientData.name.trim()) {
         payload.clientData = clientData;
       }
 
