@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
-import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home } from "lucide-react";
+import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X } from "lucide-react";
 
 type Unit = { code: string; name: string; monthlyCons: number; dailyCons: number; requiredKwp: number; requiredModules: number };
 type Project = { 
@@ -26,6 +26,10 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [moduleModel, setModuleModel] = useState("");
   const [inverterModel, setInverterModel] = useState("");
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
+  const [isEditingClient, setIsEditingClient] = useState(false);
+  const [editClientData, setEditClientData] = useState({
+    name: "", cpfCnpj: "", phone: "", email: "", address: ""
+  });
 
   useEffect(() => {
     fetch(`/api/clients/${id}`)
@@ -60,6 +64,40 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
       setTimeout(() => setSaveMsg(""), 3000);
     } catch { setError("Erro ao salvar equipamentos do projeto."); }
     finally { setIsSaving(false); }
+  };
+  
+  const handleUpdateClient = async () => {
+    if (!editClientData.name.trim()) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/clients", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...editClientData }),
+      });
+      if (!res.ok) throw new Error("Erro");
+      const updated = await res.json();
+      setClient(prev => prev ? { ...prev, ...updated } : prev);
+      setIsEditingClient(false);
+      setSaveMsg("Dados do cliente atualizados!");
+      setTimeout(() => setSaveMsg(""), 3000);
+    } catch {
+      setError("Erro ao atualizar dados do cliente.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const startEditing = () => {
+    if (!client) return;
+    setEditClientData({
+      name: client.name,
+      cpfCnpj: client.cpfCnpj || "",
+      phone: client.phone || "",
+      email: client.email || "",
+      address: client.address || ""
+    });
+    setIsEditingClient(true);
   };
 
   const exportClientExcel = () => {
@@ -254,13 +292,70 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
         {/* Dados do cliente */}
         <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-6 mb-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Dados do Cliente</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            {client.cpfCnpj && <p className="flex items-center gap-2 text-slate-600"><FileText className="w-4 h-4 text-slate-400" /> {client.cpfCnpj}</p>}
-            {client.phone && <p className="flex items-center gap-2 text-slate-600"><Phone className="w-4 h-4 text-slate-400" /> {client.phone}</p>}
-            {client.email && <p className="flex items-center gap-2 text-slate-600"><Mail className="w-4 h-4 text-slate-400" /> {client.email}</p>}
-            {client.address && <p className="flex items-center gap-2 text-slate-600"><MapPin className="w-4 h-4 text-slate-400" /> {client.address}</p>}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold text-slate-800">Dados do Cliente</h2>
+            {!isEditingClient ? (
+              <button 
+                onClick={startEditing}
+                className="flex items-center gap-1.5 text-violet-600 hover:bg-violet-50 px-3 py-1.5 rounded-lg font-semibold transition-all text-sm"
+              >
+                <Pencil className="w-4 h-4" /> Editar Dados
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setIsEditingClient(false)}
+                  className="flex items-center gap-1 text-slate-500 hover:bg-slate-100 px-3 py-1.5 rounded-lg font-semibold transition-all text-sm"
+                >
+                  <X className="w-4 h-4" /> Cancelar
+                </button>
+                <button 
+                  onClick={handleUpdateClient}
+                  disabled={isSaving}
+                  className="flex items-center gap-1 bg-violet-600 hover:bg-violet-700 text-white px-4 py-1.5 rounded-lg font-semibold transition-all shadow-sm text-sm disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" /> {isSaving ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            )}
           </div>
+          
+          {isEditingClient ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Nome Completo</label>
+                <input type="text" value={editClientData.name} onChange={(e) => setEditClientData({...editClientData, name: e.target.value})}
+                  className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">CPF / CNPJ</label>
+                <input type="text" value={editClientData.cpfCnpj} onChange={(e) => setEditClientData({...editClientData, cpfCnpj: e.target.value})}
+                  className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Telefone</label>
+                <input type="text" value={editClientData.phone} onChange={(e) => setEditClientData({...editClientData, phone: e.target.value})}
+                  className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">E-mail</label>
+                <input type="email" value={editClientData.email} onChange={(e) => setEditClientData({...editClientData, email: e.target.value})}
+                  className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Endereço</label>
+                <input type="text" value={editClientData.address} onChange={(e) => setEditClientData({...editClientData, address: e.target.value})}
+                  className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none text-sm" />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <p className="flex items-center gap-2 text-slate-600"><FileText className="w-4 h-4 text-slate-400" /> {client.cpfCnpj || "CPF/CNPJ não informado"}</p>
+              <p className="flex items-center gap-2 text-slate-600"><Phone className="w-4 h-4 text-slate-400" /> {client.phone || "Telefone não informado"}</p>
+              <p className="flex items-center gap-2 text-slate-600"><Mail className="w-4 h-4 text-slate-400" /> {client.email || "E-mail não informado"}</p>
+              <p className="flex items-center gap-2 text-slate-600"><MapPin className="w-4 h-4 text-slate-400" /> {client.address || "Endereço não informado"}</p>
+            </div>
+          )}
         </div>
 
         {/* Projetos */}
