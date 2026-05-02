@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import useSWR from "swr";
+import { fetcher } from "@/utils/fetcher";
 import { ArrowLeft, Calendar, Zap, LayoutGrid, Sun, Download, Trash2, Users, Home } from "lucide-react";
 import * as XLSX from "xlsx";
 
@@ -36,27 +38,8 @@ type Project = {
 };
 
 export default function Historico() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: projects, error: swrError, isLoading, mutate } = useSWR<Project[]>("/api/calculations", fetcher);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    fetch("/api/calculations")
-      .then((res) => {
-        if (!res.ok) throw new Error("Falha ao buscar histórico");
-        return res.json();
-      })
-      .then((data) => {
-        setProjects(data);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError("Não foi possível carregar o histórico de projetos.");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, []);
 
   const exportToExcel = (project: Project) => {
     const projName = project.name || "Projeto_Salvo";

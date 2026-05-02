@@ -1,7 +1,7 @@
-"use client";
-
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
+import useSWR from "swr";
+import { fetcher } from "@/utils/fetcher";
 import * as XLSX from "xlsx";
 import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X } from "lucide-react";
 
@@ -18,8 +18,7 @@ type ClientDetail = {
 
 export default function ClienteDetalhe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [client, setClient] = useState<ClientDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: client, error: swrError, isLoading, mutate } = useSWR<ClientDetail>(`/api/clients/${id}`, fetcher);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -30,16 +29,6 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [editClientData, setEditClientData] = useState({
     name: "", cpfCnpj: "", phone: "", email: "", address: ""
   });
-
-  useEffect(() => {
-    fetch(`/api/clients/${id}`)
-      .then((res) => { if (!res.ok) throw new Error("Erro"); return res.json(); })
-      .then((data) => {
-        setClient(data);
-      })
-      .catch(() => setError("Cliente não encontrado."))
-      .finally(() => setIsLoading(false));
-  }, [id]);
 
   const saveProjectEquipment = async (projId: string, modModel: string, invModel: string) => {
     setIsSaving(true);
@@ -77,7 +66,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
       });
       if (!res.ok) throw new Error("Erro");
       const updated = await res.json();
-      setClient(prev => prev ? { ...prev, ...updated } : prev);
+      mutate();
       setIsEditingClient(false);
       setSaveMsg("Dados do cliente atualizados!");
       setTimeout(() => setSaveMsg(""), 3000);

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import useSWR, { useSWRConfig } from "swr";
+import { fetcher } from "@/utils/fetcher";
 import { ArrowLeft, Users, Search, Trash2, ChevronRight, Phone, Mail, MapPin, FileText, Home } from "lucide-react";
 
 type Client = {
@@ -16,8 +18,7 @@ type Client = {
 };
 
 export default function Clientes() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: clients, error: swrError, isLoading, mutate } = useSWR<Client[]>("/api/clients", fetcher);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -25,25 +26,6 @@ export default function Clientes() {
   const [newClient, setNewClient] = useState({
     name: "", cpfCnpj: "", phone: "", email: "", address: ""
   });
-
-  const fetchClients = () => {
-    setIsLoading(true);
-    fetch("/api/clients")
-      .then((res) => {
-        if (!res.ok) throw new Error("Falha ao buscar clientes");
-        return res.json();
-      })
-      .then((data) => setClients(data))
-      .catch((err) => {
-        console.error(err);
-        setError("Não foi possível carregar os clientes.");
-      })
-      .finally(() => setIsLoading(false));
-  };
-
-  useEffect(() => {
-    fetchClients();
-  }, []);
 
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +40,7 @@ export default function Clientes() {
       if (!res.ok) throw new Error("Erro ao salvar");
       setShowModal(false);
       setNewClient({ name: "", cpfCnpj: "", phone: "", email: "", address: "" });
-      fetchClients();
+      mutate();
     } catch (err) {
       alert("Erro ao criar cliente.");
     } finally {
@@ -72,14 +54,14 @@ export default function Clientes() {
     try {
       const res = await fetch(`/api/clients?id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Erro ao deletar");
-      setClients(clients.filter((c) => c.id !== id));
+      mutate();
     } catch (err) {
       console.error(err);
       alert("Não foi possível deletar o cliente.");
     }
   };
 
-  const filtered = clients.filter((c) => {
+  const filtered = (clients || []).filter((c) => {
     const term = searchTerm.toLowerCase();
     return c.name.toLowerCase().includes(term) || 
            (c.cpfCnpj && c.cpfCnpj.includes(term)) ||
@@ -132,22 +114,26 @@ export default function Clientes() {
           </div>
         </div>
 
-        {isLoading ? (
+        {isLoading && !clients ? (
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
+          </div>
+        ) : swrError ? (
+          <div className="bg-red-50 text-red-600 p-8 rounded-2xl text-center font-medium border border-red-100 mb-8">
+            Ocorreu um erro ao carregar os clientes.
           </div>
         ) : filtered.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
             <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-slate-700 mb-2">
-              {clients.length === 0 ? "Nenhum cliente cadastrado" : "Nenhum resultado encontrado"}
+              {(!clients || clients.length === 0) ? "Nenhum cliente cadastrado" : "Nenhum resultado encontrado"}
             </h3>
             <p className="text-slate-500 mb-6">
-              {clients.length === 0
+              {(!clients || clients.length === 0)
                 ? "Vincule um cliente ao salvar sua próxima simulação."
                 : "Tente buscar por outro termo."}
             </p>
-            {clients.length === 0 && (
+            {(!clients || clients.length === 0) && (
               <Link href="/" className="inline-block bg-violet-600 hover:bg-violet-700 text-white px-6 py-3 rounded-xl font-semibold transition-all">
                 Criar Simulação
               </Link>
