@@ -37,6 +37,44 @@ function formatUnidadeConsumidora(value: string): string {
   return formatted;
 }
 
+function formatCpfCnpj(value: string): string {
+  const clean = value.replace(/\D/g, "").slice(0, 14);
+  if (clean.length <= 11) {
+    let formatted = "";
+    if (clean.length > 0) formatted += clean.substring(0, 3);
+    if (clean.length > 3) formatted += "." + clean.substring(3, 6);
+    if (clean.length > 6) formatted += "." + clean.substring(6, 9);
+    if (clean.length > 9) formatted += "-" + clean.substring(9, 11);
+    return formatted;
+  } else {
+    let formatted = "";
+    if (clean.length > 0) formatted += clean.substring(0, 2);
+    if (clean.length > 2) formatted += "." + clean.substring(2, 5);
+    if (clean.length > 5) formatted += "." + clean.substring(5, 8);
+    if (clean.length > 8) formatted += "/" + clean.substring(8, 12);
+    if (clean.length > 12) formatted += "-" + clean.substring(12, 14);
+    return formatted;
+  }
+}
+
+function formatPhone(value: string): string {
+  const clean = value.replace(/\D/g, "").slice(0, 11);
+  if (clean.length <= 10) {
+    let formatted = "";
+    if (clean.length > 0) formatted += "(" + clean.substring(0, 2);
+    if (clean.length > 2) formatted += ") " + clean.substring(2, 6);
+    if (clean.length > 6) formatted += "-" + clean.substring(6, 10);
+    return formatted;
+  } else {
+    let formatted = "";
+    if (clean.length > 0) formatted += "(" + clean.substring(0, 2);
+    if (clean.length > 2) formatted += ") " + clean.substring(2, 7);
+    if (clean.length > 7) formatted += "-" + clean.substring(7, 11);
+    return formatted;
+  }
+}
+
+
 export default function ClienteDetalhe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: client, error: swrError, isLoading, mutate } = useSWR<ClientDetail>(`/api/clients/${id}`, fetcher);
@@ -331,11 +369,11 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">CPF / CNPJ</label>
-                <Input type="text" value={editClientData.cpfCnpj} onChange={(e) => setEditClientData({...editClientData, cpfCnpj: e.target.value})} />
+                <Input type="text" value={editClientData.cpfCnpj} onChange={(e) => setEditClientData({...editClientData, cpfCnpj: formatCpfCnpj(e.target.value)})} placeholder="000.000.000-00 ou 00.000.000/0001-00" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Telefone</label>
-                <Input type="text" value={editClientData.phone} onChange={(e) => setEditClientData({...editClientData, phone: e.target.value})} />
+                <Input type="text" value={editClientData.phone} onChange={(e) => setEditClientData({...editClientData, phone: formatPhone(e.target.value)})} placeholder="(00) 00000-0000" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">E-mail</label>
@@ -472,7 +510,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               <Input type="number" value={currentEquip.reductionPercent} onChange={(e) => handleEquipmentChange(proj.id, 'reductionPercent', e.target.value)} />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Área Ocupada (m²)</label>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Área Total (m²)</label>
                               <Input type="number" value={currentEquip.areaOccupied} onChange={(e) => handleEquipmentChange(proj.id, 'areaOccupied', e.target.value)} />
                             </div>
 
@@ -485,10 +523,6 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Modelo do Módulo</label>
                               <Input type="text" value={currentEquip.moduleModel} onChange={(e) => handleEquipmentChange(proj.id, 'moduleModel', e.target.value)} />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Área do Módulo (m²)</label>
-                              <Input type="number" value={currentEquip.moduleArea} onChange={(e) => handleEquipmentChange(proj.id, 'moduleArea', e.target.value)} />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Corrente do Módulo (Imp - A)</label>

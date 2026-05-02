@@ -110,7 +110,7 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   doc.text(`Fabricante: ${project.moduleManufacturer || "-"}`, 14, yPos); yPos += 5;
   doc.text(`Modelo: ${project.moduleModel || "-"}`, 14, yPos); yPos += 5;
   doc.text(`Quantidade de módulos: ${project.totalModules || 0}`, 14, yPos); yPos += 5;
-  doc.text(`Área dos arranjos (m2): ${project.moduleArea || "-"}`, 14, yPos); yPos += 5;
+  doc.text(`Área Total (m2): ${project.areaOccupied || "-"}`, 14, yPos); yPos += 5;
   doc.text(`Potência máxima: ${project.modulePower || 0} WP`, 14, yPos); yPos += 5;
   doc.text(`Corrente máxima: ${project.moduleCurrent || "-"} A`, 14, yPos); yPos += 10;
 
