@@ -199,7 +199,7 @@ export default function Historico() {
 
                 <div className="pt-4 border-t border-slate-100 flex justify-between items-center text-sm">
                   <span className="text-slate-500 font-medium">
-                    {project._count.units} {project._count.units === 1 ? "unidade" : "unidades"}
+                    {project._count?.units || 0} {project._count?.units === 1 ? "unidade" : "unidades"}
                   </span>
                   <div className="flex gap-2">
                     <button 

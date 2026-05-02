@@ -162,8 +162,8 @@ export default function Clientes() {
                 <Link href={`/clientes/${client.id}`}
                   className="flex items-center justify-between p-4 border-t border-slate-100 text-sm hover:bg-violet-50 transition-colors rounded-b-2xl">
                   <span className="text-slate-500 font-medium">
-                    {client._count.projects} {client._count.projects === 1 ? "projeto" : "projetos"}
-                  </span>
+                  {client._count?.projects || 0} {client._count?.projects === 1 ? "projeto" : "projetos"}
+                </span>
                   <span className="flex items-center gap-1 text-violet-600 font-semibold">
                     Ver Detalhes <ChevronRight className="w-4 h-4" />
                   </span>
