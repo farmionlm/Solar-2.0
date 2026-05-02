@@ -22,7 +22,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
   const [isEditingClient, setIsEditingClient] = useState(false);
   const [editClientData, setEditClientData] = useState({
-    name: "", cpfCnpj: "", phone: "", email: "", address: "", cep: "", installationNumber: ""
+    name: "", cpfCnpj: "", phone: "", email: "", address: "", neighborhood: "", city: "", cep: "", installationNumber: ""
   });
 
   const saveProjectEquipment = async (projId: string, equipData: any) => {
@@ -74,6 +74,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
       phone: client.phone || "",
       email: client.email || "",
       address: client.address || "",
+      neighborhood: client.neighborhood || "",
+      city: client.city || "",
       cep: client.cep || "",
       installationNumber: client.installationNumber || ""
     });
@@ -319,9 +321,17 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">CEP</label>
                 <Input type="text" value={editClientData.cep} onChange={(e) => setEditClientData({...editClientData, cep: e.target.value})} />
               </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Endereço Completo</label>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Endereço (Rua, Número)</label>
                 <Input type="text" value={editClientData.address} onChange={(e) => setEditClientData({...editClientData, address: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Bairro</label>
+                <Input type="text" value={editClientData.neighborhood} onChange={(e) => setEditClientData({...editClientData, neighborhood: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Cidade / UF</label>
+                <Input type="text" value={editClientData.city} onChange={(e) => setEditClientData({...editClientData, city: e.target.value})} />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Número da Instalação (Concessionária)</label>
@@ -334,7 +344,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
               <p className="flex items-center gap-2 text-slate-600"><Phone className="w-4 h-4 text-slate-400" /> {client.phone || "Telefone não informado"}</p>
               <p className="flex items-center gap-2 text-slate-600"><Mail className="w-4 h-4 text-slate-400" /> {client.email || "E-mail não informado"}</p>
               <p className="flex items-center gap-2 text-slate-600"><MapPin className="w-4 h-4 text-slate-400" /> {client.cep ? `CEP: ${client.cep}` : "CEP não informado"}</p>
-              <p className="flex items-center gap-2 text-slate-600 md:col-span-2"><MapPin className="w-4 h-4 text-slate-400" /> {client.address || "Endereço não informado"}</p>
+              <p className="flex items-center gap-2 text-slate-600 md:col-span-2"><MapPin className="w-4 h-4 text-slate-400" /> {[client.address, client.neighborhood, client.city].filter(Boolean).join(', ') || "Endereço não informado"}</p>
               <p className="flex items-center gap-2 text-slate-600 md:col-span-2"><Zap className="w-4 h-4 text-slate-400" /> Num. Instalação: <span className="font-semibold">{client.installationNumber || "Não informado"}</span></p>
             </div>
           )}

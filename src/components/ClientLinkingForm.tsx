@@ -60,7 +60,7 @@ export const ClientLinkingForm: React.FC<ClientLinkingFormProps> = ({
               <button 
                 onClick={() => {
                   setPreSelectedClient(null);
-                  setClientData({ name: "", cpfCnpj: "", phone: "", email: "", address: "" });
+                  setClientData({ name: "", cpfCnpj: "", phone: "", email: "", address: "", neighborhood: "", city: "", cep: "", installationNumber: "" });
                 }}
                 className="flex items-center gap-1 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg font-semibold transition-all text-sm"
               >
@@ -108,7 +108,7 @@ export const ClientLinkingForm: React.FC<ClientLinkingFormProps> = ({
                           key={client.id}
                           onClick={() => {
                             setPreSelectedClient({ id: client.id, name: client.name });
-                            setClientData({ name: "", cpfCnpj: "", phone: "", email: "", address: "" });
+                            setClientData({ name: "", cpfCnpj: "", phone: "", email: "", address: "", neighborhood: "", city: "", cep: "", installationNumber: "" });
                           }}
                           className="w-full flex items-center justify-between p-4 hover:bg-violet-50 transition-all text-left group"
                         >
@@ -153,9 +153,24 @@ export const ClientLinkingForm: React.FC<ClientLinkingFormProps> = ({
                       placeholder="email@exemplo.com" />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-slate-600 mb-1">Endereço / Cidade</label>
-                    <Input type="text" value={clientData.address} onChange={(e) => setClientData({...clientData, address: e.target.value})}
-                      placeholder="Rua, Nº - Cidade/UF" />
+                    <label className="block text-sm font-semibold text-slate-600 mb-1">CEP</label>
+                    <Input type="text" value={clientData.cep || ""} onChange={(e) => setClientData({...clientData, cep: e.target.value})}
+                      placeholder="00000-000" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-slate-600 mb-1">Endereço (Rua, Número)</label>
+                    <Input type="text" value={clientData.address || ""} onChange={(e) => setClientData({...clientData, address: e.target.value})}
+                      placeholder="Rua, Nº" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-600 mb-1">Bairro</label>
+                    <Input type="text" value={clientData.neighborhood || ""} onChange={(e) => setClientData({...clientData, neighborhood: e.target.value})}
+                      placeholder="Bairro" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-600 mb-1">Cidade / UF</label>
+                    <Input type="text" value={clientData.city || ""} onChange={(e) => setClientData({...clientData, city: e.target.value})}
+                      placeholder="Cidade/UF" />
                   </div>
                 </div>
               )}

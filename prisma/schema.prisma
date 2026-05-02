@@ -19,6 +19,8 @@ model Client {
   phone     String?
   email     String?
   address            String?
+  neighborhood       String?
+  city               String?
   installationNumber String?
   cep                String?
 

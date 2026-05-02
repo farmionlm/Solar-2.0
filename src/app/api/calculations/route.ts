@@ -24,6 +24,9 @@ export async function POST(request: Request) {
           phone: clientData.phone?.trim() || null,
           email: clientData.email?.trim() || null,
           address: clientData.address?.trim() || null,
+          neighborhood: clientData.neighborhood?.trim() || null,
+          city: clientData.city?.trim() || null,
+          cep: clientData.cep?.trim() || null,
         }
       });
       resolvedClientId = newClient.id;

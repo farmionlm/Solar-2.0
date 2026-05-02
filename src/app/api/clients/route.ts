@@ -26,7 +26,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, cpfCnpj, phone, email, address, installationNumber, cep } = body;
+    const { name, cpfCnpj, phone, email, address, neighborhood, city, installationNumber, cep } = body;
 
     if (!name || name.trim() === '') {
       return NextResponse.json({ error: 'Nome do cliente é obrigatório.' }, { status: 400 });
@@ -39,6 +39,8 @@ export async function POST(request: Request) {
         phone: phone?.trim() || null,
         email: email?.trim() || null,
         address: address?.trim() || null,
+        neighborhood: neighborhood?.trim() || null,
+        city: city?.trim() || null,
         installationNumber: installationNumber?.trim() || null,
         cep: cep?.trim() || null,
       }
@@ -55,7 +57,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, name, cpfCnpj, phone, email, address, installationNumber, cep } = body;
+    const { id, name, cpfCnpj, phone, email, address, neighborhood, city, installationNumber, cep } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'ID do cliente é obrigatório.' }, { status: 400 });
@@ -69,6 +71,8 @@ export async function PUT(request: Request) {
         ...(phone !== undefined && { phone: phone?.trim() || null }),
         ...(email !== undefined && { email: email?.trim() || null }),
         ...(address !== undefined && { address: address?.trim() || null }),
+        ...(neighborhood !== undefined && { neighborhood: neighborhood?.trim() || null }),
+        ...(city !== undefined && { city: city?.trim() || null }),
         ...(installationNumber !== undefined && { installationNumber: installationNumber?.trim() || null }),
         ...(cep !== undefined && { cep: cep?.trim() || null }),
       }

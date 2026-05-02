@@ -13,6 +13,8 @@ export type ClientData = {
   phone: string;
   email: string;
   address: string;
+  neighborhood?: string;
+  city?: string;
   installationNumber?: string;
   cep?: string;
 };
@@ -24,6 +26,8 @@ export type ClientListItem = {
   email?: string | null;
   phone?: string | null;
   address?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
   installationNumber?: string | null;
   cep?: string | null;
   createdAt?: string;
