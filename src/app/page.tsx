@@ -9,6 +9,7 @@ import { ProcessedUnit, ClientData, ClientListItem } from "@/types";
 import { ResultCards } from "@/components/ResultCards";
 import { SimulationTable } from "@/components/SimulationTable";
 import { ClientLinkingForm } from "@/components/ClientLinkingForm";
+import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -130,9 +131,6 @@ function HomeContent() {
       return;
     }
 
-    let totalKwp = 0;
-    let totalModules = 0;
-    const IRRADIATION = 4.0;
     const processedUnits: ProcessedUnit[] = [];
 
     for (let i = 1; i < data.length; i++) {
@@ -146,22 +144,26 @@ function HomeContent() {
 
       if (isNaN(monthlyCons) || monthlyCons <= 0) continue;
 
-      const dailyCons = monthlyCons / 30;
-      const requiredKwp = dailyCons / IRRADIATION;
-      const modulePowerKwp = Number(modulePower) / 1000;
-      const requiredModules = Math.ceil(requiredKwp / modulePowerKwp);
+      const solarData = calculateUnitSolarData(monthlyCons, Number(modulePower));
 
-      totalKwp += requiredKwp;
-      totalModules += requiredModules;
-
-      processedUnits.push({ code, name, monthlyCons, dailyCons, requiredKwp, requiredModules });
+      processedUnits.push({ 
+        code, 
+        name, 
+        monthlyCons, 
+        ...solarData 
+      });
     }
+
+    const totals = calculateProjectTotals(processedUnits);
 
     if (processedUnits.length === 0) {
       setError("Nenhum dado numérico válido de consumo foi encontrado.");
       setResults(null);
     } else {
-      setResults({ units: processedUnits, totalKwp, totalModules });
+      setResults({
+      units: processedUnits,
+      ...totals
+    });
     }
     
     setIsProcessing(false);
