@@ -157,20 +157,20 @@ export default function Historico() {
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-slate-800 p-3 rounded-xl text-white shadow-lg">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="bg-slate-800 p-3 rounded-xl text-white shadow-lg group-hover:scale-105 transition-all">
               <HistoryIcon className="w-8 h-8" />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Link href="/" className="flex items-center gap-1 text-slate-500 font-medium hover:underline text-xs">
+                <div className="flex items-center gap-1 text-slate-500 font-medium text-xs uppercase tracking-wider group-hover:text-slate-800 transition-colors">
                   <Home className="w-3 h-3" /> Início
-                </Link>
+                </div>
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Histórico de Projetos</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 group-hover:text-slate-800 transition-colors">Histórico de Projetos</h1>
               <p className="text-slate-500 font-medium">Seus dimensionamentos salvos</p>
             </div>
-          </div>
+          </Link>
           <div className="flex gap-3">
             <Link href="/clientes" className="flex items-center gap-2 bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-700 px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
               <Users className="w-5 h-5" />

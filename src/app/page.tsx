@@ -265,15 +265,15 @@ function HomeContent() {
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-3 rounded-xl text-white shadow-lg shadow-blue-200">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="bg-blue-600 p-3 rounded-xl text-white shadow-lg shadow-blue-200 group-hover:scale-105 transition-all">
               <Sun className="w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">SolarCalc Pro</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">SolarCalc Pro</h1>
               <p className="text-slate-500 font-medium">Dimensionamento Fotovoltaico Inteligente</p>
             </div>
-          </div>
+          </Link>
           <div className="flex gap-3">
             <Link href="/clientes" className="flex items-center gap-2 bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-700 px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
               <Users className="w-5 h-5" />

@@ -90,20 +90,20 @@ export default function Clientes() {
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-violet-600 p-3 rounded-xl text-white shadow-lg shadow-violet-200">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="bg-violet-600 p-3 rounded-xl text-white shadow-lg shadow-violet-200 group-hover:scale-105 transition-all">
               <Users className="w-8 h-8" />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Link href="/" className="flex items-center gap-1 text-slate-500 font-medium hover:underline text-xs">
+                <div className="flex items-center gap-1 text-slate-500 font-medium text-xs uppercase tracking-wider group-hover:text-violet-600 transition-colors">
                   <Home className="w-3 h-3" /> Início
-                </Link>
+                </div>
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Clientes</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 group-hover:text-violet-600 transition-colors">Clientes</h1>
               <p className="text-slate-500 font-medium">Gerencie seus clientes e equipamentos</p>
             </div>
-          </div>
+          </Link>
           <div className="flex gap-3">
             <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-md active:scale-95">
               <Users className="w-5 h-5" />
