@@ -32,6 +32,7 @@ export async function POST(request: Request) {
           neighborhood: clientData.neighborhood?.trim() || null,
           city: clientData.city?.trim() || null,
           cep: clientData.cep?.trim() || null,
+          installationNumber: clientData.installationNumber?.trim() || null,
           userId: session.user.id,
         }
       });

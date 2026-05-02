@@ -11,6 +11,30 @@ import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+function formatUnidadeConsumidora(value: string): string {
+  const clean = value.replace(/\D/g, "").slice(0, 15);
+  let formatted = "";
+  if (clean.length > 0) {
+    formatted += clean[0];
+  }
+  if (clean.length > 1) {
+    formatted += "." + clean.substring(1, Math.min(clean.length, 4));
+  }
+  if (clean.length > 4) {
+    formatted += "." + clean.substring(4, Math.min(clean.length, 7));
+  }
+  if (clean.length > 7) {
+    formatted += "." + clean.substring(7, Math.min(clean.length, 10));
+  }
+  if (clean.length > 10) {
+    formatted += "." + clean.substring(10, Math.min(clean.length, 13));
+  }
+  if (clean.length > 13) {
+    formatted += "-" + clean.substring(13, clean.length);
+  }
+  return formatted;
+}
+
 export default function Clientes() {
   const { data: clients, error: swrError, isLoading, mutate } = useSWR<Client[]>("/api/clients", fetcher);
   const [error, setError] = useState("");
@@ -18,7 +42,7 @@ export default function Clientes() {
   const [showModal, setShowModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [newClient, setNewClient] = useState({
-    name: "", cpfCnpj: "", phone: "", email: "", address: ""
+    name: "", cpfCnpj: "", phone: "", email: "", address: "", installationNumber: ""
   });
 
   const handleSaveClient = async (e: React.FormEvent) => {
@@ -33,7 +57,7 @@ export default function Clientes() {
       });
       if (!res.ok) throw new Error("Erro ao salvar");
       setShowModal(false);
-      setNewClient({ name: "", cpfCnpj: "", phone: "", email: "", address: "" });
+      setNewClient({ name: "", cpfCnpj: "", phone: "", email: "", address: "", installationNumber: "" });
       mutate();
     } catch (err) {
       alert("Erro ao criar cliente.");
@@ -214,6 +238,11 @@ export default function Clientes() {
                   <label className="block text-sm font-semibold text-slate-600 mb-1">Endereço</label>
                   <Input type="text" value={newClient.address} onChange={(e) => setNewClient({...newClient, address: e.target.value})}
                     placeholder="Rua, Número, Cidade/UF" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-slate-600 mb-1">Unidade Consumidora</label>
+                  <Input type="text" value={newClient.installationNumber || ""} onChange={(e) => setNewClient({...newClient, installationNumber: formatUnidadeConsumidora(e.target.value)})}
+                    placeholder="Ex: 0.000.939.307.054-04" />
                 </div>
               </div>
               <div className="flex gap-3 justify-end mt-8">

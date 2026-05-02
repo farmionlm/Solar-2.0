@@ -29,7 +29,7 @@ function HomeContent() {
   const [preSelectedClient, setPreSelectedClient] = useState<{ id: string, name: string } | null>(null);
 
   const [clientData, setClientData] = useState<ClientData>({
-    name: "", cpfCnpj: "", phone: "", email: "", address: ""
+    name: "", cpfCnpj: "", phone: "", email: "", address: "", installationNumber: ""
   });
   const [allClients, setAllClients] = useState<ClientListItem[]>([]);
   const [clientLinkMode, setClientLinkMode] = useState<'existing' | 'new'>('existing');
@@ -61,7 +61,8 @@ function HomeContent() {
               cpfCnpj: data.cpfCnpj || "",
               phone: data.phone || "",
               email: data.email || "",
-              address: data.address || ""
+              address: data.address || "",
+              installationNumber: data.installationNumber || ""
             });
             setShowClientForm(true);
           }

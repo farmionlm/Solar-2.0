@@ -13,6 +13,30 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { generateMemorialPDF } from "@/utils/generateMemorial";
 
+function formatUnidadeConsumidora(value: string): string {
+  const clean = value.replace(/\D/g, "").slice(0, 15);
+  let formatted = "";
+  if (clean.length > 0) {
+    formatted += clean[0];
+  }
+  if (clean.length > 1) {
+    formatted += "." + clean.substring(1, Math.min(clean.length, 4));
+  }
+  if (clean.length > 4) {
+    formatted += "." + clean.substring(4, Math.min(clean.length, 7));
+  }
+  if (clean.length > 7) {
+    formatted += "." + clean.substring(7, Math.min(clean.length, 10));
+  }
+  if (clean.length > 10) {
+    formatted += "." + clean.substring(10, Math.min(clean.length, 13));
+  }
+  if (clean.length > 13) {
+    formatted += "-" + clean.substring(13, clean.length);
+  }
+  return formatted;
+}
+
 export default function ClienteDetalhe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: client, error: swrError, isLoading, mutate } = useSWR<ClientDetail>(`/api/clients/${id}`, fetcher);
@@ -334,8 +358,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                 <Input type="text" value={editClientData.city} onChange={(e) => setEditClientData({...editClientData, city: e.target.value})} />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Número da Instalação (Concessionária)</label>
-                <Input type="text" value={editClientData.installationNumber} onChange={(e) => setEditClientData({...editClientData, installationNumber: e.target.value})} />
+                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Unidade Consumidora</label>
+                <Input type="text" value={editClientData.installationNumber} onChange={(e) => setEditClientData({...editClientData, installationNumber: formatUnidadeConsumidora(e.target.value)})} placeholder="Ex: 0.000.939.307.054-04" />
               </div>
             </div>
           ) : (
@@ -345,7 +369,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
               <p className="flex items-center gap-2 text-slate-600"><Mail className="w-4 h-4 text-slate-400" /> {client.email || "E-mail não informado"}</p>
               <p className="flex items-center gap-2 text-slate-600"><MapPin className="w-4 h-4 text-slate-400" /> {client.cep ? `CEP: ${client.cep}` : "CEP não informado"}</p>
               <p className="flex items-center gap-2 text-slate-600 md:col-span-2"><MapPin className="w-4 h-4 text-slate-400" /> {[client.address, client.neighborhood, client.city].filter(Boolean).join(', ') || "Endereço não informado"}</p>
-              <p className="flex items-center gap-2 text-slate-600 md:col-span-2"><Zap className="w-4 h-4 text-slate-400" /> Num. Instalação: <span className="font-semibold">{client.installationNumber || "Não informado"}</span></p>
+              <p className="flex items-center gap-2 text-slate-600 md:col-span-2"><Zap className="w-4 h-4 text-slate-400" /> Unidade Consumidora: <span className="font-semibold">{client.installationNumber || "Não informado"}</span></p>
             </div>
           )}
         </div>

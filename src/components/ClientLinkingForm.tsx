@@ -4,6 +4,31 @@ import { ClientData, ClientListItem } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+function formatUnidadeConsumidora(value: string): string {
+  const clean = value.replace(/\D/g, "").slice(0, 15);
+  let formatted = "";
+  if (clean.length > 0) {
+    formatted += clean[0];
+  }
+  if (clean.length > 1) {
+    formatted += "." + clean.substring(1, Math.min(clean.length, 4));
+  }
+  if (clean.length > 4) {
+    formatted += "." + clean.substring(4, Math.min(clean.length, 7));
+  }
+  if (clean.length > 7) {
+    formatted += "." + clean.substring(7, Math.min(clean.length, 10));
+  }
+  if (clean.length > 10) {
+    formatted += "." + clean.substring(10, Math.min(clean.length, 13));
+  }
+  if (clean.length > 13) {
+    formatted += "-" + clean.substring(13, clean.length);
+  }
+  return formatted;
+}
+
+
 interface ClientLinkingFormProps {
   showClientForm: boolean;
   setShowClientForm: (show: boolean) => void;
@@ -171,6 +196,11 @@ export const ClientLinkingForm: React.FC<ClientLinkingFormProps> = ({
                     <label className="block text-sm font-semibold text-slate-600 mb-1">Cidade / UF</label>
                     <Input type="text" value={clientData.city || ""} onChange={(e) => setClientData({...clientData, city: e.target.value})}
                       placeholder="Cidade/UF" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-slate-600 mb-1">Unidade Consumidora</label>
+                    <Input type="text" value={clientData.installationNumber || ""} onChange={(e) => setClientData({...clientData, installationNumber: formatUnidadeConsumidora(e.target.value)})}
+                      placeholder="Ex: 0.000.939.307.054-04" />
                   </div>
                 </div>
               )}
