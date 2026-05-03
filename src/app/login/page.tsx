@@ -2,13 +2,11 @@
 
 import React, { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { Sun, Lock, Mail, Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -32,7 +30,7 @@ export default function LoginPage() {
       } else {
         window.location.href = '/';
       }
-    } catch (err) {
+    } catch {
       setError('Ocorreu um erro ao fazer login.');
       setLoading(false);
     }

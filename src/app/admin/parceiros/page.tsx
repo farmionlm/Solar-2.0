@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Users, Plus, ShieldCheck, Mail, Building, Trash2, Edit2, AlertTriangle, KeyRound } from 'lucide-react';
+import { Plus, ShieldCheck, Mail, Building, Trash2, Edit2, AlertTriangle, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UserMenu } from '@/components/UserMenu';
@@ -21,7 +21,7 @@ type Partner = {
 };
 
 export default function AdminPartnersPage() {
-  const { data: session, isLoading, mutate } = useSWR('/api/users', fetcher);
+  const { data: session, mutate } = useSWR('/api/users', fetcher);
   const authSession = useSession();
   const router = useRouter();
 
@@ -65,7 +65,7 @@ export default function AdminPartnersPage() {
         setFormData({ name: '', email: '', password: '' });
         mutate();
       }
-    } catch (err) {
+    } catch {
       setError('Erro de conexão ao criar a conta.');
     } finally {
       setLoading(false);
@@ -98,7 +98,7 @@ export default function AdminPartnersPage() {
         setEditingUser(null);
         mutate();
       }
-    } catch (err) {
+    } catch {
       setError('Erro de conexão ao atualizar a conta.');
     } finally {
       setLoading(false);
@@ -131,7 +131,7 @@ export default function AdminPartnersPage() {
         setDeletingUser(null);
         mutate();
       }
-    } catch (err) {
+    } catch {
       setError('Erro de conexão ao excluir a conta.');
     } finally {
       setLoading(false);

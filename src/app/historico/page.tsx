@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { fetcher } from "@/utils/fetcher";
@@ -10,11 +9,10 @@ import * as XLSX from "xlsx";
 import { Project } from "@/types";
 import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Historico() {
   const { data: projects, error: swrError, isLoading, mutate } = useSWR<Project[]>("/api/calculations", fetcher);
-  const [error, setError] = useState("");
 
   const exportToExcel = (project: Project) => {
     const projName = project.name || "Projeto_Salvo";
@@ -143,7 +141,7 @@ export default function Historico() {
           </div>
         </header>
 
-        {(swrError || error) && <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 border border-red-100 font-medium">{swrError?.message || error}</div>}
+        {swrError && <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 border border-red-100 font-medium">{swrError?.message}</div>}
 
         {isLoading && !projects ? (
           <div className="flex justify-center items-center py-20">

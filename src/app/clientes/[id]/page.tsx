@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useState, use } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { fetcher } from "@/utils/fetcher";
 import * as XLSX from "xlsx";
 import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X, Trash2 } from "lucide-react";
 
-import { ProcessedUnit, Project, ClientDetail } from "@/types";
+import { Project, ClientDetail, Inverter } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -95,7 +95,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     name: "", cpfCnpj: "", phone: "", email: "", address: "", neighborhood: "", city: "", cep: "", installationNumber: ""
   });
 
-  const saveProjectEquipment = async (projId: string, equipData: any) => {
+  const saveProjectEquipment = async (projId: string, equipData: Record<string, unknown>) => {
     setIsSaving(true);
     setSaveMsg("");
     try {
@@ -158,7 +158,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     const wb = XLSX.utils.book_new();
 
     // Aba 1 - Dados do Cliente
-    const clientSheet: any[][] = [
+    const clientSheet: (string | number)[][] = [
       ["Ficha do Cliente"],
       [],
       ["Nome:", client.name],
@@ -177,7 +177,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
     // Aba para cada projeto
     client.projects.forEach((proj, idx) => {
-      const projData: any[][] = [
+      const projData: (string | number)[][] = [
         [`Projeto: ${proj.name || "Sem nome"}`],
         ["Data:", new Date(proj.createdAt).toLocaleDateString("pt-BR")],
         ["Potência do Módulo:", `${proj.modulePower} W`],
@@ -221,7 +221,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const exportProjectExcel = (proj: Project) => {
     if (!client) return;
 
-    const exportData: any[][] = [
+    const exportData: (string | number)[][] = [
       ["RELATÓRIO DE DIMENSIONAMENTO FOTOVOLTAICO"],
       [],
       ["1. DADOS DO CLIENTE"],
@@ -276,6 +276,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     XLSX.writeFile(wb, `Projeto_${(proj.name || "SemNome").replace(/[^a-z0-9]/gi, "_")}.xlsx`);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [projectEquipments, setProjectEquipments] = useState<Record<string, any>>({});
 
   const handleEquipmentChange = (projId: string, field: string, value: string | number) => {
@@ -288,16 +289,16 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     }));
   };
 
-  const handleInverterChange = (projId: string, inverterIndex: number, field: string, value: any) => {
+  const handleInverterChange = (projId: string, inverterIndex: number, field: keyof Inverter, value: string | number) => {
     setProjectEquipments(prev => {
-      const existingInverters = [ ...(prev[projId]?.inverters || client?.projects.find((p: any) => p.id === projId)?.inverters || []) ];
+      const existingInverters = [ ...(prev[projId]?.inverters || client?.projects.find((p: Project) => p.id === projId)?.inverters || []) ];
       if (!existingInverters[inverterIndex]) {
-        existingInverters[inverterIndex] = { manufacturer: "", model: "", outputPower: null, outputCurrent: null, quantity: 1 };
+        existingInverters[inverterIndex] = { manufacturer: "", model: "", outputPower: null, outputCurrent: null, quantity: 1 } as Inverter;
       }
       existingInverters[inverterIndex] = {
         ...existingInverters[inverterIndex],
         [field]: value
-      };
+      } as Inverter;
       return {
         ...prev,
         [projId]: {
@@ -310,8 +311,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
   const addInverterRow = (projId: string) => {
     setProjectEquipments(prev => {
-      const existingInverters = [ ...(prev[projId]?.inverters || client?.projects.find((p: any) => p.id === projId)?.inverters || []) ];
-      existingInverters.push({ manufacturer: "", model: "", outputPower: null, outputCurrent: null, quantity: 1 });
+      const existingInverters = [ ...(prev[projId]?.inverters || client?.projects.find((p: Project) => p.id === projId)?.inverters || []) ];
+      existingInverters.push({ manufacturer: "", model: "", outputPower: null, outputCurrent: null, quantity: 1 } as Inverter);
       return {
         ...prev,
         [projId]: {
@@ -324,7 +325,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
   const removeInverterRow = (projId: string, inverterIndex: number) => {
     setProjectEquipments(prev => {
-      const existingInverters = [ ...(prev[projId]?.inverters || client?.projects.find((p: any) => p.id === projId)?.inverters || []) ];
+      const existingInverters = [ ...(prev[projId]?.inverters || client?.projects.find((p: Project) => p.id === projId)?.inverters || []) ];
       existingInverters.splice(inverterIndex, 1);
       return {
         ...prev,
@@ -560,30 +561,30 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Geração Mensal Estimada (kWh)</label>
-                              <Input type="number" value={currentEquip.generationKwh} onChange={(e) => handleEquipmentChange(proj.id, 'generationKwh', e.target.value)} />
+                              <Input type="number" value={currentEquip.generationKwh ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'generationKwh', e.target.value)} />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Percentual de Redução (%)</label>
-                              <Input type="number" value={currentEquip.reductionPercent} onChange={(e) => handleEquipmentChange(proj.id, 'reductionPercent', e.target.value)} />
+                              <Input type="number" value={currentEquip.reductionPercent ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'reductionPercent', e.target.value)} />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Área Total (m²)</label>
-                              <Input type="number" value={currentEquip.areaOccupied} onChange={(e) => handleEquipmentChange(proj.id, 'areaOccupied', e.target.value)} />
+                              <Input type="number" value={currentEquip.areaOccupied ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'areaOccupied', e.target.value)} />
                             </div>
 
                             <div className="col-span-full border-t border-slate-100 my-2"></div>
 
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Fabricante do Módulo</label>
-                              <Input type="text" value={currentEquip.moduleManufacturer} onChange={(e) => handleEquipmentChange(proj.id, 'moduleManufacturer', e.target.value)} />
+                              <Input type="text" value={currentEquip.moduleManufacturer ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'moduleManufacturer', e.target.value)} />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Modelo do Módulo</label>
-                              <Input type="text" value={currentEquip.moduleModel} onChange={(e) => handleEquipmentChange(proj.id, 'moduleModel', e.target.value)} />
+                              <Input type="text" value={currentEquip.moduleModel ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'moduleModel', e.target.value)} />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Corrente do Módulo (Imp - A)</label>
-                              <Input type="number" value={currentEquip.moduleCurrent} onChange={(e) => handleEquipmentChange(proj.id, 'moduleCurrent', e.target.value)} />
+                              <Input type="number" value={currentEquip.moduleCurrent ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'moduleCurrent', e.target.value)} />
                             </div>
 
                             <div className="col-span-full border-t border-slate-100 my-2"></div>
@@ -605,7 +606,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                 <p className="text-xs text-slate-400 text-center py-2">Nenhum inversor adicionado.</p>
                               ) : (
                                 <div className="space-y-4">
-                                  {currentEquip.inverters.map((inv: any, idx: number) => (
+                                  {currentEquip.inverters.map((inv: Inverter, idx: number) => (
                                     <div key={idx} className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
                                       <div>
                                         <label className="block text-xs font-bold text-slate-500 mb-1">Fabricante</label>
@@ -649,11 +650,11 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Nome do Resp. Técnico</label>
-                              <Input type="text" value={currentEquip.professionalName} onChange={(e) => handleEquipmentChange(proj.id, 'professionalName', e.target.value)} />
+                              <Input type="text" value={currentEquip.professionalName ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'professionalName', e.target.value)} />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Registro Profissional (CRT/CREA)</label>
-                              <Input type="text" value={currentEquip.professionalCrt} onChange={(e) => handleEquipmentChange(proj.id, 'professionalCrt', e.target.value)} />
+                              <Input type="text" value={currentEquip.professionalCrt ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'professionalCrt', e.target.value)} />
                             </div>
                           </div>
                           

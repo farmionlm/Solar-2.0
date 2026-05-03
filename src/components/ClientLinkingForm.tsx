@@ -1,7 +1,6 @@
 import React from 'react';
 import { Users, ChevronDown, ChevronUp, Search, ChevronRight, X } from 'lucide-react';
 import { ClientData, ClientListItem } from '@/types';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 function formatUnidadeConsumidora(value: string): string {

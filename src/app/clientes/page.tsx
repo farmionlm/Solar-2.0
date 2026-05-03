@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import useSWR, { useSWRConfig } from "swr";
+import useSWR from "swr";
 import { fetcher } from "@/utils/fetcher";
 import { ArrowLeft, Users, Search, Trash2, ChevronRight, Phone, Mail, MapPin, FileText, Home } from "lucide-react";
 
@@ -72,17 +72,8 @@ function formatPhone(value: string): string {
   }
 }
 
-function formatCep(value: string): string {
-  const clean = value.replace(/\D/g, "").slice(0, 8);
-  let formatted = "";
-  if (clean.length > 0) formatted += clean.substring(0, Math.min(clean.length, 5));
-  if (clean.length > 5) formatted += "-" + clean.substring(5, clean.length);
-  return formatted;
-}
-
 export default function Clientes() {
   const { data: clients, error: swrError, isLoading, mutate } = useSWR<Client[]>("/api/clients", fetcher);
-  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -104,7 +95,7 @@ export default function Clientes() {
       setShowModal(false);
       setNewClient({ name: "", cpfCnpj: "", phone: "", email: "", address: "", installationNumber: "" });
       mutate();
-    } catch (err) {
+    } catch {
       alert("Erro ao criar cliente.");
     } finally {
       setIsSaving(false);
@@ -161,8 +152,6 @@ export default function Clientes() {
             <UserMenu />
           </div>
         </header>
-
-        {error && <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 border border-red-100 font-medium">{error}</div>}
 
         {/* Barra de busca */}
         <div className="mb-6">

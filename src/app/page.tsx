@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import Link from "next/link";
-import { Sun, History, Upload, Save, Download, Users, Zap, Search, X, ArrowLeft } from "lucide-react";
+import { Sun, History, Upload, Save, Download, Users, ArrowLeft } from "lucide-react";
 import { ProcessedUnit, ClientData, ClientListItem } from "@/types";
 import { ResultCards } from "@/components/ResultCards";
 import { SimulationTable } from "@/components/SimulationTable";
@@ -103,8 +103,7 @@ function HomeContent() {
         }
 
         calculateAndDisplay(jsonData);
-      } catch (err) {
-        console.error(err);
+      } catch {
         setError("Erro ao ler o arquivo. Certifique-se de que é um Excel ou CSV válido.");
         setIsProcessing(false);
       }
@@ -251,7 +250,7 @@ function HomeContent() {
       
       setSaved(true);
       setSuccessMsg("Projeto salvo com sucesso!" + (clientData.name.trim() ? ` Cliente "${clientData.name}" vinculado.` : ""));
-    } catch (err) {
+    } catch {
       setError("Ocorreu um erro ao tentar salvar o projeto.");
     } finally {
       setIsSaving(false);

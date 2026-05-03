@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         inverterModel: inverterModel || null,
         clientId: resolvedClientId,
         units: {
-          create: units.map((unit: any) => ({
+          create: units.map((unit: { code: string | number; name: string; monthlyCons: string | number; dailyCons: string | number; requiredKwp: string | number; requiredModules: string | number }) => ({
             code: String(unit.code),
             name: String(unit.name),
             monthlyCons: Number(unit.monthlyCons),
@@ -159,7 +159,7 @@ export async function PUT(request: Request) {
       await prisma.projectInverter.deleteMany({ where: { projectId: id } });
       if (inverters.length > 0) {
         await prisma.projectInverter.createMany({
-          data: inverters.map((inv: any) => ({
+          data: inverters.map((inv: { manufacturer?: string; model?: string; outputPower?: string | number; outputCurrent?: string | number; quantity?: string | number }) => ({
             projectId: id,
             manufacturer: inv.manufacturer || null,
             model: inv.model || null,

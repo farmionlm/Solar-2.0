@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const XLSX = require('xlsx');
 
 const data = [

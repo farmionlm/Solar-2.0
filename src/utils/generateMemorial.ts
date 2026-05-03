@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { Project, ClientDetail } from "@/types";
+import { Project, ClientDetail, Inverter } from "@/types";
 
 export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   const doc = new jsPDF();
@@ -115,7 +115,7 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   doc.text(`Corrente máxima: ${project.moduleCurrent || "-"} A`, 14, yPos); yPos += 10;
 
   if (project.inverters && project.inverters.length > 0) {
-    project.inverters.forEach((inv: any, index: number) => {
+    project.inverters.forEach((inv: Inverter, index: number) => {
       setFontBold();
       doc.text(`4.2 – Inversor ${String(index + 1).padStart(2, "0")}`, 14, yPos);
       yPos += 8;
