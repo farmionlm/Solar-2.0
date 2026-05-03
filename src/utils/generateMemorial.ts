@@ -189,7 +189,7 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
       
       for (let i = 0; i < totalEntries; i++) {
         const modCount = currentModulesArray[i];
-        doc.text(`  ✓ 01 string com ${String(modCount).padStart(2, "0")} módulos em série ligada à entrada ${String(i + 1).padStart(2, "0")} do inversor;`, 14, yPos);
+        doc.text(`  - 01 string com ${String(modCount).padStart(2, "0")} módulos em série ligada à entrada ${String(i + 1).padStart(2, "0")} do inversor;`, 14, yPos);
         yPos += 5;
       }
       doc.text(`Total: ${currentModulesArray.reduce((acc, c) => acc + c, 0)} módulos.`, 14, yPos); yPos += 6;
@@ -197,33 +197,36 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
       // Desenha a tabela de arranjo
       const titleText = `INVERSOR ${String(idx + 1).padStart(2, "0")} - ${inv.model || "MODELO"}`.toUpperCase();
       doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
       doc.setFillColor(235, 235, 235);
-      doc.rect(30, yPos, 150, 6, "FD");
+      doc.rect(40, yPos, 130, 6, "FD");
       doc.text(titleText, 105, yPos + 4.5, { align: "center" });
       yPos += 6;
 
       doc.setFillColor(245, 245, 245);
-      doc.rect(30, yPos, 50, 6, "FD");
-      doc.text("ENTRADAS", 55, yPos + 4.5, { align: "center" });
+      doc.rect(40, yPos, 50, 6, "FD");
+      doc.text("ENTRADAS", 65, yPos + 4.5, { align: "center" });
 
-      const colWidth = 100 / mppts;
+      const colWidth = 80 / mppts;
       for (let m = 0; m < mppts; m++) {
-        doc.rect(80 + m * colWidth, yPos, colWidth, 6, "FD");
-        doc.text(`MPPT${m + 1}`, 80 + m * colWidth + colWidth / 2, yPos + 4.5, { align: "center" });
+        doc.setFillColor(245, 245, 245);
+        doc.rect(90 + m * colWidth, yPos, colWidth, 6, "FD");
+        doc.text(`MPPT${m + 1}`, 90 + m * colWidth + colWidth / 2, yPos + 4.5, { align: "center" });
       }
       yPos += 6;
 
       doc.setFont("helvetica", "normal");
-      doc.rect(30, yPos, 50, 6);
-      doc.text("Nº DE PLACAS", 55, yPos + 4.5, { align: "center" });
+      doc.setTextColor(0, 0, 0);
+      doc.rect(40, yPos, 50, 6);
+      doc.text("Nº DE PLACAS", 65, yPos + 4.5, { align: "center" });
 
       for (let m = 0; m < mppts; m++) {
         let mpptTotalModules = 0;
         for (let entryIdx = 0; entryIdx < inputs; entryIdx++) {
           mpptTotalModules += currentModulesArray[m * inputs + entryIdx] || 0;
         }
-        doc.rect(80 + m * colWidth, yPos, colWidth, 6);
-        doc.text(String(mpptTotalModules), 80 + m * colWidth + colWidth / 2, yPos + 4.5, { align: "center" });
+        doc.rect(90 + m * colWidth, yPos, colWidth, 6);
+        doc.text(String(mpptTotalModules), 90 + m * colWidth + colWidth / 2, yPos + 4.5, { align: "center" });
       }
       yPos += 12;
     });
