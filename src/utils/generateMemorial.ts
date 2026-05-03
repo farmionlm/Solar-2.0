@@ -262,12 +262,26 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   );
   yPos += 5;
 
+  let invMan = project.inverterManufacturer || "-";
+  let invOutCur = project.inverterOutputCurrent || "-";
+  let invOutPow = project.inverterOutputPower || "-";
+  let invMod = project.inverterModel || "-";
+
+  if (project.inverters && project.inverters.length > 0) {
+    const firstInv = project.inverters[0];
+    invMan = firstInv.manufacturer || invMan;
+    invOutCur = firstInv.outputCurrent || invOutCur;
+    invOutPow = firstInv.outputPower || invOutPow;
+    invMod = firstInv.model || invMod;
+  }
+
   doc.text("Inversor:", 14, yPos); yPos += 5;
   yPos += addParagraph(
-    `Serão utilizados um inversor da marca ${project.inverterManufacturer?.toUpperCase() || "-"} operando em ${project.inverterOutputCurrent || "-"}A (CA) com potência de ${project.inverterOutputPower || "-"} W, modelo ${project.inverterModel || "-"}. Não será utilizado transformador, pois a conexão da unidade consumidora é 220V.`,
+    `Serão utilizados um inversor da marca ${String(invMan).toUpperCase()} operando em ${invOutCur}A (CA) com potência de ${invOutPow} kW, modelo ${invMod}. Não será utilizado transformador, pois a conexão da unidade consumidora é 220V.`,
     14, yPos, 180
   );
   yPos += 30;
+
 
   // Assinatura
   const today = new Date();
