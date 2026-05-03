@@ -95,10 +95,15 @@ model ProjectInverter {
   outputPower   Float?
   outputCurrent Float?
   quantity      Int      @default(1)
+  
+  // Novos campos para arranjo dos painéis
+  numMppts      Int?     @default(1)
+  inputsPerMppt Int?     @default(1)
 
   projectId     String
   project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
+
 
 
 model ConsumerUnit {

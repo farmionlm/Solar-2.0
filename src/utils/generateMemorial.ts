@@ -156,12 +156,62 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   doc.text("Sobre o local:", 14, yPos); yPos += 5;
   doc.text(`Área mínima que o sistema ocupará é de ${project.areaOccupied || "-"} m².`, 14, yPos); yPos += 10;
 
-  doc.text("Arranjo dos painéis:", 14, yPos); yPos += 5;
-  yPos += addParagraph(
-    `Os ${project.totalModules || 0} módulos serão conectados e divididos em strings de acordo com os limites de tensão e corrente das entradas MPPT do inversor especificado.`,
-    14, yPos, 180
-  );
-  yPos += 5;
+  doc.text("Arranjo dos painéis:", 14, yPos); yPos += 6;
+  if (project.inverters && project.inverters.length > 0) {
+    project.inverters.forEach((inv, idx) => {
+      const mppts = Number(inv.numMppts || 1);
+      const inputs = Number(inv.inputsPerMppt || 1);
+      const totalEntries = mppts * inputs;
+      const modulesPerEntry = Math.floor(project.totalModules / totalEntries);
+
+      doc.setFont("helvetica", "bold");
+      doc.text(`Inversor ${String(idx + 1).padStart(2, "0")}:`, 14, yPos); yPos += 5;
+      doc.setFont("helvetica", "normal");
+      
+      for (let i = 0; i < totalEntries; i++) {
+        doc.text(`  ✓ 01 string com ${String(modulesPerEntry).padStart(2, "0")} módulos em série ligada à entrada ${String(i + 1).padStart(2, "0")} do inversor;`, 14, yPos);
+        yPos += 5;
+      }
+      doc.text(`Total: ${project.totalModules} módulos.`, 14, yPos); yPos += 6;
+
+      // Desenha a tabela de arranjo
+      const titleText = `INVERSOR ${String(idx + 1).padStart(2, "0")} - ${inv.model || "MODELO"}`.toUpperCase();
+      doc.setFont("helvetica", "bold");
+      doc.setFillColor(235, 235, 235);
+      doc.rect(30, yPos, 150, 6, "FD");
+      doc.text(titleText, 105, yPos + 4.5, { align: "center" });
+      yPos += 6;
+
+      doc.setFillColor(245, 245, 245);
+      doc.rect(30, yPos, 50, 6, "FD");
+      doc.text("ENTRADAS", 55, yPos + 4.5, { align: "center" });
+
+      const colWidth = 100 / mppts;
+      for (let m = 0; m < mppts; m++) {
+        doc.rect(80 + m * colWidth, yPos, colWidth, 6, "FD");
+        doc.text(`MPPT${m + 1}`, 80 + m * colWidth + colWidth / 2, yPos + 4.5, { align: "center" });
+      }
+      yPos += 6;
+
+      doc.setFont("helvetica", "normal");
+      doc.rect(30, yPos, 50, 6);
+      doc.text("Nº DE PLACAS", 55, yPos + 4.5, { align: "center" });
+
+      for (let m = 0; m < mppts; m++) {
+        doc.rect(80 + m * colWidth, yPos, colWidth, 6);
+        doc.text(String(modulesPerEntry * inputs), 80 + m * colWidth + colWidth / 2, yPos + 4.5, { align: "center" });
+      }
+      yPos += 12;
+    });
+    setFontNormal();
+  } else {
+    yPos += addParagraph(
+      `Os ${project.totalModules || 0} módulos serão conectados e divididos em strings de acordo com os limites de tensão e corrente das entradas MPPT do inversor especificado.`,
+      14, yPos, 180
+    );
+    yPos += 5;
+  }
+
 
   doc.text("Estruturas de fixação dos painéis fotovoltaicos:", 14, yPos); yPos += 5;
   yPos += addParagraph(

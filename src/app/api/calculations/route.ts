@@ -159,17 +159,20 @@ export async function PUT(request: Request) {
       await prisma.projectInverter.deleteMany({ where: { projectId: id } });
       if (inverters.length > 0) {
         await prisma.projectInverter.createMany({
-          data: inverters.map((inv: { manufacturer?: string; model?: string; outputPower?: string | number; outputCurrent?: string | number; quantity?: string | number }) => ({
+          data: inverters.map((inv: { manufacturer?: string; model?: string; outputPower?: string | number; outputCurrent?: string | number; quantity?: string | number; numMppts?: string | number; inputsPerMppt?: string | number }) => ({
             projectId: id,
             manufacturer: inv.manufacturer || null,
             model: inv.model || null,
             outputPower: inv.outputPower ? Number(inv.outputPower) : null,
             outputCurrent: inv.outputCurrent ? Number(inv.outputCurrent) : null,
-            quantity: inv.quantity ? Number(inv.quantity) : 1
+            quantity: inv.quantity ? Number(inv.quantity) : 1,
+            numMppts: inv.numMppts ? Number(inv.numMppts) : 1,
+            inputsPerMppt: inv.inputsPerMppt ? Number(inv.inputsPerMppt) : 1,
           }))
         });
       }
     }
+
 
     return NextResponse.json(project);
   } catch (error) {

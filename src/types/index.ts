@@ -41,7 +41,10 @@ export type Inverter = {
   outputPower: number | null;
   outputCurrent: number | null;
   quantity: number;
+  numMppts?: number | null;
+  inputsPerMppt?: number | null;
 };
+
 
 export type Project = {
   id: string;

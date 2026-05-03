@@ -300,7 +300,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     setProjectEquipments(prev => {
       const existingInverters = [ ...(prev[projId]?.inverters || client?.projects.find((p: Project) => p.id === projId)?.inverters || []) ];
       if (!existingInverters[inverterIndex]) {
-        existingInverters[inverterIndex] = { manufacturer: "", model: "", outputPower: null, outputCurrent: null, quantity: 1 } as Inverter;
+        existingInverters[inverterIndex] = { manufacturer: "", model: "", outputPower: null, outputCurrent: null, quantity: 1, numMppts: 1, inputsPerMppt: 1 } as Inverter;
       }
       existingInverters[inverterIndex] = {
         ...existingInverters[inverterIndex],
@@ -319,7 +319,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const addInverterRow = (projId: string) => {
     setProjectEquipments(prev => {
       const existingInverters = [ ...(prev[projId]?.inverters || client?.projects.find((p: Project) => p.id === projId)?.inverters || []) ];
-      existingInverters.push({ manufacturer: "", model: "", outputPower: null, outputCurrent: null, quantity: 1 } as Inverter);
+      existingInverters.push({ manufacturer: "", model: "", outputPower: null, outputCurrent: null, quantity: 1, numMppts: 1, inputsPerMppt: 1 } as Inverter);
       return {
         ...prev,
         [projId]: {
@@ -701,44 +701,81 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               {(!currentEquip.inverters || currentEquip.inverters.length === 0) ? (
                                 <p className="text-xs text-slate-400 text-center py-2">Nenhum inversor adicionado.</p>
                               ) : (
-                                <div className="space-y-4">
-                                  {currentEquip.inverters.map((inv: Inverter, idx: number) => (
-                                    <div key={idx} className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
-                                      <div>
-                                        <label className="block text-xs font-bold text-slate-500 mb-1">Fabricante</label>
-                                        <Input type="text" value={inv.manufacturer || ""} onChange={(e) => handleInverterChange(proj.id, idx, 'manufacturer', e.target.value)} className="h-9 text-xs" />
-                                      </div>
-                                      <div>
-                                        <label className="block text-xs font-bold text-slate-500 mb-1">Modelo</label>
-                                        <Input type="text" value={inv.model || ""} onChange={(e) => handleInverterChange(proj.id, idx, 'model', e.target.value)} className="h-9 text-xs" />
-                                      </div>
-                                      <div>
-                                        <label className="block text-xs font-bold text-slate-500 mb-1">Potência Saída (kW)</label>
-                                        <Input type="number" value={inv.outputPower ?? ""} onChange={(e) => handleInverterChange(proj.id, idx, 'outputPower', e.target.value)} className="h-9 text-xs" />
-                                      </div>
-                                      <div>
-                                        <label className="block text-xs font-bold text-slate-500 mb-1">Corrente Saída (A)</label>
-                                        <Input type="number" value={inv.outputCurrent ?? ""} onChange={(e) => handleInverterChange(proj.id, idx, 'outputCurrent', e.target.value)} className="h-9 text-xs" />
-                                      </div>
-                                      <div className="flex gap-2 items-center justify-between">
-                                        <div className="flex-1">
-                                          <label className="block text-xs font-bold text-slate-500 mb-1">Qtd</label>
-                                          <Input type="number" value={inv.quantity ?? 1} onChange={(e) => handleInverterChange(proj.id, idx, 'quantity', e.target.value)} className="h-9 text-xs" />
+                                  <div className="space-y-4">
+                                   {currentEquip.inverters.map((inv: Inverter, idx: number) => (
+                                    <div key={idx} className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm relative space-y-3">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3 items-end">
+                                        <div>
+                                          <label className="block text-xs font-bold text-slate-500 mb-1">Fabricante</label>
+                                          <Input type="text" value={inv.manufacturer || ""} onChange={(e) => handleInverterChange(proj.id, idx, 'manufacturer', e.target.value)} className="h-9 text-xs" />
                                         </div>
-                                        <Button
-                                          type="button"
-                                          onClick={() => removeInverterRow(proj.id, idx)}
-                                          variant="ghost"
-                                          size="icon"
-                                          className="text-red-500 hover:bg-red-50 h-9 w-9 mt-5"
-                                          title="Remover Inversor"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </Button>
+                                        <div>
+                                          <label className="block text-xs font-bold text-slate-500 mb-1">Modelo</label>
+                                          <Input type="text" value={inv.model || ""} onChange={(e) => handleInverterChange(proj.id, idx, 'model', e.target.value)} className="h-9 text-xs" />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs font-bold text-slate-500 mb-1">Potência Saída (kW)</label>
+                                          <Input type="number" value={inv.outputPower ?? ""} onChange={(e) => handleInverterChange(proj.id, idx, 'outputPower', e.target.value)} className="h-9 text-xs" />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs font-bold text-slate-500 mb-1">Corrente Saída (A)</label>
+                                          <Input type="number" value={inv.outputCurrent ?? ""} onChange={(e) => handleInverterChange(proj.id, idx, 'outputCurrent', e.target.value)} className="h-9 text-xs" />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs font-bold text-slate-500 mb-1">Nº MPPTs</label>
+                                          <Input type="number" value={inv.numMppts ?? 1} onChange={(e) => handleInverterChange(proj.id, idx, 'numMppts', e.target.value)} className="h-9 text-xs" />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs font-bold text-slate-500 mb-1">Entradas p/ MPPT</label>
+                                          <Input type="number" value={inv.inputsPerMppt ?? 1} onChange={(e) => handleInverterChange(proj.id, idx, 'inputsPerMppt', e.target.value)} className="h-9 text-xs" />
+                                        </div>
+                                        <div className="flex gap-2 items-center justify-between">
+                                          <div className="flex-1">
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">Qtd</label>
+                                            <Input type="number" value={inv.quantity ?? 1} onChange={(e) => handleInverterChange(proj.id, idx, 'quantity', e.target.value)} className="h-9 text-xs" />
+                                          </div>
+                                          <Button
+                                            type="button"
+                                            onClick={() => removeInverterRow(proj.id, idx)}
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-red-500 hover:bg-red-50 h-9 w-9 mt-5"
+                                            title="Remover Inversor"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
+
+                                      {/* Preview do Arranjo de Painéis para este inversor */}
+                                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs text-slate-600">
+                                        <p className="font-bold text-slate-700 mb-1">Arranjo sugerido:</p>
+                                        {(() => {
+                                          const totalInverterModules = proj.totalModules;
+                                          const mppts = Number(inv.numMppts || 1);
+                                          const inputs = Number(inv.inputsPerMppt || 1);
+                                          const totalEntries = mppts * inputs;
+                                          const modulesPerEntry = Math.floor(totalInverterModules / totalEntries);
+                                          
+                                          if (modulesPerEntry <= 0) {
+                                            return <span>Adicione módulos ao projeto para ver o arranjo.</span>;
+                                          }
+
+                                          return (
+                                            <div className="space-y-1">
+                                              {Array.from({ length: totalEntries }).map((_, i) => (
+                                                <p key={i}>
+                                                  ✓ 01 string com <strong>{modulesPerEntry}</strong> módulos em série ligada à entrada <strong>{String(i + 1).padStart(2, "0")}</strong> do inversor.
+                                                </p>
+                                              ))}
+                                              <p className="mt-2 text-slate-500 font-medium">Total de entradas: {totalEntries} | Placas por entrada: {modulesPerEntry}</p>
+                                            </div>
+                                          );
+                                        })()}
                                       </div>
                                     </div>
-                                  ))}
-                                </div>
+                                   ))}
+                                  </div>
                               )}
                             </div>
 
