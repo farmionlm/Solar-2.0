@@ -99,6 +99,7 @@ model ProjectInverter {
   // Novos campos para arranjo dos painéis
   numMppts      Int?     @default(1)
   inputsPerMppt Int?     @default(1)
+  stringLayout  String?
 
   projectId     String
   project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)

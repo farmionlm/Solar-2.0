@@ -747,32 +747,68 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                         </div>
                                       </div>
 
-                                      {/* Preview do Arranjo de Painéis para este inversor */}
-                                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs text-slate-600">
-                                        <p className="font-bold text-slate-700 mb-1">Arranjo sugerido:</p>
+                                      {/* Arranjo de Painéis Editável para este inversor */}
+                                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs text-slate-600">
+                                        <p className="font-bold text-slate-700 mb-2">Arranjo de Painéis por Entrada (Editável):</p>
                                         {(() => {
                                           const totalInverterModules = proj.totalModules;
                                           const mppts = Number(inv.numMppts || 1);
                                           const inputs = Number(inv.inputsPerMppt || 1);
                                           const totalEntries = mppts * inputs;
-                                          const modulesPerEntry = Math.floor(totalInverterModules / totalEntries);
+                                          const defaultModulesPerEntry = Math.floor(totalInverterModules / totalEntries);
+
+                                          // Converte o stringLayout em array ou inicializa o padrão
+                                          let currentModulesArray: number[] = [];
+                                          if (inv.stringLayout) {
+                                            currentModulesArray = inv.stringLayout.split(",").map(n => Number(n) || 0);
+                                          } else {
+                                            currentModulesArray = Array.from({ length: totalEntries }).map(() => defaultModulesPerEntry);
+                                          }
+
+                                          // Ajusta o array se o número de entradas mudou
+                                          if (currentModulesArray.length !== totalEntries) {
+                                            if (currentModulesArray.length < totalEntries) {
+                                              while (currentModulesArray.length < totalEntries) {
+                                                currentModulesArray.push(defaultModulesPerEntry);
+                                              }
+                                            } else {
+                                              currentModulesArray = currentModulesArray.slice(0, totalEntries);
+                                            }
+                                          }
                                           
-                                          if (modulesPerEntry <= 0) {
+                                          if (totalEntries <= 0) {
                                             return <span>Adicione módulos ao projeto para ver o arranjo.</span>;
                                           }
 
                                           return (
-                                            <div className="space-y-1">
-                                              {Array.from({ length: totalEntries }).map((_, i) => (
-                                                <p key={i}>
-                                                  ✓ 01 string com <strong>{modulesPerEntry}</strong> módulos em série ligada à entrada <strong>{String(i + 1).padStart(2, "0")}</strong> do inversor.
-                                                </p>
-                                              ))}
-                                              <p className="mt-2 text-slate-500 font-medium">Total de entradas: {totalEntries} | Placas por entrada: {modulesPerEntry}</p>
+                                            <div className="space-y-3">
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
+                                                {currentModulesArray.map((modCount, i) => (
+                                                  <div key={i} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-100">
+                                                    <span>✓ 01 string com</span>
+                                                    <Input
+                                                      type="number"
+                                                      value={modCount || ""}
+                                                      onChange={(e) => {
+                                                        const newVal = e.target.value ? Number(e.target.value) : 0;
+                                                        const newArr = [...currentModulesArray];
+                                                        newArr[i] = newVal;
+                                                        handleInverterChange(proj.id, idx, "stringLayout", newArr.join(","));
+                                                      }}
+                                                      className="w-16 h-8 text-xs text-center font-mono p-1 border-slate-200"
+                                                    />
+                                                    <span>módulos em série ligada à entrada <strong>{String(i + 1).padStart(2, "0")}</strong></span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                              <p className="mt-2 text-slate-500 font-medium">
+                                                Total de entradas: {totalEntries} | Total de módulos somados neste inversor: {currentModulesArray.reduce((acc, c) => acc + c, 0)}
+                                              </p>
                                             </div>
                                           );
                                         })()}
                                       </div>
+
                                     </div>
                                    ))}
                                   </div>

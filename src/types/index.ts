@@ -43,7 +43,9 @@ export type Inverter = {
   quantity: number;
   numMppts?: number | null;
   inputsPerMppt?: number | null;
+  stringLayout?: string | null;
 };
+
 
 
 export type Project = {

@@ -162,17 +162,37 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
       const mppts = Number(inv.numMppts || 1);
       const inputs = Number(inv.inputsPerMppt || 1);
       const totalEntries = mppts * inputs;
-      const modulesPerEntry = Math.floor(project.totalModules / totalEntries);
+      const defaultModulesPerEntry = Math.floor(project.totalModules / totalEntries);
+
+      // Converte o stringLayout em array ou inicializa o padrão
+      let currentModulesArray: number[] = [];
+      if (inv.stringLayout) {
+        currentModulesArray = inv.stringLayout.split(",").map(n => Number(n) || 0);
+      } else {
+        currentModulesArray = Array.from({ length: totalEntries }).map(() => defaultModulesPerEntry);
+      }
+
+      // Ajusta o array se o número de entradas mudou
+      if (currentModulesArray.length !== totalEntries) {
+        if (currentModulesArray.length < totalEntries) {
+          while (currentModulesArray.length < totalEntries) {
+            currentModulesArray.push(defaultModulesPerEntry);
+          }
+        } else {
+          currentModulesArray = currentModulesArray.slice(0, totalEntries);
+        }
+      }
 
       doc.setFont("helvetica", "bold");
       doc.text(`Inversor ${String(idx + 1).padStart(2, "0")}:`, 14, yPos); yPos += 5;
       doc.setFont("helvetica", "normal");
       
       for (let i = 0; i < totalEntries; i++) {
-        doc.text(`  ✓ 01 string com ${String(modulesPerEntry).padStart(2, "0")} módulos em série ligada à entrada ${String(i + 1).padStart(2, "0")} do inversor;`, 14, yPos);
+        const modCount = currentModulesArray[i];
+        doc.text(`  ✓ 01 string com ${String(modCount).padStart(2, "0")} módulos em série ligada à entrada ${String(i + 1).padStart(2, "0")} do inversor;`, 14, yPos);
         yPos += 5;
       }
-      doc.text(`Total: ${project.totalModules} módulos.`, 14, yPos); yPos += 6;
+      doc.text(`Total: ${currentModulesArray.reduce((acc, c) => acc + c, 0)} módulos.`, 14, yPos); yPos += 6;
 
       // Desenha a tabela de arranjo
       const titleText = `INVERSOR ${String(idx + 1).padStart(2, "0")} - ${inv.model || "MODELO"}`.toUpperCase();
@@ -198,8 +218,12 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
       doc.text("Nº DE PLACAS", 55, yPos + 4.5, { align: "center" });
 
       for (let m = 0; m < mppts; m++) {
+        let mpptTotalModules = 0;
+        for (let entryIdx = 0; entryIdx < inputs; entryIdx++) {
+          mpptTotalModules += currentModulesArray[m * inputs + entryIdx] || 0;
+        }
         doc.rect(80 + m * colWidth, yPos, colWidth, 6);
-        doc.text(String(modulesPerEntry * inputs), 80 + m * colWidth + colWidth / 2, yPos + 4.5, { align: "center" });
+        doc.text(String(mpptTotalModules), 80 + m * colWidth + colWidth / 2, yPos + 4.5, { align: "center" });
       }
       yPos += 12;
     });
@@ -211,6 +235,7 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
     );
     yPos += 5;
   }
+
 
 
   doc.text("Estruturas de fixação dos painéis fotovoltaicos:", 14, yPos); yPos += 5;
