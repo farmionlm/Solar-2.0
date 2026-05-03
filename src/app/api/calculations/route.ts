@@ -177,3 +177,45 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Erro interno ao atualizar.' }, { status: 500 });
   }
 }
+
+// Re-simulação: atualiza kWp, módulos e unidades de um projeto existente
+export async function PATCH(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+
+    const body = await request.json();
+    const { id, modulePower, totalKwp, totalModules, units } = body;
+
+    if (!id || !modulePower || !totalKwp || !totalModules || !Array.isArray(units)) {
+      return NextResponse.json({ error: 'Dados incompletos.' }, { status: 400 });
+    }
+
+    // Apaga unidades antigas e insere as novas
+    await prisma.consumerUnit.deleteMany({ where: { projectId: id } });
+
+    const project = await prisma.project.update({
+      where: { id },
+      data: {
+        modulePower: Number(modulePower),
+        totalKwp: Number(totalKwp),
+        totalModules: Number(totalModules),
+        units: {
+          create: units.map((unit: { code: string | number; name: string; monthlyCons: string | number; dailyCons: string | number; requiredKwp: string | number; requiredModules: string | number }) => ({
+            code: String(unit.code),
+            name: String(unit.name),
+            monthlyCons: Number(unit.monthlyCons),
+            dailyCons: Number(unit.dailyCons),
+            requiredKwp: Number(unit.requiredKwp),
+            requiredModules: Number(unit.requiredModules),
+          })),
+        },
+      },
+    });
+
+    return NextResponse.json({ success: true, project });
+  } catch (error) {
+    console.error('Erro ao re-simular projeto:', error);
+    return NextResponse.json({ error: 'Erro interno ao re-simular.' }, { status: 500 });
+  }
+}

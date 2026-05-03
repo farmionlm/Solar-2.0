@@ -5,13 +5,14 @@ import Link from "next/link";
 import useSWR from "swr";
 import { fetcher } from "@/utils/fetcher";
 import * as XLSX from "xlsx";
-import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X, Trash2, RefreshCw, Upload } from "lucide-react";
 
 import { Project, ClientDetail, Inverter } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { generateMemorialPDF } from "@/utils/generateMemorial";
+import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 
 function formatUnidadeConsumidora(value: string): string {
   const clean = value.replace(/\D/g, "").slice(0, 15);
@@ -94,6 +95,12 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [editClientData, setEditClientData] = useState({
     name: "", cpfCnpj: "", phone: "", email: "", address: "", neighborhood: "", city: "", cep: "", installationNumber: ""
   });
+
+  // Estado do modal de re-simulação
+  const [reSimProject, setReSimProject] = useState<Project | null>(null);
+  const [reSimModulePower, setReSimModulePower] = useState<number | "">("");
+  const [reSimError, setReSimError] = useState("");
+  const [reSimLoading, setReSimLoading] = useState(false);
 
   const saveProjectEquipment = async (projId: string, equipData: Record<string, unknown>) => {
     setIsSaving(true);
@@ -337,6 +344,86 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     });
   };
 
+  const handleReSimFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setReSimError("");
+    if (!reSimModulePower || reSimModulePower <= 0) {
+      setReSimError("Informe a potência do módulo antes de selecionar o arquivo.");
+      return;
+    }
+    const file = e.target.files?.[0];
+    if (!file || !reSimProject) return;
+
+    setReSimLoading(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+
+        if (jsonData.length < 2) {
+          setReSimError("Planilha vazia ou sem dados suficientes.");
+          setReSimLoading(false);
+          return;
+        }
+
+        const headers = jsonData[0].map((h: unknown) => String(h).toLowerCase());
+        let codeIdx = -1, nameIdx = -1, consIdx = -1;
+        headers.forEach((h: string, i: number) => {
+          if ((h.includes("cód") || h.includes("cod") || h.includes("instala")) && codeIdx === -1) codeIdx = i;
+          if ((h.includes("nome") || h.includes("escola") || h.includes("unidade")) && nameIdx === -1) nameIdx = i;
+          if ((h.includes("consumo") || h.includes("média") || h.includes("media") || h.includes("kwh")) && consIdx === -1) consIdx = i;
+        });
+        if (codeIdx === -1) codeIdx = 0;
+        if (nameIdx === -1) nameIdx = 1;
+        if (consIdx === -1) consIdx = 2;
+
+        const processedUnits = [];
+        for (let i = 1; i < jsonData.length; i++) {
+          const row = jsonData[i];
+          if (!row || row.length === 0 || (!row[codeIdx] && !row[nameIdx] && !row[consIdx])) continue;
+          const monthlyCons = parseFloat(String(row[consIdx]).replace(",", ".").replace(/[^\d.-]/g, ""));
+          if (isNaN(monthlyCons) || monthlyCons <= 0) continue;
+          const solarData = calculateUnitSolarData(monthlyCons, Number(reSimModulePower));
+          processedUnits.push({ code: String(row[codeIdx] || "N/A"), name: String(row[nameIdx] || "N/A"), monthlyCons, ...solarData });
+        }
+
+        if (processedUnits.length === 0) {
+          setReSimError("Nenhum dado de consumo válido encontrado.");
+          setReSimLoading(false);
+          return;
+        }
+
+        const totals = calculateProjectTotals(processedUnits);
+
+        const res = await fetch("/api/calculations", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: reSimProject.id,
+            modulePower: Number(reSimModulePower),
+            totalKwp: totals.totalKwp,
+            totalModules: totals.totalModules,
+            units: processedUnits,
+          }),
+        });
+
+        if (!res.ok) throw new Error("Falha ao re-simular.");
+        setReSimProject(null);
+        setReSimModulePower("");
+        mutate();
+        setSaveMsg("Projeto re-simulado com sucesso!");
+      } catch {
+        setReSimError("Erro ao processar a planilha. Verifique o formato.");
+      } finally {
+        setReSimLoading(false);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   if (isLoading && !client) {
     return (
       <div className="min-h-screen bg-slate-50 flex justify-center items-center">
@@ -544,6 +631,15 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                         >
                           <Download className="w-4 h-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => { e.stopPropagation(); setReSimProject(proj); setReSimModulePower(proj.modulePower); setReSimError(""); }}
+                          className="text-amber-600 bg-amber-50 hover:bg-amber-100"
+                          title="Refazer Simulação"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => setExpandedProject(expandedProject === proj.id ? null : proj.id)}>
                           {expandedProject === proj.id ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
                         </Button>
@@ -712,6 +808,70 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
           )}
         </div>
       </div>
+      {/* Modal de Re-Simulação */}
+      {reSimProject && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-amber-500 p-6 text-white flex justify-between items-center">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <RefreshCw className="w-5 h-5" /> Refazer Simulação
+              </h2>
+              <button onClick={() => { setReSimProject(null); setReSimModulePower(""); setReSimError(""); }} className="text-white/80 hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-slate-500 mb-5">
+                Projeto: <strong className="text-slate-800">{reSimProject.name || "Sem nome"}</strong><br />
+                Os dados de kWp, módulos e unidades serão substituídos pelos novos resultados. Os dados técnicos (fabricantes, inversores, etc.) serão preservados.
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-600 mb-1">Potência do Módulo (W)</label>
+                  <Input
+                    type="number"
+                    value={reSimModulePower}
+                    onChange={(e) => setReSimModulePower(e.target.value ? Number(e.target.value) : "")}
+                    placeholder="Ex: 700"
+                    className="font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-600 mb-1">Nova Planilha de Consumo (.xlsx)</label>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={handleReSimFile}
+                      disabled={reSimLoading}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                    />
+                    <div className={`w-full p-4 rounded-xl border-2 border-dashed flex items-center justify-center gap-2 font-medium transition-all ${reSimLoading ? "border-amber-200 bg-amber-50 text-amber-400" : "border-amber-300 bg-amber-50/50 hover:bg-amber-50 text-amber-600"}`}>
+                      {reSimLoading ? (
+                        <><RefreshCw className="w-5 h-5 animate-spin" /> Processando...</>
+                      ) : (
+                        <><Upload className="w-5 h-5" /> Selecionar Arquivo</>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {reSimError && (
+                  <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-medium p-3 rounded-xl">
+                    {reSimError}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end mt-6">
+                <Button variant="outline" onClick={() => { setReSimProject(null); setReSimModulePower(""); setReSimError(""); }} className="rounded-xl h-11 px-6">
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
