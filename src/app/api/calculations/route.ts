@@ -205,6 +205,7 @@ export async function PATCH(request: Request) {
         modulePower: Number(modulePower),
         totalKwp: Number(totalKwp),
         totalModules: Number(totalModules),
+        generationKwh: Math.round(Number(totalKwp) * 120),
         units: {
           create: units.map((unit: { code: string | number; name: string; monthlyCons: string | number; dailyCons: string | number; requiredKwp: string | number; requiredModules: string | number }) => ({
             code: String(unit.code),
@@ -217,6 +218,7 @@ export async function PATCH(request: Request) {
         },
       },
     });
+
 
     return NextResponse.json({ success: true, project });
   } catch (error) {

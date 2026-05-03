@@ -413,6 +413,11 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         if (!res.ok) throw new Error("Falha ao re-simular.");
         setReSimProject(null);
         setReSimModulePower("");
+        setProjectEquipments(prev => {
+          const next = { ...prev };
+          delete next[reSimProject.id];
+          return next;
+        });
         mutate();
         setSaveMsg("Projeto re-simulado com sucesso!");
       } catch {
