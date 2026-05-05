@@ -109,11 +109,27 @@ export async function PUT(request: Request) {
 // DELETE - Excluir cliente
 export async function DELETE(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
       return NextResponse.json({ error: 'ID não fornecido.' }, { status: 400 });
+    }
+
+    // Parceiros só podem deletar seus próprios clientes
+    if (session.user.role !== 'ADMIN') {
+      const client = await prisma.client.findUnique({
+        where: { id },
+        select: { userId: true },
+      });
+      if (!client || client.userId !== session.user.id) {
+        return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
+      }
     }
 
     await prisma.client.delete({
