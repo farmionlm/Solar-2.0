@@ -132,32 +132,37 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     if (!manualModulePower || Number(manualModulePower) <= 0) { setManualError("Informe a potência do módulo (W)."); return; }
 
     const validRows = manualRows.filter(
-      r => String(r.code).trim() && String(r.name).trim() && Number(r.kWp) > 0 && Number(r.modules) > 0
+      r => String(r.code).trim() && String(r.name).trim() && Number(r.modules) > 0
     );
     if (validRows.length === 0) { setManualError("Adicione pelo menos uma unidade com todos os campos preenchidos."); return; }
 
     setManualSaving(true);
     try {
-      const totalKwp = validRows.reduce((acc, r) => acc + Number(r.kWp), 0);
-      const totalModules = validRows.reduce((acc, r) => acc + Number(r.modules), 0);
-      const units = validRows.map(r => ({
-        code: String(r.code).trim(),
-        name: String(r.name).trim(),
-        monthlyCons: 0,
-        dailyCons: 0,
-        requiredKwp: Number(r.kWp),
-        requiredModules: Number(r.modules),
-      }));
+      const modPower = Number(manualModulePower) || 0;
+      const validRowsData = validRows.map(r => {
+        const calculatedKwp = (Number(r.modules) * modPower) / 1000;
+        return {
+          code: String(r.code).trim(),
+          name: String(r.name).trim(),
+          monthlyCons: 0,
+          dailyCons: 0,
+          requiredKwp: calculatedKwp,
+          requiredModules: Number(r.modules),
+        };
+      });
+
+      const totalKwp = validRowsData.reduce((acc, r) => acc + r.requiredKwp, 0);
+      const totalModules = validRowsData.reduce((acc, r) => acc + r.requiredModules, 0);
 
       const res = await fetch("/api/calculations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: manualProjectName.trim(),
-          modulePower: Number(manualModulePower),
+          modulePower: modPower,
           totalKwp,
           totalModules,
-          units,
+          units: validRowsData,
           clientId: id,
         }),
       });
@@ -1082,12 +1087,10 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                             </td>
                             <td className="px-2 py-2">
                               <Input
-                                type="number"
-                                value={row.kWp}
-                                onChange={e => updateManualRow(idx, 'kWp', e.target.value ? Number(e.target.value) : "")}
-                                placeholder="0.00"
-                                className="h-9 text-xs font-mono text-center"
-                                step="0.01"
+                                type="text"
+                                value={row.modules ? ((Number(row.modules) * (Number(manualModulePower) || 0)) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0,00"}
+                                readOnly
+                                className="h-9 text-xs font-mono text-center bg-slate-50 border-slate-200 text-slate-500"
                               />
                             </td>
                             <td className="px-2 py-2">
@@ -1112,12 +1115,12 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           </tr>
                         ))}
                       </tbody>
-                      {manualRows.some(r => Number(r.kWp) > 0) && (
+                      {manualRows.some(r => Number(r.modules) > 0) && (
                         <tfoot className="bg-slate-50 border-t-2 border-slate-200">
                           <tr>
                             <td colSpan={2} className="px-3 py-2.5 text-xs font-bold text-slate-600 uppercase">Total</td>
                             <td className="px-3 py-2.5 text-center text-sm font-bold text-blue-600 font-mono">
-                              {manualRows.reduce((acc, r) => acc + (Number(r.kWp) || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWp
+                              {(manualRows.reduce((acc, r) => acc + (Number(r.modules) || 0), 0) * (Number(manualModulePower) || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWp
                             </td>
                             <td className="px-3 py-2.5 text-center text-sm font-bold text-emerald-600 font-mono">
                               {manualRows.reduce((acc, r) => acc + (Number(r.modules) || 0), 0)} un.
