@@ -58,6 +58,7 @@ model Project {
   modulePower  Float
   totalKwp     Float
   totalModules Int
+  installationNumber String?
   
   // Equipamentos vinculados ao projeto
   moduleModel           String?

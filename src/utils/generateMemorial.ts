@@ -52,7 +52,7 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   setFontBold();
   doc.text("Unidade Consumidora: ", 30, 220);
   setFontNormal();
-  doc.text(client.installationNumber || "", 75, 220);
+  doc.text(project.installationNumber || client.installationNumber || "", 75, 220);
 
   setFontBold();
   doc.text("Município: ", 30, 230);

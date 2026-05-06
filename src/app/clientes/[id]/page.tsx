@@ -93,7 +93,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
   const [isEditingClient, setIsEditingClient] = useState(false);
   const [editClientData, setEditClientData] = useState({
-    name: "", cpfCnpj: "", phone: "", email: "", address: "", neighborhood: "", city: "", cep: "", installationNumber: ""
+    name: "", cpfCnpj: "", phone: "", email: "", address: "", neighborhood: "", city: "", cep: ""
   });
 
   // Estado do modal de re-simulação
@@ -230,8 +230,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
       address: client.address || "",
       neighborhood: client.neighborhood || "",
       city: client.city || "",
-      cep: formatCep(client.cep || ""),
-      installationNumber: formatUnidadeConsumidora(client.installationNumber || "")
+      cep: formatCep(client.cep || "")
     });
     setIsEditingClient(true);
   };
@@ -622,10 +621,6 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Cidade / UF</label>
                 <Input type="text" value={editClientData.city} onChange={(e) => setEditClientData({...editClientData, city: e.target.value})} />
               </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Unidade Consumidora</label>
-                <Input type="text" value={editClientData.installationNumber} onChange={(e) => setEditClientData({...editClientData, installationNumber: formatUnidadeConsumidora(e.target.value)})} placeholder="Ex: 0.000.939.307.054-04" />
-              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -634,7 +629,6 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
               <p className="flex items-center gap-2 text-slate-600"><Mail className="w-4 h-4 text-slate-400" /> {client.email || "E-mail não informado"}</p>
               <p className="flex items-center gap-2 text-slate-600"><MapPin className="w-4 h-4 text-slate-400" /> {client.cep ? `CEP: ${client.cep}` : "CEP não informado"}</p>
               <p className="flex items-center gap-2 text-slate-600 md:col-span-2"><MapPin className="w-4 h-4 text-slate-400" /> {[client.address, client.neighborhood, client.city].filter(Boolean).join(', ') || "Endereço não informado"}</p>
-              <p className="flex items-center gap-2 text-slate-600 md:col-span-2"><Zap className="w-4 h-4 text-slate-400" /> Unidade Consumidora: <span className="font-semibold">{client.installationNumber || "Não informado"}</span></p>
             </div>
           )}
         </div>
@@ -667,6 +661,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                   areaOccupied: proj.areaOccupied ?? (proj.totalModules * 3),
                   professionalName: proj.professionalName || "",
                   professionalCrt: proj.professionalCrt || "",
+                  installationNumber: proj.installationNumber || "",
                   inverters: proj.inverters || [],
                   ...projectEquipments[proj.id]
                 };
@@ -737,7 +732,11 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                             <FileText className="w-4 h-4" /> Dados para o Memorial Descritivo
                           </h4>
                           
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Unidade Consumidora (UC)</label>
+                              <Input type="text" value={currentEquip.installationNumber ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'installationNumber', formatUnidadeConsumidora(e.target.value))} placeholder="0.000.000.000.000-00" />
+                            </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Geração Mensal Estimada (kWh)</label>
                               <Input type="number" value={currentEquip.generationKwh ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'generationKwh', e.target.value)} />
@@ -935,7 +934,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           <Table>
                             <TableHeader className="bg-slate-50">
                               <TableRow>
-                                <TableHead className="font-semibold text-slate-600">Código</TableHead>
+                                <TableHead className="font-semibold text-slate-600">Unidade Consumidora</TableHead>
                                 <TableHead className="font-semibold text-slate-600">Unidade</TableHead>
                                 <TableHead className="font-semibold text-slate-600 text-right">Média (kWh)</TableHead>
                                 <TableHead className="font-semibold text-slate-600 text-right">kWp</TableHead>
@@ -1057,7 +1056,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>
-                          <th className="text-left px-3 py-2.5 text-xs font-bold text-slate-500 uppercase w-36">Código</th>
+                          <th className="text-left px-3 py-2.5 text-xs font-bold text-slate-500 uppercase w-48">Unidade Consumidora</th>
                           <th className="text-left px-3 py-2.5 text-xs font-bold text-slate-500 uppercase">Unidade / Nome</th>
                           <th className="text-center px-3 py-2.5 text-xs font-bold text-slate-500 uppercase w-28">kWp</th>
                           <th className="text-center px-3 py-2.5 text-xs font-bold text-slate-500 uppercase w-24">Módulos</th>
@@ -1071,8 +1070,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               <Input
                                 type="text"
                                 value={row.code}
-                                onChange={e => updateManualRow(idx, 'code', e.target.value)}
-                                placeholder="Código"
+                                onChange={e => updateManualRow(idx, 'code', formatUnidadeConsumidora(e.target.value))}
+                                placeholder="0.000.000.000.000-00"
                                 className="h-9 text-xs font-mono"
                               />
                             </td>

@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     if (!session) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
     const body = await request.json();
-    const { name, modulePower, totalKwp, totalModules, units, clientId, clientData, moduleModel, inverterModel } = body;
+    const { name, modulePower, totalKwp, totalModules, units, clientId, clientData, moduleModel, inverterModel, installationNumber } = body;
 
     // Validate request
     if (!modulePower || !totalKwp || !totalModules || !units || !Array.isArray(units)) {
@@ -48,6 +48,7 @@ export async function POST(request: Request) {
         totalModules,
         moduleModel: moduleModel || null,
         inverterModel: inverterModel || null,
+        installationNumber: installationNumber || null,
         clientId: resolvedClientId,
         units: {
           create: units.map((unit: { code: string | number; name: string; monthlyCons: string | number; dailyCons: string | number; requiredKwp: string | number; requiredModules: string | number }) => ({
@@ -129,7 +130,7 @@ export async function PUT(request: Request) {
       generationKwh, reductionPercent, moduleManufacturer, moduleArea,
       moduleCurrent, inverterManufacturer, inverterOutputPower,
       inverterOutputCurrent, areaOccupied, professionalName, professionalCrt,
-      inverters
+      inverters, installationNumber
     } = body;
 
     if (!id) {
@@ -152,6 +153,7 @@ export async function PUT(request: Request) {
         ...(areaOccupied !== undefined && { areaOccupied: areaOccupied ? Number(areaOccupied) : null }),
         ...(professionalName !== undefined && { professionalName: professionalName?.trim() || null }),
         ...(professionalCrt !== undefined && { professionalCrt: professionalCrt?.trim() || null }),
+        ...(installationNumber !== undefined && { installationNumber: installationNumber?.trim() || null }),
       }
     });
 
@@ -190,7 +192,7 @@ export async function PATCH(request: Request) {
     if (!session) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
     const body = await request.json();
-    const { id, modulePower, totalKwp, totalModules, units } = body;
+    const { id, modulePower, totalKwp, totalModules, units, installationNumber } = body;
 
     if (!id || !modulePower || !totalKwp || !totalModules || !Array.isArray(units)) {
       return NextResponse.json({ error: 'Dados incompletos.' }, { status: 400 });
@@ -205,6 +207,7 @@ export async function PATCH(request: Request) {
         modulePower: Number(modulePower),
         totalKwp: Number(totalKwp),
         totalModules: Number(totalModules),
+        ...(installationNumber !== undefined && { installationNumber: installationNumber?.trim() || null }),
         generationKwh: Math.round(Number(totalKwp) * 120),
         units: {
           create: units.map((unit: { code: string | number; name: string; monthlyCons: string | number; dailyCons: string | number; requiredKwp: string | number; requiredModules: string | number }) => ({
