@@ -102,6 +102,78 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [reSimError, setReSimError] = useState("");
   const [reSimLoading, setReSimLoading] = useState(false);
 
+  // Estado do modal de Novo Projeto
+  type ManualRow = { code: string; name: string; kWp: number | ""; modules: number | "" };
+  const emptyRow = (): ManualRow => ({ code: "", name: "", kWp: "", modules: "" });
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [newProjectMode, setNewProjectMode] = useState<'choice' | 'manual'>('choice');
+  const [manualProjectName, setManualProjectName] = useState("");
+  const [manualModulePower, setManualModulePower] = useState<number | "">("");
+  const [manualRows, setManualRows] = useState<ManualRow[]>([emptyRow()]);
+  const [manualSaving, setManualSaving] = useState(false);
+  const [manualError, setManualError] = useState("");
+
+  const resetManualModal = () => {
+    setShowNewProjectModal(false);
+    setNewProjectMode('choice');
+    setManualProjectName("");
+    setManualModulePower("");
+    setManualRows([emptyRow()]);
+    setManualError("");
+  };
+
+  const updateManualRow = (idx: number, field: keyof ManualRow, value: string | number) => {
+    setManualRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
+  };
+
+  const handleSaveManualProject = async () => {
+    setManualError("");
+    if (!manualProjectName.trim()) { setManualError("Informe o nome do projeto."); return; }
+    if (!manualModulePower || Number(manualModulePower) <= 0) { setManualError("Informe a potência do módulo (W)."); return; }
+
+    const validRows = manualRows.filter(
+      r => String(r.code).trim() && String(r.name).trim() && Number(r.kWp) > 0 && Number(r.modules) > 0
+    );
+    if (validRows.length === 0) { setManualError("Adicione pelo menos uma unidade com todos os campos preenchidos."); return; }
+
+    setManualSaving(true);
+    try {
+      const totalKwp = validRows.reduce((acc, r) => acc + Number(r.kWp), 0);
+      const totalModules = validRows.reduce((acc, r) => acc + Number(r.modules), 0);
+      const units = validRows.map(r => ({
+        code: String(r.code).trim(),
+        name: String(r.name).trim(),
+        monthlyCons: 0,
+        dailyCons: 0,
+        requiredKwp: Number(r.kWp),
+        requiredModules: Number(r.modules),
+      }));
+
+      const res = await fetch("/api/calculations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: manualProjectName.trim(),
+          modulePower: Number(manualModulePower),
+          totalKwp,
+          totalModules,
+          units,
+          clientId: id,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Falha ao salvar projeto.");
+      resetManualModal();
+      await mutate();
+      setSaveMsg("Projeto criado com sucesso!");
+      setTimeout(() => setSaveMsg(""), 3000);
+    } catch {
+      setManualError("Erro ao salvar o projeto. Tente novamente.");
+    } finally {
+      setManualSaving(false);
+    }
+  };
+
   const saveProjectEquipment = async (projId: string, equipData: Record<string, unknown>) => {
     setIsSaving(true);
     setSaveMsg("");
@@ -469,10 +541,11 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
             </Link>
           </div>
           <div className="flex gap-3">
-            <Link href={`/?clientId=${id}`}
+            <button
+              onClick={() => { setShowNewProjectModal(true); setNewProjectMode('choice'); }}
               className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-md shadow-violet-500/20 active:scale-95 h-12">
               <Zap className="w-5 h-5" /> Novo Projeto
-            </Link>
+            </button>
             <Button onClick={exportClientExcel}
               className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-md shadow-emerald-500/20 active:scale-95 h-12 px-6 text-base">
               <Download className="w-5 h-5 mr-2" /> Planilha de Projetos (Abas)
@@ -886,6 +959,212 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
           )}
         </div>
       </div>
+      {/* Modal de Novo Projeto */}
+      {showNewProjectModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+
+            {/* Header */}
+            <div className="bg-violet-600 p-6 text-white flex justify-between items-center flex-shrink-0">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Zap className="w-5 h-5" /> Novo Projeto para {client.name}
+              </h2>
+              <button onClick={resetManualModal} className="text-white/80 hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+
+            {/* Escolha do modo */}
+            {newProjectMode === 'choice' && (
+              <div className="p-8 flex flex-col gap-4">
+                <p className="text-slate-500 text-sm text-center mb-2">Como deseja criar o novo projeto?</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Opção 1: Planilha */}
+                  <Link
+                    href={`/?clientId=${id}`}
+                    className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-slate-200 hover:border-violet-400 hover:bg-violet-50 transition-all cursor-pointer"
+                  >
+                    <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+                      <Upload className="w-7 h-7 text-emerald-600" />
+                    </div>
+                    <div className="text-center">
+                      <p className="font-bold text-slate-800 mb-1">Importar Planilha</p>
+                      <p className="text-xs text-slate-500">Calcule automaticamente o dimensionamento a partir de uma planilha de consumo (.xlsx)</p>
+                    </div>
+                  </Link>
+
+                  {/* Opção 2: Manual */}
+                  <button
+                    onClick={() => setNewProjectMode('manual')}
+                    className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-slate-200 hover:border-violet-400 hover:bg-violet-50 transition-all cursor-pointer text-left"
+                  >
+                    <div className="w-14 h-14 bg-violet-100 rounded-2xl flex items-center justify-center group-hover:bg-violet-200 transition-colors">
+                      <Pencil className="w-7 h-7 text-violet-600" />
+                    </div>
+                    <div className="text-center">
+                      <p className="font-bold text-slate-800 mb-1">Entrada Manual</p>
+                      <p className="text-xs text-slate-500">Informe diretamente o kWp e a quantidade de módulos de cada unidade do projeto</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Formulário manual */}
+            {newProjectMode === 'manual' && (
+              <div className="flex flex-col overflow-hidden">
+                {/* Campos de cabeçalho do projeto */}
+                <div className="p-6 border-b border-slate-100 flex-shrink-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Projeto *</label>
+                      <Input
+                        type="text"
+                        value={manualProjectName}
+                        onChange={e => setManualProjectName(e.target.value)}
+                        placeholder="Ex: Residência Solar 2025"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Potência do Módulo (W) *</label>
+                      <Input
+                        type="number"
+                        value={manualModulePower}
+                        onChange={e => setManualModulePower(e.target.value ? Number(e.target.value) : "")}
+                        placeholder="Ex: 550"
+                        className="font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tabela de unidades — scroll independente */}
+                <div className="overflow-y-auto flex-1 p-6">
+                  <div className="flex justify-between items-center mb-3">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Unidades do Projeto</p>
+                    <button
+                      onClick={() => setManualRows(prev => [...prev, emptyRow()])}
+                      className="text-xs font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      + Adicionar Linha
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-xl border border-slate-200">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                          <th className="text-left px-3 py-2.5 text-xs font-bold text-slate-500 uppercase w-36">Código</th>
+                          <th className="text-left px-3 py-2.5 text-xs font-bold text-slate-500 uppercase">Unidade / Nome</th>
+                          <th className="text-center px-3 py-2.5 text-xs font-bold text-slate-500 uppercase w-28">kWp</th>
+                          <th className="text-center px-3 py-2.5 text-xs font-bold text-slate-500 uppercase w-24">Módulos</th>
+                          <th className="w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {manualRows.map((row, idx) => (
+                          <tr key={idx} className="bg-white hover:bg-slate-50/50">
+                            <td className="px-2 py-2">
+                              <Input
+                                type="text"
+                                value={row.code}
+                                onChange={e => updateManualRow(idx, 'code', e.target.value)}
+                                placeholder="Código"
+                                className="h-9 text-xs font-mono"
+                              />
+                            </td>
+                            <td className="px-2 py-2">
+                              <Input
+                                type="text"
+                                value={row.name}
+                                onChange={e => updateManualRow(idx, 'name', e.target.value)}
+                                placeholder="Nome da Unidade"
+                                className="h-9 text-xs"
+                              />
+                            </td>
+                            <td className="px-2 py-2">
+                              <Input
+                                type="number"
+                                value={row.kWp}
+                                onChange={e => updateManualRow(idx, 'kWp', e.target.value ? Number(e.target.value) : "")}
+                                placeholder="0.00"
+                                className="h-9 text-xs font-mono text-center"
+                                step="0.01"
+                              />
+                            </td>
+                            <td className="px-2 py-2">
+                              <Input
+                                type="number"
+                                value={row.modules}
+                                onChange={e => updateManualRow(idx, 'modules', e.target.value ? Number(e.target.value) : "")}
+                                placeholder="0"
+                                className="h-9 text-xs font-mono text-center"
+                              />
+                            </td>
+                            <td className="px-2 py-2 text-center">
+                              <button
+                                onClick={() => setManualRows(prev => prev.filter((_, i) => i !== idx))}
+                                disabled={manualRows.length === 1}
+                                className="text-red-400 hover:text-red-600 disabled:opacity-20 disabled:cursor-not-allowed p-1 rounded transition-colors"
+                                title="Remover linha"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      {manualRows.some(r => Number(r.kWp) > 0) && (
+                        <tfoot className="bg-slate-50 border-t-2 border-slate-200">
+                          <tr>
+                            <td colSpan={2} className="px-3 py-2.5 text-xs font-bold text-slate-600 uppercase">Total</td>
+                            <td className="px-3 py-2.5 text-center text-sm font-bold text-blue-600 font-mono">
+                              {manualRows.reduce((acc, r) => acc + (Number(r.kWp) || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWp
+                            </td>
+                            <td className="px-3 py-2.5 text-center text-sm font-bold text-emerald-600 font-mono">
+                              {manualRows.reduce((acc, r) => acc + (Number(r.modules) || 0), 0)} un.
+                            </td>
+                            <td></td>
+                          </tr>
+                        </tfoot>
+                      )}
+                    </table>
+                  </div>
+
+                  {manualError && (
+                    <div className="mt-4 bg-red-50 border border-red-100 text-red-600 text-sm font-medium p-3 rounded-xl">
+                      {manualError}
+                    </div>
+                  )}
+                </div>
+
+                {/* Rodapé com botões */}
+                <div className="p-6 border-t border-slate-100 flex justify-between items-center flex-shrink-0 bg-slate-50/50">
+                  <button
+                    onClick={() => setNewProjectMode('choice')}
+                    className="text-sm text-slate-500 hover:text-slate-700 font-semibold flex items-center gap-1.5 transition-colors"
+                  >
+                    <ArrowLeft className="w-4 h-4" /> Voltar
+                  </button>
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={resetManualModal} className="rounded-xl h-11 px-6">
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleSaveManualProject}
+                      disabled={manualSaving}
+                      className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl shadow-lg shadow-violet-200 h-11 px-8 font-bold disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {manualSaving ? "Salvando..." : "Salvar Projeto"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
       {/* Modal de Re-Simulação */}
       {reSimProject && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
