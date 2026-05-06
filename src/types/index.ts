@@ -57,6 +57,7 @@ export type Project = {
   totalModules: number;
   moduleModel: string | null;
   inverterModel: string | null;
+  installationNumber?: string | null;
   generationKwh?: number | null;
   reductionPercent?: number | null;
   moduleManufacturer?: string | null;
