@@ -15,7 +15,7 @@ import { generateMemorialPDF } from "@/utils/generateMemorial";
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 
 function formatUnidadeConsumidora(value: string): string {
-  const clean = value.replace(/\D/g, "").slice(0, 15);
+  const clean = value.replace(/\D/g, "").slice(0, 12);
   let formatted = "";
   if (clean.length > 0) {
     formatted += clean[0];
@@ -30,10 +30,7 @@ function formatUnidadeConsumidora(value: string): string {
     formatted += "." + clean.substring(7, Math.min(clean.length, 10));
   }
   if (clean.length > 10) {
-    formatted += "." + clean.substring(10, Math.min(clean.length, 13));
-  }
-  if (clean.length > 13) {
-    formatted += "-" + clean.substring(13, clean.length);
+    formatted += "-" + clean.substring(10, clean.length);
   }
   return formatted;
 }
@@ -735,7 +732,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Unidade Consumidora (UC)</label>
-                              <Input type="text" value={currentEquip.installationNumber ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'installationNumber', formatUnidadeConsumidora(e.target.value))} placeholder="0.000.000.000.000-00" />
+                              <Input type="text" value={currentEquip.installationNumber ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'installationNumber', formatUnidadeConsumidora(e.target.value))} placeholder="0.000.000.000-00" />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Geração Mensal Estimada (kWh)</label>
@@ -1071,7 +1068,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                 type="text"
                                 value={row.code}
                                 onChange={e => updateManualRow(idx, 'code', formatUnidadeConsumidora(e.target.value))}
-                                placeholder="0.000.000.000.000-00"
+                                placeholder="0.000.000.000-00"
                                 className="h-9 text-xs font-mono"
                               />
                             </td>
