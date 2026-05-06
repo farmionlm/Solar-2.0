@@ -100,6 +100,7 @@ model ProjectInverter {
   // Novos campos para arranjo dos painéis
   numMppts      Int?     @default(1)
   inputsPerMppt Int?     @default(1)
+  mpptInputs    String?  // Ex: "2,1" para MPPT1 com 2 entradas e MPPT2 com 1
   stringLayout  String?
 
   projectId     String

@@ -159,9 +159,11 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   doc.text("Arranjo dos painéis:", 14, yPos); yPos += 6;
   if (project.inverters && project.inverters.length > 0) {
     project.inverters.forEach((inv, idx) => {
-      const mppts = Number(inv.numMppts || 1);
-      const inputs = Number(inv.inputsPerMppt || 1);
-      const totalEntries = mppts * inputs;
+      const mpptsCount = Number(inv.numMppts || 1);
+      const mpptInputsArray = (inv.mpptInputs || "").split(",").map(n => Number(n) || 1);
+      const normalizedInputs = Array.from({ length: mpptsCount }).map((_, i) => mpptInputsArray[i] || 1);
+      const totalEntries = normalizedInputs.reduce((a, b) => a + b, 0);
+
       const defaultModulesPerEntry = Math.floor(project.totalModules / totalEntries);
 
       // Converte o stringLayout em array ou inicializa o padrão

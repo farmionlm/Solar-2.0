@@ -802,11 +802,36 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                         </div>
                                         <div>
                                           <label className="block text-xs font-bold text-slate-500 mb-1">Nº MPPTs</label>
-                                          <Input type="number" value={inv.numMppts ?? 1} onChange={(e) => handleInverterChange(proj.id, idx, 'numMppts', e.target.value)} className="h-9 text-xs" />
+                                          <Input type="number" min={1} value={inv.numMppts ?? 1} onChange={(e) => handleInverterChange(proj.id, idx, 'numMppts', e.target.value)} className="h-9 text-xs" />
                                         </div>
-                                        <div>
-                                          <label className="block text-xs font-bold text-slate-500 mb-1">Entradas p/ MPPT</label>
-                                          <Input type="number" value={inv.inputsPerMppt ?? 1} onChange={(e) => handleInverterChange(proj.id, idx, 'inputsPerMppt', e.target.value)} className="h-9 text-xs" />
+                                        <div className="lg:col-span-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                          <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-tight">Entradas por MPPT</label>
+                                          <div className="flex flex-wrap gap-2">
+                                            {Array.from({ length: Number(inv.numMppts || 1) }).map((_, mIdx) => {
+                                              const currentInputs = (inv.mpptInputs || "").split(",").map(n => Number(n) || 1);
+                                              // Ajusta o tamanho do array se necessário
+                                              if (currentInputs.length !== Number(inv.numMppts || 1)) {
+                                                while (currentInputs.length < Number(inv.numMppts || 1)) currentInputs.push(1);
+                                              }
+                                              return (
+                                                <div key={mIdx} className="flex items-center gap-1">
+                                                  <span className="text-[10px] text-slate-500">M{mIdx+1}:</span>
+                                                  <Input 
+                                                    type="number" 
+                                                    min={1} 
+                                                    value={currentInputs[mIdx] || 1} 
+                                                    onChange={(e) => {
+                                                      const newVal = Number(e.target.value) || 1;
+                                                      const newInputs = [...currentInputs];
+                                                      newInputs[mIdx] = newVal;
+                                                      handleInverterChange(proj.id, idx, 'mpptInputs', newInputs.join(","));
+                                                    }}
+                                                    className="h-7 w-10 text-[10px] px-1 text-center" 
+                                                  />
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
                                         </div>
                                         <div className="flex gap-2 items-center justify-between">
                                           <div className="flex-1">

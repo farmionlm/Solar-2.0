@@ -170,6 +170,7 @@ export async function PUT(request: Request) {
             quantity: inv.quantity ? Number(inv.quantity) : 1,
             numMppts: inv.numMppts ? Number(inv.numMppts) : 1,
             inputsPerMppt: inv.inputsPerMppt ? Number(inv.inputsPerMppt) : 1,
+            mpptInputs: inv.mpptInputs || null,
             stringLayout: inv.stringLayout || null,
           }))
 
