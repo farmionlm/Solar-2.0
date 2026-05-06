@@ -735,7 +735,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Unidade Consumidora (UC)</label>
-                              <Input type="text" value={currentEquip.installationNumber ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'installationNumber', formatUnidadeConsumidora(e.target.value))} placeholder="0.000.000.000.000-00" />
+                              <Input type="text" value={formatUnidadeConsumidora(currentEquip.installationNumber ?? "")} onChange={(e) => handleEquipmentChange(proj.id, 'installationNumber', formatUnidadeConsumidora(e.target.value))} placeholder="0.000.000.000.000-00" />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Geração Mensal Estimada (kWh)</label>
@@ -970,7 +970,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                             <TableBody>
                               {proj.units.map((u, i) => (
                                 <TableRow key={i} className="hover:bg-slate-50">
-                                  <TableCell className="text-slate-700 font-medium py-3">{u.code}</TableCell>
+                                  <TableCell className="text-slate-700 font-medium py-3">{formatUnidadeConsumidora(u.code)}</TableCell>
                                   <TableCell className="text-slate-700 py-3">{u.name}</TableCell>
                                   <TableCell className="text-slate-600 text-right font-mono py-3">{u.monthlyCons.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                                   <TableCell className="text-slate-900 font-semibold text-right font-mono py-3">{u.requiredKwp.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
@@ -1095,7 +1095,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                             <td className="px-2 py-2">
                               <Input
                                 type="text"
-                                value={row.code}
+                                value={formatUnidadeConsumidora(row.code)}
                                 onChange={e => updateManualRow(idx, 'code', formatUnidadeConsumidora(e.target.value))}
                                 placeholder="0.000.000.000.000-00"
                                 className="h-9 text-xs font-mono"

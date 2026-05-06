@@ -275,7 +275,7 @@ export default function Clientes() {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-slate-600 mb-1">Unidade Consumidora</label>
-                  <Input type="text" value={newClient.installationNumber || ""} onChange={(e) => setNewClient({...newClient, installationNumber: formatUnidadeConsumidora(e.target.value)})}
+                  <Input type="text" value={formatUnidadeConsumidora(newClient.installationNumber || "")} onChange={(e) => setNewClient({...newClient, installationNumber: formatUnidadeConsumidora(e.target.value)})}
                     placeholder="Ex: 0.000.939.307.054-04" />
                 </div>
               </div>

@@ -243,7 +243,7 @@ export const ClientLinkingForm: React.FC<ClientLinkingFormProps> = ({
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-slate-600 mb-1">Unidade Consumidora</label>
-                    <Input type="text" value={clientData.installationNumber || ""} onChange={(e) => setClientData({...clientData, installationNumber: formatUnidadeConsumidora(e.target.value)})}
+                    <Input type="text" value={formatUnidadeConsumidora(clientData.installationNumber || "")} onChange={(e) => setClientData({...clientData, installationNumber: formatUnidadeConsumidora(e.target.value)})}
                       placeholder="Ex: 0.000.939.307.054-04" />
                   </div>
                 </div>
