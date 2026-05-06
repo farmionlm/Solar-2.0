@@ -855,10 +855,11 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs text-slate-600">
                                         <p className="font-bold text-slate-700 mb-2">Arranjo de Painéis por Entrada (Editável):</p>
                                         {(() => {
+                                          const mpptsCount = Number(inv.numMppts || 1);
+                                          const mpptInputsArray = (inv.mpptInputs || "").split(",").map(n => Number(n) || 1);
+                                          const normalizedInputs = Array.from({ length: mpptsCount }).map((_, i) => mpptInputsArray[i] || 1);
+                                          const totalEntries = normalizedInputs.reduce((a, b) => a + b, 0);
                                           const totalInverterModules = proj.totalModules;
-                                          const mppts = Number(inv.numMppts || 1);
-                                          const inputs = Number(inv.inputsPerMppt || 1);
-                                          const totalEntries = mppts * inputs;
                                           const defaultModulesPerEntry = Math.floor(totalInverterModules / totalEntries);
 
                                           // Converte o stringLayout em array ou inicializa o padrão
