@@ -661,7 +661,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                   areaOccupied: proj.areaOccupied ?? (proj.totalModules * 3),
                   professionalName: proj.professionalName || "",
                   professionalCrt: proj.professionalCrt || "",
-                  installationNumber: proj.installationNumber || "",
+                  installationNumber: proj.installationNumber || proj.units[0]?.code || "",
                   inverters: proj.inverters || [],
                   ...projectEquipments[proj.id]
                 };
