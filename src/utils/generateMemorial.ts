@@ -209,8 +209,8 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
       doc.rect(40, yPos, 50, 6, "FD");
       doc.text("ENTRADAS", 65, yPos + 4.5, { align: "center" });
 
-      const colWidth = 80 / mppts;
-      for (let m = 0; m < mppts; m++) {
+      const colWidth = 80 / mpptsCount;
+      for (let m = 0; m < mpptsCount; m++) {
         doc.setFillColor(245, 245, 245);
         doc.rect(90 + m * colWidth, yPos, colWidth, 6, "FD");
         doc.text(`MPPT${m + 1}`, 90 + m * colWidth + colWidth / 2, yPos + 4.5, { align: "center" });
@@ -222,10 +222,13 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
       doc.rect(40, yPos, 50, 6);
       doc.text("Nº DE PLACAS", 65, yPos + 4.5, { align: "center" });
 
-      for (let m = 0; m < mppts; m++) {
+      let globalEntryCounter = 0;
+      for (let m = 0; m < mpptsCount; m++) {
         let mpptTotalModules = 0;
-        for (let entryIdx = 0; entryIdx < inputs; entryIdx++) {
-          mpptTotalModules += currentModulesArray[m * inputs + entryIdx] || 0;
+        const numInputs = normalizedInputs[m];
+        for (let entryIdx = 0; entryIdx < numInputs; entryIdx++) {
+          mpptTotalModules += currentModulesArray[globalEntryCounter] || 0;
+          globalEntryCounter++;
         }
         doc.rect(90 + m * colWidth, yPos, colWidth, 6);
         doc.text(String(mpptTotalModules), 90 + m * colWidth + colWidth / 2, yPos + 4.5, { align: "center" });
