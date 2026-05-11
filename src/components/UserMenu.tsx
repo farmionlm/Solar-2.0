@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { LogOut, User, ShieldCheck, Users, Activity } from 'lucide-react';
+import { LogOut, User, ShieldCheck, Users, Activity, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -41,6 +41,17 @@ export function UserMenu() {
             >
               <Users className="w-5 h-5" />
               <span className="hidden sm:inline-block ml-2 font-bold">Parceiros</span>
+            </Button>
+          </Link>
+          <div className="w-px h-8 bg-border mx-1"></div>
+          <Link href="/admin/equipamentos">
+            <Button 
+              variant="ghost" 
+              className="text-primary hover:text-primary hover:bg-primary/10 p-2 h-auto rounded-lg"
+              title="Catálogo de Equipamentos"
+            >
+              <Settings className="w-5 h-5" />
+              <span className="hidden sm:inline-block ml-2 font-bold">Catálogo</span>
             </Button>
           </Link>
           <div className="w-px h-8 bg-border mx-1"></div>

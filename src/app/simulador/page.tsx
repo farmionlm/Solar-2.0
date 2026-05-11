@@ -12,6 +12,9 @@ import { ClientLinkingForm } from "@/components/ClientLinkingForm";
 import { UserMenu } from "@/components/UserMenu";
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 import { ExcelParserService } from "@/services/ExcelParserService";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -19,6 +22,11 @@ function SimulatorContent() {
   const searchParams = useSearchParams();
   const clientId = searchParams.get("clientId");
 
+  const { data: dbModules } = useSWR("/api/equipments/modules", fetcher);
+  const { data: dbInverters } = useSWR("/api/equipments/inverters", fetcher);
+
+  const [selectedModuleId, setSelectedModuleId] = useState<string>("");
+  const [selectedInverterId, setSelectedInverterId] = useState<string>("");
   const [modulePower, setModulePower] = useState<number | "">("");
   const [projectName, setProjectName] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -123,13 +131,18 @@ function SimulatorContent() {
     setError("");
 
     try {
+      const selectedModule = dbModules?.find((m: any) => m.id === selectedModuleId);
+      const selectedInverter = dbInverters?.find((i: any) => i.id === selectedInverterId);
+
       const payload: any = {
         name: projectName || 'Projeto sem nome',
         modulePower,
         totalKwp: results.totalKwp,
         totalModules: results.totalModules,
         units: results.units,
-        clientId: preSelectedClient?.id || null
+        clientId: preSelectedClient?.id || null,
+        moduleModel: selectedModule ? `${selectedModule.manufacturer} - ${selectedModule.model}` : null,
+        inverterModel: selectedInverter ? `${selectedInverter.manufacturer} - ${selectedInverter.model}` : null,
       };
 
       if (!preSelectedClient?.id && clientData.name.trim()) {
@@ -196,9 +209,9 @@ function SimulatorContent() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Nome do Projeto (Opcional)</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Nome do Projeto</label>
                 <Input 
                   type="text" 
                   value={projectName}
@@ -207,20 +220,43 @@ function SimulatorContent() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Potência do Módulo (W)</label>
-                <Input 
-                  type="number" 
-                  value={modulePower}
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Módulo Fotovoltaico</label>
+                <select 
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  value={selectedModuleId}
                   onChange={(e) => {
-                    setModulePower(e.target.value ? Number(e.target.value) : "");
-                    if (error && e.target.value) setError("");
+                    const id = e.target.value;
+                    setSelectedModuleId(id);
+                    const mod = dbModules?.find((m: any) => m.id === id);
+                    if (mod) {
+                      setModulePower(mod.powerW);
+                      if (error) setError("");
+                    } else {
+                      setModulePower("");
+                    }
                   }}
-                  placeholder="Ex: 550"
-                  className="font-mono"
-                />
+                >
+                  <option value="">Selecione o módulo...</option>
+                  {dbModules?.map((m: any) => (
+                    <option key={m.id} value={m.id}>{m.manufacturer} {m.model} ({m.powerW}W)</option>
+                  ))}
+                </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-muted-foreground mb-2">Planilha de Consumo (.xlsx)</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Inversor Predominante</label>
+                <select 
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  value={selectedInverterId}
+                  onChange={(e) => setSelectedInverterId(e.target.value)}
+                >
+                  <option value="">Selecione (Opcional)</option>
+                  {dbInverters?.map((i: any) => (
+                    <option key={i.id} value={i.id}>{i.manufacturer} {i.model} ({i.powerW}W)</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-muted-foreground mb-2">Planilha de Consumo</label>
                 <div className="relative">
                   <input 
                     type="file" 
