@@ -6,7 +6,7 @@ import Link from "next/link";
 import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeft, LayoutDashboard, Sun, Clock, CheckCircle, Briefcase, FileText, ExternalLink } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Sun, Clock, CheckCircle, Briefcase, FileText, ExternalLink, Trash2 } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -21,7 +21,7 @@ const COLUMNS = [
   { id: "COMPLETED", title: "Concluído", icon: <Sun className="w-4 h-4 text-yellow-500" />, color: "border-yellow-500/50 bg-yellow-500/5" }
 ];
 
-function SortableItem({ id, project }: { id: string, project: any }) {
+function SortableItem({ id, project, onDelete }: { id: string, project: any, onDelete: (id: string) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
   const style = {
@@ -34,31 +34,49 @@ function SortableItem({ id, project }: { id: string, project: any }) {
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className={`bg-card border ${isDragging ? 'border-primary ring-1 ring-primary/50 shadow-xl' : 'border-border shadow-sm'} p-4 rounded-xl mb-3 cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors group`}
+      className={`bg-card border ${isDragging ? 'border-primary ring-1 ring-primary/50 shadow-xl' : 'border-border shadow-sm'} p-4 rounded-xl mb-3 hover:border-primary/50 transition-colors group`}
     >
-      <div className="flex justify-between items-start mb-2">
-        <h4 className="font-bold text-foreground text-sm group-hover:text-primary transition-colors">{project.name || "Sem nome"}</h4>
-        <span className="text-xs font-black bg-primary/10 text-primary px-2 py-0.5 rounded-full">{project.totalKwp} kWp</span>
+      {/* Header — drag handle only on this area */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing"
+      >
+        <div className="flex justify-between items-start mb-2">
+          <h4 className="font-bold text-foreground text-sm group-hover:text-primary transition-colors pr-2">{project.name || "Sem nome"}</h4>
+          <span className="text-xs font-black bg-primary/10 text-primary px-2 py-0.5 rounded-full shrink-0">{project.totalKwp} kWp</span>
+        </div>
+        <p className="text-xs text-muted-foreground font-medium mb-3">
+          {project.client?.name ? `Cliente: ${project.client.name}` : "Sem cliente vinculado"}
+        </p>
+        <div className="flex justify-between items-center text-[10px] text-muted-foreground/80 font-medium">
+          <span>{format(new Date(project.createdAt), "dd MMM, yyyy", { locale: ptBR })}</span>
+          <span>{project.totalModules} módulos</span>
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground font-medium mb-3">
-        {project.client?.name ? `Cliente: ${project.client.name}` : "Sem cliente vinculado"}
-      </p>
-      <div className="flex justify-between items-center text-[10px] text-muted-foreground/80 font-medium">
-        <span>{format(new Date(project.createdAt), "dd MMM, yyyy", { locale: ptBR })}</span>
-        <span>{project.totalModules} módulos</span>
-      </div>
-      <div className="mt-3 pt-3 border-t border-border/50">
+
+      {/* Actions — NOT part of drag handle */}
+      <div className="mt-3 pt-3 border-t border-border/50 flex gap-2">
         <Link
           href={`/proposta?projectId=${project.id}${project.client?.name ? `&clientName=${encodeURIComponent(project.client.name)}` : ''}`}
-          className="flex items-center justify-center gap-1.5 w-full text-xs font-bold text-primary hover:bg-primary/10 py-1.5 px-3 rounded-lg transition-colors border border-primary/20 hover:border-primary/40"
-          onClick={(e) => e.stopPropagation()}
+          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold text-primary hover:bg-primary/10 py-1.5 px-3 rounded-lg transition-colors border border-primary/20 hover:border-primary/40"
           target="_blank"
           rel="noopener noreferrer"
         >
-          <ExternalLink className="w-3.5 h-3.5" /> Gerar Proposta PDF
+          <ExternalLink className="w-3.5 h-3.5" /> Proposta PDF
         </Link>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (confirm(`Excluir a simulação "${project.name || 'Sem nome'}"? Esta ação não pode ser desfeita.`)) {
+              onDelete(project.id);
+            }
+          }}
+          className="flex items-center justify-center gap-1 text-xs font-bold text-red-400 hover:bg-red-950/40 py-1.5 px-3 rounded-lg transition-colors border border-red-900/30 hover:border-red-700/50"
+          title="Excluir simulação"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );
@@ -179,6 +197,24 @@ export default function KanbanPage() {
     }
   };
 
+  const handleDelete = async (projectId: string) => {
+    // Optimistically remove from local state immediately
+    setItems(prev => {
+      const next: Record<string, any[]> = {};
+      for (const col of Object.keys(prev)) {
+        next[col] = prev[col].filter((p) => p.id !== projectId);
+      }
+      return next;
+    });
+    try {
+      await fetch(`/api/calculations?id=${projectId}`, { method: 'DELETE' });
+      mutate();
+    } catch (err) {
+      console.error('Erro ao excluir projeto:', err);
+      mutate(); // revert on failure
+    }
+  };
+
   const activeProject = activeId ? Object.values(items).flat().find(p => p.id === activeId) : null;
 
   return (
@@ -229,7 +265,7 @@ export default function KanbanPage() {
                 >
                   <div className="flex-1 p-3 overflow-y-auto min-h-[150px]">
                     {items[col.id]?.map((project) => (
-                      <SortableItem key={project.id} id={project.id} project={project} />
+                      <SortableItem key={project.id} id={project.id} project={project} onDelete={handleDelete} />
                     ))}
                     {(!items[col.id] || items[col.id].length === 0) && (
                       <div className="h-full flex items-center justify-center text-muted-foreground/40 text-sm font-medium border-2 border-dashed border-border/50 rounded-xl p-8 text-center">
