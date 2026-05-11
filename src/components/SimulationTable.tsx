@@ -15,27 +15,27 @@ interface SimulationTableProps {
 
 export const SimulationTable: React.FC<SimulationTableProps> = ({ units }) => {
   return (
-    <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+    <div className="border border-border rounded-2xl overflow-hidden shadow-xl bg-card">
       <Table>
-        <TableHeader className="bg-slate-50">
-          <TableRow>
-            <TableHead className="font-semibold text-slate-600 uppercase tracking-wider h-12">Código</TableHead>
-            <TableHead className="font-semibold text-slate-600 uppercase tracking-wider h-12">Nome da Unidade</TableHead>
-            <TableHead className="font-semibold text-slate-600 uppercase tracking-wider text-right h-12">Média (kWh)</TableHead>
-            <TableHead className="font-semibold text-slate-600 uppercase tracking-wider text-right h-12">Diário (kWh)</TableHead>
-            <TableHead className="font-semibold text-slate-600 uppercase tracking-wider text-right h-12">kWp</TableHead>
-            <TableHead className="font-semibold text-slate-600 uppercase tracking-wider text-right h-12">Módulos</TableHead>
+        <TableHeader className="bg-secondary/30">
+          <TableRow className="border-border">
+            <TableHead className="font-bold text-muted-foreground uppercase tracking-wider h-14">Código</TableHead>
+            <TableHead className="font-bold text-muted-foreground uppercase tracking-wider h-14">Nome da Unidade</TableHead>
+            <TableHead className="font-bold text-muted-foreground uppercase tracking-wider text-right h-14">Média (kWh)</TableHead>
+            <TableHead className="font-bold text-muted-foreground uppercase tracking-wider text-right h-14">Diário (kWh)</TableHead>
+            <TableHead className="font-bold text-primary uppercase tracking-wider text-right h-14">kWp</TableHead>
+            <TableHead className="font-bold text-primary uppercase tracking-wider text-right h-14">Módulos</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {units.map((unit, idx) => (
-            <TableRow key={idx} className="hover:bg-slate-50 transition-colors">
-              <TableCell className="font-medium text-slate-700 py-4">{unit.code}</TableCell>
-              <TableCell className="text-slate-700 py-4">{unit.name}</TableCell>
-              <TableCell className="text-slate-600 text-right font-mono py-4">{unit.monthlyCons.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-              <TableCell className="text-slate-600 text-right font-mono py-4">{unit.dailyCons.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-              <TableCell className="text-slate-900 font-semibold text-right font-mono py-4">{unit.requiredKwp.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-              <TableCell className="text-slate-900 font-bold text-right py-4">{unit.requiredModules}</TableCell>
+            <TableRow key={idx} className="hover:bg-secondary/20 transition-colors border-border">
+              <TableCell className="font-medium text-foreground py-4">{unit.code}</TableCell>
+              <TableCell className="text-muted-foreground py-4">{unit.name}</TableCell>
+              <TableCell className="text-muted-foreground text-right font-mono py-4">{unit.monthlyCons.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+              <TableCell className="text-muted-foreground text-right font-mono py-4">{unit.dailyCons.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+              <TableCell className="text-primary font-bold text-right font-mono py-4">{unit.requiredKwp.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+              <TableCell className="text-primary font-black text-right py-4 text-lg">{unit.requiredModules}</TableCell>
             </TableRow>
           ))}
         </TableBody>
