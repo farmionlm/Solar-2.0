@@ -507,20 +507,20 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
   if (isLoading && !client) {
     return (
-      <div className="min-h-screen bg-slate-50 flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
+      <div className="min-h-screen bg-background flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   if (swrError || error || !client) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8">
-        <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border p-12 text-center">
-          <p className="text-red-600 font-medium mb-4">{swrError?.message || error || "Cliente não encontrado."}</p>
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-4xl mx-auto bg-card rounded-2xl shadow-xl border border-border p-12 text-center">
+          <p className="text-red-400 font-bold mb-4">{swrError?.message || error || "Cliente não encontrado."}</p>
           <div className="flex justify-center gap-4">
-            <Link href="/" className="text-slate-500 font-semibold hover:underline">Ir para Início</Link>
-            <Link href="/clientes" className="text-violet-600 font-semibold hover:underline">Voltar para Clientes</Link>
+            <Link href="/" className="text-muted-foreground font-bold hover:underline">Ir para Início</Link>
+            <Link href="/clientes" className="text-primary font-bold hover:underline">Voltar para Clientes</Link>
           </div>
         </div>
       </div>
@@ -528,43 +528,43 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
+    <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <div>
             <div className="flex items-center gap-4 mb-2">
-              <Link href="/" className="flex items-center gap-1 text-slate-500 font-medium hover:underline text-sm group/home">
-                <Home className="w-3.5 h-3.5 group-hover/home:text-violet-600" /> Início
+              <Link href="/" className="flex items-center gap-1 text-muted-foreground font-bold hover:underline text-sm group/home">
+                <Home className="w-3.5 h-3.5 group-hover/home:text-primary" /> Início
               </Link>
-              <Link href="/clientes" className="flex items-center gap-1 text-violet-600 font-medium hover:underline text-sm">
+              <Link href="/clientes" className="flex items-center gap-1 text-primary font-bold hover:underline text-sm">
                 <ArrowLeft className="w-4 h-4" /> Voltar para Clientes
               </Link>
             </div>
             <Link href="/" className="group/logo block">
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900 group-hover/logo:text-violet-600 transition-colors">{client.name}</h1>
+              <h1 className="text-3xl font-black tracking-tight text-foreground group-hover/logo:text-primary transition-colors">{client.name}</h1>
             </Link>
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => { setShowNewProjectModal(true); setNewProjectMode('choice'); }}
-              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-md shadow-violet-500/20 active:scale-95 h-12">
+              className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl font-black transition-all shadow-xl shadow-primary/20 active:scale-95 h-12">
               <Zap className="w-5 h-5" /> Novo Projeto
             </button>
             <Button onClick={exportClientExcel}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-md shadow-emerald-500/20 active:scale-95 h-12 px-6 text-base">
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xl shadow-black/50 active:scale-95 h-12 px-6 text-base font-bold">
               <Download className="w-5 h-5 mr-2" /> Planilha de Projetos (Abas)
             </Button>
           </div>
         </header>
 
         {/* Dados do cliente */}
-        <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-6 mb-6">
+        <div className="bg-card rounded-2xl shadow-xl border border-border p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-slate-800">Dados do Cliente</h2>
+            <h2 className="text-lg font-black text-foreground">Dados do Cliente</h2>
             {!isEditingClient ? (
               <Button variant="ghost"
                 onClick={startEditing}
-                className="text-violet-600 hover:bg-violet-50 hover:text-violet-700 font-semibold text-sm"
+                className="text-primary hover:bg-primary/10 hover:text-primary font-bold text-sm"
               >
                 <Pencil className="w-4 h-4 mr-1.5" /> Editar Dados
               </Button>
@@ -572,14 +572,14 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
               <div className="flex gap-2">
                 <Button variant="ghost"
                   onClick={() => setIsEditingClient(false)}
-                  className="text-slate-500 hover:bg-slate-100 font-semibold text-sm"
+                  className="text-muted-foreground hover:bg-secondary font-bold text-sm"
                 >
                   <X className="w-4 h-4 mr-1" /> Cancelar
                 </Button>
                 <Button 
                   onClick={handleUpdateClient}
                   disabled={isSaving}
-                  className="bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm disabled:opacity-50"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-black text-sm disabled:opacity-50"
                 >
                   <Save className="w-4 h-4 mr-1" /> {isSaving ? "Salvando..." : "Salvar"}
                 </Button>
@@ -624,22 +624,22 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              <p className="flex items-center gap-2 text-slate-600"><FileText className="w-4 h-4 text-slate-400" /> {client.cpfCnpj || "CPF/CNPJ não informado"}</p>
-              <p className="flex items-center gap-2 text-slate-600"><Phone className="w-4 h-4 text-slate-400" /> {client.phone || "Telefone não informado"}</p>
-              <p className="flex items-center gap-2 text-slate-600"><Mail className="w-4 h-4 text-slate-400" /> {client.email || "E-mail não informado"}</p>
-              <p className="flex items-center gap-2 text-slate-600"><MapPin className="w-4 h-4 text-slate-400" /> {client.cep ? `CEP: ${client.cep}` : "CEP não informado"}</p>
-              <p className="flex items-center gap-2 text-slate-600 md:col-span-2"><MapPin className="w-4 h-4 text-slate-400" /> {[client.address, client.neighborhood, client.city].filter(Boolean).join(', ') || "Endereço não informado"}</p>
+              <p className="flex items-center gap-2 text-muted-foreground"><FileText className="w-4 h-4 text-primary" /> {client.cpfCnpj || "CPF/CNPJ não informado"}</p>
+              <p className="flex items-center gap-2 text-muted-foreground"><Phone className="w-4 h-4 text-primary" /> {client.phone || "Telefone não informado"}</p>
+              <p className="flex items-center gap-2 text-muted-foreground"><Mail className="w-4 h-4 text-primary" /> {client.email || "E-mail não informado"}</p>
+              <p className="flex items-center gap-2 text-muted-foreground"><MapPin className="w-4 h-4 text-primary" /> {client.cep ? `CEP: ${client.cep}` : "CEP não informado"}</p>
+              <p className="flex items-center gap-2 text-muted-foreground md:col-span-2"><MapPin className="w-4 h-4 text-primary" /> {[client.address, client.neighborhood, client.city].filter(Boolean).join(', ') || "Endereço não informado"}</p>
             </div>
           )}
         </div>
 
         {/* Projetos */}
-        <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-6">
+        <div className="bg-card rounded-2xl shadow-xl border border-border p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-bold text-slate-800">
+            <h2 className="text-lg font-black text-foreground">
               Projetos ({client.projects.length})
             </h2>
-            {saveMsg && <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl border border-emerald-100 text-sm font-medium animate-in fade-in duration-300">{saveMsg}</div>}
+            {saveMsg && <div className="bg-emerald-900/20 text-emerald-400 px-4 py-2 rounded-xl border border-emerald-900/50 text-sm font-bold animate-in fade-in duration-300">{saveMsg}</div>}
           </div>
 
           {client.projects.length === 0 ? (
@@ -667,16 +667,16 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                 };
 
                 return (
-                  <div key={proj.id} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between p-4 bg-white hover:bg-slate-50/50 transition-colors text-left">
+                  <div key={proj.id} className="border border-border rounded-xl overflow-hidden shadow-xl hover:shadow-black/50 transition-all">
+                    <div className="flex items-center justify-between p-4 bg-card hover:bg-secondary/20 transition-colors text-left">
                       <button onClick={() => setExpandedProject(expandedProject === proj.id ? null : proj.id)}
                         className="flex-grow">
                         <div>
-                          <h3 className="font-bold text-slate-800">{proj.name || "Projeto sem nome"}</h3>
-                          <div className="flex items-center gap-4 text-sm text-slate-500 mt-1">
-                            <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {new Date(proj.createdAt).toLocaleDateString("pt-BR")}</span>
-                            <span className="flex items-center gap-1"><Zap className="w-3.5 h-3.5 text-amber-500" /> {proj.totalKwp.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kWp</span>
-                            <span className="flex items-center gap-1"><LayoutGrid className="w-3.5 h-3.5 text-blue-500" /> {proj.totalModules} módulos</span>
+                          <h3 className="font-bold text-foreground">{proj.name || "Projeto sem nome"}</h3>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                            <span className="flex items-center gap-1 font-medium"><Calendar className="w-3.5 h-3.5" /> {new Date(proj.createdAt).toLocaleDateString("pt-BR")}</span>
+                            <span className="flex items-center gap-1 font-bold text-primary"><Zap className="w-3.5 h-3.5" /> {proj.totalKwp.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kWp</span>
+                            <span className="flex items-center gap-1 font-bold text-primary-foreground/70"><LayoutGrid className="w-3.5 h-3.5" /> {proj.totalModules} módulos</span>
                           </div>
                         </div>
                       </button>
@@ -695,7 +695,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               alert("Ocorreu um erro ao gerar o PDF. Verifique os dados.");
                             }
                           }}
-                          className="text-violet-600 bg-violet-50 hover:bg-violet-100"
+                          className="text-primary bg-primary/10 hover:bg-primary/20"
                           title="Gerar Memorial Descritivo (PDF)"
                         >
                           <FileText className="w-4 h-4" />
@@ -704,7 +704,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           variant="ghost"
                           size="icon"
                           onClick={(e) => { e.stopPropagation(); exportProjectExcel(proj); }}
-                          className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
+                          className="text-emerald-400 bg-emerald-950/30 hover:bg-emerald-900/50"
                           title="Exportar Planilha Excel"
                         >
                           <Download className="w-4 h-4" />
@@ -713,23 +713,23 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           variant="ghost"
                           size="icon"
                           onClick={(e) => { e.stopPropagation(); setReSimProject(proj); setReSimModulePower(proj.modulePower); setReSimError(""); }}
-                          className="text-amber-600 bg-amber-50 hover:bg-amber-100"
+                          className="text-amber-400 bg-amber-950/30 hover:bg-amber-900/50"
                           title="Refazer Simulação"
                         >
                           <RefreshCw className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setExpandedProject(expandedProject === proj.id ? null : proj.id)}>
-                          {expandedProject === proj.id ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+                        <Button variant="ghost" size="icon" onClick={() => setExpandedProject(expandedProject === proj.id ? null : proj.id)} className="text-muted-foreground">
+                          {expandedProject === proj.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                         </Button>
                       </div>
                     </div>
 
                     {expandedProject === proj.id && (
-                      <div className="border-t border-slate-200 p-6 bg-slate-50/30">
+                      <div className="border-t border-border p-6 bg-secondary/20">
                         {/* Dados Técnicos do Projeto para Memorial */}
-                        <div className="bg-white rounded-2xl p-6 border border-slate-200 mb-6 shadow-sm">
-                          <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
-                            <FileText className="w-4 h-4" /> Dados para o Memorial Descritivo
+                        <div className="bg-card rounded-2xl p-6 border border-border mb-6 shadow-xl">
+                          <h4 className="text-sm font-black text-muted-foreground uppercase tracking-wider mb-6 flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-primary" /> Dados para o Memorial Descritivo
                           </h4>
                           
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
@@ -942,39 +942,39 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                         </div>
 
                         <div className="grid grid-cols-3 gap-4 mb-4">
-                          <div className="bg-white rounded-xl p-3 border border-slate-100 text-center shadow-sm">
-                            <div className="text-xs text-slate-500 uppercase font-bold">Módulo Base</div>
-                            <div className="text-lg font-bold text-slate-800">{proj.modulePower}W</div>
+                          <div className="bg-card rounded-xl p-3 border border-border text-center shadow-xl">
+                            <div className="text-xs text-muted-foreground uppercase font-black">Módulo Base</div>
+                            <div className="text-lg font-bold text-foreground">{proj.modulePower}W</div>
                           </div>
-                          <div className="bg-white rounded-xl p-3 border border-slate-100 text-center shadow-sm">
-                            <div className="text-xs text-slate-500 uppercase font-bold">kWp Total</div>
-                            <div className="text-lg font-bold text-blue-600">{proj.totalKwp.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</div>
+                          <div className="bg-card rounded-xl p-3 border border-border text-center shadow-xl">
+                            <div className="text-xs text-muted-foreground uppercase font-black">kWp Total</div>
+                            <div className="text-lg font-bold text-primary">{proj.totalKwp.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</div>
                           </div>
-                          <div className="bg-white rounded-xl p-3 border border-slate-100 text-center shadow-sm">
-                            <div className="text-xs text-slate-500 uppercase font-bold">Qtd Módulos</div>
-                            <div className="text-lg font-bold text-emerald-600">{proj.totalModules}</div>
+                          <div className="bg-card rounded-xl p-3 border border-border text-center shadow-xl">
+                            <div className="text-xs text-muted-foreground uppercase font-black">Qtd Módulos</div>
+                            <div className="text-lg font-bold text-primary">{proj.totalModules}</div>
                           </div>
                         </div>
 
-                        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-xl">
                           <Table>
-                            <TableHeader className="bg-slate-50">
-                              <TableRow>
-                                <TableHead className="font-semibold text-slate-600">Unidade Consumidora</TableHead>
-                                <TableHead className="font-semibold text-slate-600">Unidade</TableHead>
-                                <TableHead className="font-semibold text-slate-600 text-right">Média (kWh)</TableHead>
-                                <TableHead className="font-semibold text-slate-600 text-right">kWp</TableHead>
-                                <TableHead className="font-semibold text-slate-600 text-right">Módulos</TableHead>
+                            <TableHeader className="bg-secondary/30">
+                              <TableRow className="border-border">
+                                <TableHead className="font-black text-muted-foreground uppercase tracking-wider">Unidade Consumidora</TableHead>
+                                <TableHead className="font-black text-muted-foreground uppercase tracking-wider">Unidade</TableHead>
+                                <TableHead className="font-black text-muted-foreground uppercase tracking-wider text-right">Média (kWh)</TableHead>
+                                <TableHead className="font-black text-primary uppercase tracking-wider text-right">kWp</TableHead>
+                                <TableHead className="font-black text-primary uppercase tracking-wider text-right">Módulos</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {proj.units.map((u, i) => (
-                                <TableRow key={i} className="hover:bg-slate-50">
-                                  <TableCell className="text-slate-700 font-medium py-3">{formatUnidadeConsumidora(u.code)}</TableCell>
-                                  <TableCell className="text-slate-700 py-3">{u.name}</TableCell>
-                                  <TableCell className="text-slate-600 text-right font-mono py-3">{u.monthlyCons.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                                  <TableCell className="text-slate-900 font-semibold text-right font-mono py-3">{u.requiredKwp.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                                  <TableCell className="text-slate-900 font-bold text-right py-3">{u.requiredModules}</TableCell>
+                                <TableRow key={i} className="hover:bg-secondary/10 border-border">
+                                  <TableCell className="text-foreground font-medium py-3">{formatUnidadeConsumidora(u.code)}</TableCell>
+                                  <TableCell className="text-muted-foreground py-3">{u.name}</TableCell>
+                                  <TableCell className="text-muted-foreground text-right font-mono py-3">{u.monthlyCons.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell className="text-primary font-bold text-right font-mono py-3">{u.requiredKwp.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell className="text-primary font-black text-right py-3">{u.requiredModules}</TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
@@ -991,15 +991,15 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
       </div>
       {/* Modal de Novo Projeto */}
       {showNewProjectModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-card rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh] border border-border">
 
             {/* Header */}
-            <div className="bg-violet-600 p-6 text-white flex justify-between items-center flex-shrink-0">
-              <h2 className="text-xl font-bold flex items-center gap-2">
+            <div className="bg-primary p-6 text-primary-foreground flex justify-between items-center flex-shrink-0">
+              <h2 className="text-xl font-black flex items-center gap-2">
                 <Zap className="w-5 h-5" /> Novo Projeto para {client.name}
               </h2>
-              <button onClick={resetManualModal} className="text-white/80 hover:text-white text-2xl font-bold">&times;</button>
+              <button onClick={resetManualModal} className="text-primary-foreground/80 hover:text-primary-foreground text-2xl font-bold">&times;</button>
             </div>
 
             {/* Escolha do modo */}
@@ -1045,7 +1045,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                 <div className="p-6 border-b border-slate-100 flex-shrink-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Projeto *</label>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Nome do Projeto *</label>
                       <Input
                         type="text"
                         value={manualProjectName}
@@ -1054,7 +1054,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Potência do Módulo (W) *</label>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Potência do Módulo (W) *</label>
                       <Input
                         type="number"
                         value={manualModulePower}

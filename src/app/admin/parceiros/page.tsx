@@ -140,22 +140,22 @@ export default function AdminPartnersPage() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 animate-in fade-in slide-in-from-bottom-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-card p-4 md:p-6 rounded-2xl shadow-xl border border-border">
         <div className="flex items-center gap-4">
           <Link href="/" title="Voltar à página inicial">
-            <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center hover:bg-violet-200 transition-all cursor-pointer">
-              <ShieldCheck className="w-6 h-6 text-violet-600" />
+            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center hover:bg-primary/20 transition-all cursor-pointer">
+              <ShieldCheck className="w-6 h-6 text-primary" />
             </div>
           </Link>
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight">Gestão de Parceiros</h1>
-            <p className="text-slate-500 text-xs md:text-sm font-medium">Controle as contas das empresas parceiras (B2B)</p>
+            <h1 className="text-xl md:text-2xl font-black text-foreground leading-tight">Gestão de Parceiros</h1>
+            <p className="text-muted-foreground text-xs md:text-sm font-bold">Controle as contas das empresas parceiras (B2B)</p>
           </div>
         </div>
         <div className="flex gap-3 items-center w-full md:w-auto justify-between md:justify-end">
           <Button 
             onClick={() => { setIsCreating(!isCreating); setEditingUser(null); setDeletingUser(null); setError(''); }}
-            className="bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-lg shadow-violet-200 text-sm"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl shadow-xl shadow-primary/20 text-sm"
           >
             {isCreating ? "Cancelar" : <><Plus className="w-4 h-4 mr-1 md:mr-2" /> Nova Empresa</>}
           </Button>
@@ -164,26 +164,26 @@ export default function AdminPartnersPage() {
       </div>
 
       {isCreating && (
-        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-violet-100 mb-8 animate-in fade-in">
-          <h2 className="text-base md:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <Building className="w-5 h-5 text-violet-500" /> Criar Conta de Parceiro
+        <div className="bg-card p-4 md:p-6 rounded-2xl shadow-xl border border-primary/20 mb-8 animate-in fade-in">
+          <h2 className="text-base md:text-lg font-black text-foreground mb-4 flex items-center gap-2">
+            <Building className="w-5 h-5 text-primary" /> Criar Conta de Parceiro
           </h2>
           <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-600 mb-1">Nome da Empresa</label>
-              <Input required placeholder="Ex: SolarTech Brasil" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              <label className="block text-sm font-bold text-muted-foreground mb-1">Nome da Empresa</label>
+              <Input required placeholder="Ex: SolarTech Brasil" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="border-border" />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-600 mb-1">E-mail de Acesso</label>
-              <Input required type="email" placeholder="contato@empresa.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+              <label className="block text-sm font-bold text-muted-foreground mb-1">E-mail de Acesso</label>
+              <Input required type="email" placeholder="contato@empresa.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="border-border" />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-600 mb-1">Senha Inicial</label>
-              <Input required type="text" placeholder="Senha Forte" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+              <label className="block text-sm font-bold text-muted-foreground mb-1">Senha Inicial</label>
+              <Input required type="text" placeholder="Senha Forte" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="border-border" />
             </div>
             {error && <div className="md:col-span-3 text-red-500 text-sm font-bold">{error}</div>}
             <div className="md:col-span-3 flex justify-end mt-2">
-              <Button type="submit" disabled={loading} className="bg-violet-600 hover:bg-violet-700 w-full md:w-auto">
+              <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90 text-primary-foreground font-black w-full md:w-auto">
                 {loading ? "Criando..." : "Salvar Empresa Parceira"}
               </Button>
             </div>
@@ -192,29 +192,29 @@ export default function AdminPartnersPage() {
       )}
 
       {editingUser && (
-        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-blue-200 mb-8 animate-in fade-in">
+        <div className="bg-card p-4 md:p-6 rounded-2xl shadow-xl border border-primary/20 mb-8 animate-in fade-in">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2">
-              <Edit2 className="w-5 h-5 text-blue-500" /> Editar Parceiro
+            <h2 className="text-base md:text-lg font-black text-foreground flex items-center gap-2">
+              <Edit2 className="w-5 h-5 text-primary" /> Editar Parceiro
             </h2>
-            <Button variant="ghost" onClick={() => setEditingUser(null)} className="text-slate-500 text-sm h-8">Cancelar</Button>
+            <Button variant="ghost" onClick={() => setEditingUser(null)} className="text-muted-foreground text-sm h-8 font-bold">Cancelar</Button>
           </div>
           <form onSubmit={handleEditSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-600 mb-1">Nome da Empresa</label>
-              <Input required value={editFormData.name} onChange={e => setEditFormData({...editFormData, name: e.target.value})} />
+              <label className="block text-sm font-bold text-muted-foreground mb-1">Nome da Empresa</label>
+              <Input required value={editFormData.name} onChange={e => setEditFormData({...editFormData, name: e.target.value})} className="border-border" />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-600 mb-1">E-mail de Acesso</label>
-              <Input required type="email" value={editFormData.email} onChange={e => setEditFormData({...editFormData, email: e.target.value})} />
+              <label className="block text-sm font-bold text-muted-foreground mb-1">E-mail de Acesso</label>
+              <Input required type="email" value={editFormData.email} onChange={e => setEditFormData({...editFormData, email: e.target.value})} className="border-border" />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-600 mb-1">Nova Senha (Opcional)</label>
-              <Input type="text" placeholder="Deixe em branco para manter" value={editFormData.password} onChange={e => setEditFormData({...editFormData, password: e.target.value})} />
+              <label className="block text-sm font-bold text-muted-foreground mb-1">Nova Senha (Opcional)</label>
+              <Input type="text" placeholder="Deixe em branco para manter" value={editFormData.password} onChange={e => setEditFormData({...editFormData, password: e.target.value})} className="border-border" />
             </div>
             {error && <div className="md:col-span-3 text-red-500 text-sm font-bold">{error}</div>}
             <div className="md:col-span-3 flex justify-end mt-2">
-              <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto">
+              <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90 text-primary-foreground font-black w-full md:w-auto">
                 {loading ? "Salvando..." : "Atualizar Dados"}
               </Button>
             </div>
@@ -223,22 +223,22 @@ export default function AdminPartnersPage() {
       )}
 
       {deletingUser && (
-        <div className="bg-red-50 p-4 md:p-6 rounded-2xl shadow-sm border border-red-200 mb-8 animate-in fade-in">
+        <div className="bg-red-900/10 p-4 md:p-6 rounded-2xl shadow-xl border border-red-900/20 mb-8 animate-in fade-in">
           <div className="flex items-start gap-4 mb-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-              <AlertTriangle className="w-5 h-5 md:w-6 md:h-6 text-red-600" />
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-900/20 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-5 h-5 md:w-6 md:h-6 text-red-500" />
             </div>
             <div>
-              <h2 className="text-base md:text-lg font-bold text-red-800">Excluir Parceiro Definitivamente?</h2>
-              <p className="text-red-700 text-xs md:text-sm font-medium mt-1">
+              <h2 className="text-base md:text-lg font-black text-red-500">Excluir Parceiro Definitivamente?</h2>
+              <p className="text-red-400 text-xs md:text-sm font-bold mt-1">
                 Você está prestes a excluir <strong>{deletingUser.name}</strong>. 
                 Isso apagará também TODOS os clientes e projetos criados por eles.
               </p>
             </div>
           </div>
-          <form onSubmit={handleDeleteSubmit} className="bg-white p-3 md:p-4 rounded-xl border border-red-100">
-            <label className="block text-xs md:text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-              <KeyRound className="w-4 h-4" /> Para confirmar, digite sua Senha de Administrador:
+          <form onSubmit={handleDeleteSubmit} className="bg-card p-3 md:p-4 rounded-xl border border-red-900/30">
+            <label className="block text-xs md:text-sm font-black text-foreground mb-2 flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-primary" /> Para confirmar, digite sua Senha de Administrador:
             </label>
             <div className="flex flex-col md:flex-row gap-3 md:items-start">
               <div className="flex-1">
@@ -248,15 +248,15 @@ export default function AdminPartnersPage() {
                   placeholder="Sua senha de admin" 
                   value={adminPassword} 
                   onChange={e => setAdminPassword(e.target.value)} 
-                  className="border-red-200 focus-visible:ring-red-500 text-sm"
+                  className="border-red-900/50 focus-visible:ring-red-500 text-sm bg-background"
                 />
-                {error && <p className="text-red-600 text-xs font-bold mt-2">{error}</p>}
+                {error && <p className="text-red-500 text-xs font-black mt-2">{error}</p>}
               </div>
               <div className="flex gap-2 justify-end">
-                <Button type="button" variant="ghost" onClick={() => setDeletingUser(null)} disabled={loading} className="text-sm h-10">
+                <Button type="button" variant="ghost" onClick={() => setDeletingUser(null)} disabled={loading} className="text-muted-foreground text-sm h-10 font-bold">
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={loading || !adminPassword} className="bg-red-600 hover:bg-red-700 text-white font-bold text-sm h-10">
+                <Button type="submit" disabled={loading || !adminPassword} className="bg-red-600 hover:bg-red-700 text-white font-black text-sm h-10 shadow-lg shadow-red-900/20">
                   {loading ? "Excluindo..." : "Confirmar"}
                 </Button>
               </div>
@@ -265,43 +265,43 @@ export default function AdminPartnersPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="hidden md:grid p-4 bg-slate-50 border-b border-slate-100 grid-cols-12 gap-4 text-xs font-bold text-slate-500 uppercase">
+      <div className="bg-card rounded-2xl shadow-xl border border-border overflow-hidden">
+        <div className="hidden md:grid p-4 bg-secondary/30 border-b border-border grid-cols-12 gap-4 text-xs font-black text-muted-foreground uppercase tracking-wider">
           <div className="col-span-4">Empresa / Parceiro</div>
           <div className="col-span-3">E-mail</div>
           <div className="col-span-2 text-center">Clientes Salvos</div>
           <div className="col-span-3 text-right">Ações</div>
         </div>
 
-        <div className="divide-y divide-slate-50">
+        <div className="divide-y divide-border">
           {!session ? (
-            <div className="p-8 text-center text-slate-400">Carregando empresas...</div>
+            <div className="p-8 text-center text-muted-foreground font-bold">Carregando empresas...</div>
           ) : session.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">Nenhuma empresa parceira cadastrada ainda.</div>
+            <div className="p-8 text-center text-muted-foreground font-bold">Nenhuma empresa parceira cadastrada ainda.</div>
           ) : (
             session.map((user: Partner) => (
-              <div key={user.id} className="p-4 flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 md:items-center hover:bg-slate-50/50 transition-colors">
-                <div className="md:col-span-4 font-bold text-slate-800 flex items-center gap-3 truncate">
-                  <div className="w-8 h-8 rounded bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-xs flex-shrink-0">
+              <div key={user.id} className="p-4 flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 md:items-center hover:bg-secondary/10 transition-colors">
+                <div className="md:col-span-4 font-black text-foreground flex items-center gap-3 truncate">
+                  <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary font-black text-xs flex-shrink-0">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                   <span className="truncate">{user.name}</span>
                 </div>
-                <div className="md:col-span-3 text-slate-600 text-sm flex items-center gap-2 truncate">
-                  <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" /> <span className="truncate">{user.email}</span>
+                <div className="md:col-span-3 text-muted-foreground text-sm flex items-center gap-2 truncate font-medium">
+                  <Mail className="w-4 h-4 text-primary flex-shrink-0" /> <span className="truncate">{user.email}</span>
                 </div>
                 <div className="md:col-span-2 text-left md:text-center flex md:block justify-between items-center text-sm">
-                  <span className="md:hidden text-xs text-slate-400 font-bold uppercase">Clientes Salvos:</span>
-                  <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">
+                  <span className="md:hidden text-xs text-muted-foreground font-black uppercase">Clientes Salvos:</span>
+                  <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-black">
                     {user._count?.clients || 0}
                   </span>
                 </div>
-                <div className="md:col-span-3 flex justify-end gap-2 border-t md:border-t-0 pt-2 md:pt-0">
+                <div className="md:col-span-3 flex justify-end gap-2 border-t border-border md:border-t-0 pt-2 md:pt-0">
                   <Button 
                     variant="ghost" 
                     size="icon"
                     onClick={() => handleEditClick(user)}
-                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-9 w-9 md:h-8 md:w-8"
+                    className="text-primary hover:text-primary hover:bg-primary/10 h-9 w-9 md:h-8 md:w-8"
                     title="Editar"
                   >
                     <Edit2 className="w-4.5 h-4.5 md:w-4 md:h-4" />
@@ -310,7 +310,7 @@ export default function AdminPartnersPage() {
                     variant="ghost" 
                     size="icon"
                     onClick={() => handleDeleteClick(user)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 h-9 w-9 md:h-8 md:w-8"
+                    className="text-red-500 hover:text-red-600 hover:bg-red-900/10 h-9 w-9 md:h-8 md:w-8"
                     title="Excluir"
                   >
                     <Trash2 className="w-4.5 h-4.5 md:w-4 md:h-4" />
