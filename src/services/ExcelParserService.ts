@@ -18,7 +18,7 @@ export class ExcelParserService {
   /**
    * Processes the raw 2D array data from Excel and calculates solar requirements.
    */
-  static calculateUnits(data: any[][], modulePower: number): { units: ProcessedUnit[], totalKwp: number, totalModules: number } {
+  static calculateUnits(data: any[][], modulePower: number, irradiation?: number): { units: ProcessedUnit[], totalKwp: number, totalModules: number } {
     if (data.length < 2) {
       throw new Error("A planilha parece estar vazia ou não contém dados suficientes.");
     }
@@ -57,7 +57,7 @@ export class ExcelParserService {
 
       if (isNaN(monthlyCons) || monthlyCons <= 0) continue;
 
-      const solarData = calculateUnitSolarData(monthlyCons, modulePower);
+      const solarData = calculateUnitSolarData(monthlyCons, modulePower, irradiation);
 
       processedUnits.push({ 
         code, 

@@ -140,8 +140,8 @@ export default function AdminPartnersPage() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 animate-in fade-in slide-in-from-bottom-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-card p-4 md:p-6 rounded-2xl shadow-xl border border-border">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-8 bg-card p-4 md:p-6 rounded-2xl shadow-xl border border-border">
+        <div className="flex items-center gap-4 shrink-0">
           <Link href="/" title="Voltar à página inicial">
             <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center hover:bg-primary/20 transition-all cursor-pointer">
               <ShieldCheck className="w-6 h-6 text-primary" />
@@ -152,7 +152,7 @@ export default function AdminPartnersPage() {
             <p className="text-muted-foreground text-xs md:text-sm font-bold">Controle as contas das empresas parceiras (B2B)</p>
           </div>
         </div>
-        <div className="flex gap-3 items-center w-full md:w-auto justify-between md:justify-end">
+        <div className="flex flex-wrap gap-3 items-center w-full xl:w-auto justify-between xl:justify-end">
           <Button 
             onClick={() => { setIsCreating(!isCreating); setEditingUser(null); setDeletingUser(null); setError(''); }}
             className="bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl shadow-xl shadow-primary/20 text-sm"

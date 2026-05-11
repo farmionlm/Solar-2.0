@@ -12,6 +12,7 @@ import { ClientLinkingForm } from "@/components/ClientLinkingForm";
 import { UserMenu } from "@/components/UserMenu";
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 import { ExcelParserService } from "@/services/ExcelParserService";
+import { HSP_BY_UF, DEFAULT_HSP } from "@/utils/solarIrradiation";
 import useSWR from "swr";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -29,6 +30,13 @@ function SimulatorContent() {
   const [selectedInverterId, setSelectedInverterId] = useState<string>("");
   const [modulePower, setModulePower] = useState<number | "">("");
   const [projectName, setProjectName] = useState<string>("");
+  
+  const [cep, setCep] = useState("");
+  const [uf, setUf] = useState("");
+  const [irradiation, setIrradiation] = useState<number>(DEFAULT_HSP);
+  const [isFetchingCep, setIsFetchingCep] = useState(false);
+  const [rawExcelData, setRawExcelData] = useState<any[][] | null>(null);
+
   const [error, setError] = useState<string>("");
   const [successMsg, setSuccessMsg] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -79,6 +87,50 @@ function SimulatorContent() {
     }
   }, [clientId]);
 
+  // Recalculate if modulePower or irradiation changes and we have raw data
+  useEffect(() => {
+    if (rawExcelData && modulePower && Number(modulePower) > 0) {
+      try {
+        const calculatedResults = ExcelParserService.calculateUnits(rawExcelData, Number(modulePower), irradiation);
+        setResults(calculatedResults);
+      } catch (err: any) {
+        console.error("Erro ao recalcular:", err);
+      }
+    }
+  }, [modulePower, irradiation, rawExcelData]);
+
+  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, "");
+    if (value.length > 8) value = value.substring(0, 8);
+    
+    // Formata o CEP (XXXXX-XXX)
+    const formattedCep = value.replace(/^(\d{5})(\d)/, "$1-$2");
+    setCep(formattedCep);
+
+    if (value.length === 8) {
+      setIsFetchingCep(true);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${value}/json/`);
+        const data = await res.json();
+        
+        if (!data.erro && data.uf) {
+          setUf(data.uf);
+          const newHsp = HSP_BY_UF[data.uf] || DEFAULT_HSP;
+          setIrradiation(newHsp);
+        } else {
+          setUf("");
+          setIrradiation(DEFAULT_HSP);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar CEP:", err);
+      } finally {
+        setIsFetchingCep(false);
+      }
+    } else {
+      setUf("");
+    }
+  };
+
   const processFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError("");
     setSuccessMsg("");
@@ -99,7 +151,8 @@ function SimulatorContent() {
       try {
         if (!event.target?.result) throw new Error("Erro na leitura");
         const jsonData = ExcelParserService.parseBuffer(event.target.result as ArrayBuffer);
-        const calculatedResults = ExcelParserService.calculateUnits(jsonData, Number(modulePower));
+        setRawExcelData(jsonData);
+        const calculatedResults = ExcelParserService.calculateUnits(jsonData, Number(modulePower), irradiation);
         setResults(calculatedResults);
       } catch (err: any) {
         setError(err.message || "Erro ao ler o arquivo. Certifique-se de que é um Excel ou CSV válido e contém os dados necessários.");
@@ -196,6 +249,12 @@ function SimulatorContent() {
             
             {error && <div className="bg-red-900/20 text-red-400 p-4 rounded-xl mb-6 border border-red-900/50 font-medium">{error}</div>}
             {successMsg && <div className="bg-emerald-900/20 text-emerald-400 p-4 rounded-xl mb-6 border border-emerald-900/50 font-medium">{successMsg}</div>}
+            
+            {uf && (
+              <div className="bg-primary/10 text-primary p-3 rounded-xl mb-6 border border-primary/20 flex items-center gap-2 text-sm font-bold">
+                📍 Região detectada: {uf}. Irradiação estimada ajustada para {irradiation} HSP.
+              </div>
+            )}
 
             {preSelectedClient && (
               <div className="bg-primary/10 text-primary p-4 rounded-xl mb-6 border border-primary/20 flex justify-between items-center">
@@ -256,7 +315,32 @@ function SimulatorContent() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-muted-foreground mb-2">Planilha de Consumo</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">CEP da Instalação</label>
+                <div className="relative">
+                  <Input 
+                    type="text" 
+                    value={cep}
+                    onChange={handleCepChange}
+                    placeholder="Ex: 00000-000"
+                    maxLength={9}
+                  />
+                  {isFetchingCep && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Irradiação (HSP)</label>
+                <Input 
+                  type="number" 
+                  step="0.1"
+                  value={irradiation}
+                  onChange={(e) => setIrradiation(Number(e.target.value) || DEFAULT_HSP)}
+                  className="font-mono text-primary font-bold"
+                />
+              </div>
+              <div className="md:col-span-2 lg:col-span-2">
+                <label className="block text-sm font-semibold text-muted-foreground mb-2">Planilha de Consumo (.xlsx)</label>
                 <div className="relative">
                   <input 
                     type="file" 

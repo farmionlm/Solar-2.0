@@ -12,7 +12,7 @@ export function UserMenu() {
   if (!session?.user) return null;
 
   return (
-    <div className="flex items-center gap-4 bg-card border border-border px-4 py-2 rounded-xl shadow-md">
+    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-card border border-border px-4 py-2 rounded-xl shadow-md">
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
           {session.user.role === 'ADMIN' ? (
