@@ -26,7 +26,7 @@ export const ResultCards: React.FC<ResultCardsProps> = ({ modulePower, totalKwp,
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-primary to-gold-dark text-primary-foreground shadow-lg shadow-primary/20 border-0">
+      <Card className="bg-gradient-to-br from-primary to-accent-color-dark text-primary-foreground shadow-lg shadow-primary/20 border-0">
         <CardContent className="p-6">
           <h3 className="text-primary-foreground/80 font-medium mb-1">Total de Módulos</h3>
           <div className="text-4xl font-bold">{totalModules} <span className="text-xl text-primary-foreground/70 font-normal">unid.</span></div>

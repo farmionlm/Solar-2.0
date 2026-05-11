@@ -765,27 +765,27 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               <Input type="number" value={currentEquip.moduleCurrent ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'moduleCurrent', e.target.value)} />
                             </div>
 
-                            <div className="col-span-full border-t border-slate-100 my-2"></div>
+                            <div className="col-span-full border-t border-border my-2"></div>
 
-                            <div className="col-span-full bg-slate-50/80 border border-slate-100 p-4 rounded-xl mb-2">
+                            <div className="col-span-full bg-secondary/30 border border-border p-4 rounded-xl mb-2">
                               <div className="flex justify-between items-center mb-4">
-                                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Inversores ({currentEquip.inverters?.length || 0})</span>
+                                <span className="text-xs font-black text-foreground uppercase tracking-wider">Inversores ({currentEquip.inverters?.length || 0})</span>
                                 <Button
                                   type="button"
                                   onClick={() => addInverterRow(proj.id)}
                                   variant="outline"
-                                  className="h-8 text-xs bg-white hover:bg-violet-50 text-violet-600 border-violet-200"
+                                  className="h-8 text-xs bg-primary/10 hover:bg-primary/20 text-primary border-primary/30"
                                 >
                                   + Adicionar Inversor
                                 </Button>
                               </div>
 
                               {(!currentEquip.inverters || currentEquip.inverters.length === 0) ? (
-                                <p className="text-xs text-slate-400 text-center py-2">Nenhum inversor adicionado.</p>
+                                <p className="text-xs text-muted-foreground text-center py-2">Nenhum inversor adicionado.</p>
                               ) : (
                                   <div className="space-y-4">
                                    {currentEquip.inverters.map((inv: Inverter, idx: number) => (
-                                    <div key={idx} className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm relative space-y-3">
+                                    <div key={idx} className="bg-card border border-border rounded-xl p-4 shadow-xl relative space-y-3">
                                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3 items-end">
                                         <div>
                                           <label className="block text-xs font-bold text-slate-500 mb-1">Fabricante</label>
@@ -804,11 +804,11 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                           <Input type="number" value={inv.outputCurrent ?? ""} onChange={(e) => handleInverterChange(proj.id, idx, 'outputCurrent', e.target.value)} className="h-9 text-xs" />
                                         </div>
                                         <div>
-                                          <label className="block text-xs font-bold text-slate-500 mb-1">Nº MPPTs</label>
+                                          <label className="block text-xs font-bold text-muted-foreground mb-1">Nº MPPTs</label>
                                           <Input type="number" min={1} value={inv.numMppts ?? 1} onChange={(e) => handleInverterChange(proj.id, idx, 'numMppts', e.target.value)} className="h-9 text-xs" />
                                         </div>
-                                        <div className="lg:col-span-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
-                                          <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-tight">Entradas por MPPT</label>
+                                        <div className="lg:col-span-2 bg-secondary/50 p-2 rounded-lg border border-border">
+                                          <label className="block text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-tight">Entradas por MPPT</label>
                                           <div className="flex flex-wrap gap-2">
                                             {Array.from({ length: Number(inv.numMppts || 1) }).map((_, mIdx) => {
                                               const currentInputs = (inv.mpptInputs || "").split(",").map(n => Number(n) || 1);
@@ -818,7 +818,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                               }
                                               return (
                                                 <div key={mIdx} className="flex items-center gap-1">
-                                                  <span className="text-[10px] text-slate-500">M{mIdx+1}:</span>
+                                                  <span className="text-[10px] text-muted-foreground">M{mIdx+1}:</span>
                                                   <Input 
                                                     type="number" 
                                                     min={1} 
@@ -838,7 +838,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                         </div>
                                         <div className="flex gap-2 items-center justify-between">
                                           <div className="flex-1">
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">Qtd</label>
+                                            <label className="block text-xs font-bold text-muted-foreground mb-1">Qtd</label>
                                             <Input type="number" value={inv.quantity ?? 1} onChange={(e) => handleInverterChange(proj.id, idx, 'quantity', e.target.value)} className="h-9 text-xs" />
                                           </div>
                                           <Button
@@ -846,7 +846,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                             onClick={() => removeInverterRow(proj.id, idx)}
                                             variant="ghost"
                                             size="icon"
-                                            className="text-red-500 hover:bg-red-50 h-9 w-9 mt-5"
+                                            className="text-red-500 hover:bg-red-900/10 hover:text-red-400 h-9 w-9 mt-5"
                                             title="Remover Inversor"
                                           >
                                             <Trash2 className="w-4 h-4" />
@@ -855,8 +855,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                       </div>
 
                                       {/* Arranjo de Painéis Editável para este inversor */}
-                                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs text-slate-600">
-                                        <p className="font-bold text-slate-700 mb-2">Arranjo de Painéis por Entrada (Editável):</p>
+                                      <div className="bg-secondary/30 p-4 rounded-xl border border-border text-xs text-foreground">
+                                        <p className="font-black text-foreground mb-2">Arranjo de Painéis por Entrada (Editável):</p>
                                         {(() => {
                                           const mpptsCount = Number(inv.numMppts || 1);
                                           const mpptInputsArray = (inv.mpptInputs || "").split(",").map(n => Number(n) || 1);
@@ -923,20 +923,20 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               )}
                             </div>
 
-                            <div className="col-span-full border-t border-slate-100 my-2"></div>
+                            <div className="col-span-full border-t border-border my-2"></div>
 
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Nome do Resp. Técnico</label>
+                              <label className="block text-xs font-bold text-muted-foreground mb-1">Nome do Resp. Técnico</label>
                               <Input type="text" value={currentEquip.professionalName ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'professionalName', e.target.value)} />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Registro Profissional (CRT/CREA)</label>
+                              <label className="block text-xs font-bold text-muted-foreground mb-1">Registro Profissional (CRT/CREA)</label>
                               <Input type="text" value={currentEquip.professionalCrt ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'professionalCrt', e.target.value)} />
                             </div>
                           </div>
                           
                           <Button onClick={() => saveProjectEquipment(proj.id, currentEquip)} disabled={isSaving}
-                            className="w-full md:w-auto bg-slate-800 hover:bg-slate-900 text-white rounded-xl shadow-md active:scale-95 disabled:opacity-50 h-12 px-8">
+                            className="w-full md:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl shadow-xl shadow-primary/20 active:scale-95 disabled:opacity-50 h-12 px-8">
                             <Save className="w-4 h-4 mr-2" /> {isSaving ? "Salvando..." : "Salvar Todos os Dados Técnicos"}
                           </Button>
                         </div>
@@ -1005,33 +1005,33 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
             {/* Escolha do modo */}
             {newProjectMode === 'choice' && (
               <div className="p-8 flex flex-col gap-4">
-                <p className="text-slate-500 text-sm text-center mb-2">Como deseja criar o novo projeto?</p>
+                <p className="text-muted-foreground text-sm text-center mb-2 font-bold">Como deseja criar o novo projeto?</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Opção 1: Planilha */}
                   <Link
                     href={`/?clientId=${id}`}
-                    className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-slate-200 hover:border-violet-400 hover:bg-violet-50 transition-all cursor-pointer"
+                    className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-border hover:border-primary hover:bg-secondary/30 transition-all cursor-pointer"
                   >
-                    <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
-                      <Upload className="w-7 h-7 text-emerald-600" />
+                    <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+                      <Upload className="w-7 h-7 text-primary" />
                     </div>
                     <div className="text-center">
-                      <p className="font-bold text-slate-800 mb-1">Importar Planilha</p>
-                      <p className="text-xs text-slate-500">Calcule automaticamente o dimensionamento a partir de uma planilha de consumo (.xlsx)</p>
+                      <p className="font-black text-foreground mb-1">Importar Planilha</p>
+                      <p className="text-xs text-muted-foreground font-medium">Calcule automaticamente o dimensionamento a partir de uma planilha de consumo (.xlsx)</p>
                     </div>
                   </Link>
 
                   {/* Opção 2: Manual */}
                   <button
                     onClick={() => setNewProjectMode('manual')}
-                    className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-slate-200 hover:border-violet-400 hover:bg-violet-50 transition-all cursor-pointer text-left"
+                    className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-border hover:border-primary hover:bg-secondary/30 transition-all cursor-pointer text-left"
                   >
-                    <div className="w-14 h-14 bg-violet-100 rounded-2xl flex items-center justify-center group-hover:bg-violet-200 transition-colors">
-                      <Pencil className="w-7 h-7 text-violet-600" />
+                    <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                      <Pencil className="w-7 h-7 text-primary" />
                     </div>
                     <div className="text-center">
-                      <p className="font-bold text-slate-800 mb-1">Entrada Manual</p>
-                      <p className="text-xs text-slate-500">Informe diretamente o kWp e a quantidade de módulos de cada unidade do projeto</p>
+                      <p className="font-black text-foreground mb-1">Entrada Manual</p>
+                      <p className="text-xs text-muted-foreground font-medium">Informe diretamente o kWp e a quantidade de módulos de cada unidade do projeto</p>
                     </div>
                   </button>
                 </div>
@@ -1042,7 +1042,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
             {newProjectMode === 'manual' && (
               <div className="flex flex-col overflow-hidden">
                 {/* Campos de cabeçalho do projeto */}
-                <div className="p-6 border-b border-slate-100 flex-shrink-0">
+                <div className="p-6 border-b border-border flex-shrink-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Nome do Projeto *</label>
@@ -1069,29 +1069,29 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                 {/* Tabela de unidades — scroll independente */}
                 <div className="overflow-y-auto flex-1 p-6">
                   <div className="flex justify-between items-center mb-3">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Unidades do Projeto</p>
+                    <p className="text-xs font-black text-muted-foreground uppercase tracking-wider">Unidades do Projeto</p>
                     <button
                       onClick={() => setManualRows(prev => [...prev, emptyRow()])}
-                      className="text-xs font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors"
+                      className="text-xs font-black text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors"
                     >
                       + Adicionar Linha
                     </button>
                   </div>
 
-                  <div className="overflow-x-auto rounded-xl border border-slate-200">
+                  <div className="overflow-x-auto rounded-xl border border-border">
                     <table className="w-full text-sm">
-                      <thead className="bg-slate-50 border-b border-slate-200">
+                      <thead className="bg-secondary/50 border-b border-border">
                         <tr>
-                          <th className="text-left px-3 py-2.5 text-xs font-bold text-slate-500 uppercase w-48">Unidade Consumidora</th>
-                          <th className="text-left px-3 py-2.5 text-xs font-bold text-slate-500 uppercase">Unidade / Nome</th>
-                          <th className="text-center px-3 py-2.5 text-xs font-bold text-slate-500 uppercase w-28">kWp</th>
-                          <th className="text-center px-3 py-2.5 text-xs font-bold text-slate-500 uppercase w-24">Módulos</th>
+                          <th className="text-left px-3 py-2.5 text-xs font-black text-muted-foreground uppercase w-48">Unidade Consumidora</th>
+                          <th className="text-left px-3 py-2.5 text-xs font-black text-muted-foreground uppercase">Unidade / Nome</th>
+                          <th className="text-center px-3 py-2.5 text-xs font-black text-muted-foreground uppercase w-28">kWp</th>
+                          <th className="text-center px-3 py-2.5 text-xs font-black text-muted-foreground uppercase w-24">Módulos</th>
                           <th className="w-10"></th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-border">
                         {manualRows.map((row, idx) => (
-                          <tr key={idx} className="bg-white hover:bg-slate-50/50">
+                          <tr key={idx} className="bg-card hover:bg-secondary/30">
                             <td className="px-2 py-2">
                               <Input
                                 type="text"
@@ -1115,7 +1115,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                 type="text"
                                 value={row.modules ? ((Number(row.modules) * (Number(manualModulePower) || 0)) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0,00"}
                                 readOnly
-                                className="h-9 text-xs font-mono text-center bg-slate-50 border-slate-200 text-slate-500"
+                                className="h-9 text-xs font-mono text-center bg-secondary/30 border-border text-muted-foreground"
                               />
                             </td>
                             <td className="px-2 py-2">
@@ -1141,13 +1141,13 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                         ))}
                       </tbody>
                       {manualRows.some(r => Number(r.modules) > 0) && (
-                        <tfoot className="bg-slate-50 border-t-2 border-slate-200">
+                        <tfoot className="bg-secondary/50 border-t-2 border-border">
                           <tr>
-                            <td colSpan={2} className="px-3 py-2.5 text-xs font-bold text-slate-600 uppercase">Total</td>
-                            <td className="px-3 py-2.5 text-center text-sm font-bold text-blue-600 font-mono">
+                            <td colSpan={2} className="px-3 py-2.5 text-xs font-black text-muted-foreground uppercase">Total</td>
+                            <td className="px-3 py-2.5 text-center text-sm font-black text-primary font-mono">
                               {(manualRows.reduce((acc, r) => acc + (Number(r.modules) || 0), 0) * (Number(manualModulePower) || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWp
                             </td>
-                            <td className="px-3 py-2.5 text-center text-sm font-bold text-emerald-600 font-mono">
+                            <td className="px-3 py-2.5 text-center text-sm font-black text-primary font-mono">
                               {manualRows.reduce((acc, r) => acc + (Number(r.modules) || 0), 0)} un.
                             </td>
                             <td></td>
@@ -1158,17 +1158,17 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                   </div>
 
                   {manualError && (
-                    <div className="mt-4 bg-red-50 border border-red-100 text-red-600 text-sm font-medium p-3 rounded-xl">
+                    <div className="mt-4 bg-red-900/10 border border-red-900/50 text-red-500 text-sm font-bold p-3 rounded-xl">
                       {manualError}
                     </div>
                   )}
                 </div>
 
                 {/* Rodapé com botões */}
-                <div className="p-6 border-t border-slate-100 flex justify-between items-center flex-shrink-0 bg-slate-50/50">
+                <div className="p-6 border-t border-border flex justify-between items-center flex-shrink-0 bg-card">
                   <button
                     onClick={() => setNewProjectMode('choice')}
-                    className="text-sm text-slate-500 hover:text-slate-700 font-semibold flex items-center gap-1.5 transition-colors"
+                    className="text-sm text-muted-foreground hover:text-foreground font-bold flex items-center gap-1.5 transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" /> Voltar
                   </button>
@@ -1179,7 +1179,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                     <Button
                       onClick={handleSaveManualProject}
                       disabled={manualSaving}
-                      className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl shadow-lg shadow-violet-200 h-11 px-8 font-bold disabled:opacity-50"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-xl shadow-primary/20 h-11 px-8 font-black disabled:opacity-50"
                     >
                       <Save className="w-4 h-4 mr-2" />
                       {manualSaving ? "Salvando..." : "Salvar Projeto"}
@@ -1195,17 +1195,17 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
       {/* Modal de Re-Simulação */}
       {reSimProject && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="bg-amber-500 p-6 text-white flex justify-between items-center">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-card border border-border rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-primary p-6 text-primary-foreground flex justify-between items-center">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <RefreshCw className="w-5 h-5" /> Refazer Simulação
               </h2>
               <button onClick={() => { setReSimProject(null); setReSimModulePower(""); setReSimError(""); }} className="text-white/80 hover:text-white text-2xl font-bold">&times;</button>
             </div>
             <div className="p-6">
-              <p className="text-sm text-slate-500 mb-5">
-                Projeto: <strong className="text-slate-800">{reSimProject.name || "Sem nome"}</strong><br />
+              <p className="text-sm text-muted-foreground mb-5">
+                Projeto: <strong className="text-foreground">{reSimProject.name || "Sem nome"}</strong><br />
                 Os dados de kWp, módulos e unidades serão substituídos pelos novos resultados. Os dados técnicos (fabricantes, inversores, etc.) serão preservados.
               </p>
 
@@ -1222,7 +1222,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-1">Nova Planilha de Consumo (.xlsx)</label>
+                  <label className="block text-sm font-bold text-muted-foreground mb-1">Nova Planilha de Consumo (.xlsx)</label>
                   <div className="relative">
                     <input
                       type="file"

@@ -41,12 +41,12 @@ export default function LoginPage() {
       {/* Background Orbs */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
         <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[120px]" />
-        <div className="absolute top-[60%] -left-[10%] w-[40%] h-[40%] rounded-full bg-gold-dark/10 blur-[100px]" />
+        <div className="absolute top-[60%] -left-[10%] w-[40%] h-[40%] rounded-full bg-accent-color-dark/10 blur-[100px]" />
       </div>
 
       <div className="relative z-10 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary to-gold-dark rounded-2xl flex items-center justify-center shadow-2xl shadow-black/50">
+          <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent-color-dark rounded-2xl flex items-center justify-center shadow-2xl shadow-black/50">
             <Sun className="w-10 h-10 text-primary-foreground" />
           </div>
         </div>
