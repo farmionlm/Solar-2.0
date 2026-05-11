@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
+import { useSession } from "next-auth/react";
 import { fetcher } from "@/utils/fetcher";
 import { ArrowLeft, Users, Search, Trash2, ChevronRight, Phone, Mail, MapPin, FileText, Home } from "lucide-react";
 
@@ -14,7 +15,9 @@ import { Input } from "@/components/ui/input";
 import { formatUnidadeConsumidora, formatCpfCnpj, formatPhone } from "@/utils/formatters";
 
 export default function Clientes() {
+  const { data: session } = useSession();
   const { data: clients, error: swrError, isLoading, mutate } = useSWR<Client[]>("/api/clients", fetcher);
+  const [activeTab, setActiveTab] = useState<'MEUS' | 'GERAIS'>('MEUS');
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -57,6 +60,10 @@ export default function Clientes() {
   };
 
   const filtered = (clients || []).filter((c) => {
+    const isMine = c.userId === session?.user?.id;
+    if (activeTab === 'MEUS' && !isMine) return false;
+    if (activeTab === 'GERAIS' && isMine) return false;
+
     const term = searchTerm.toLowerCase();
     return c.name.toLowerCase().includes(term) || 
            (c.cpfCnpj && c.cpfCnpj.includes(term)) ||
@@ -94,16 +101,31 @@ export default function Clientes() {
           </div>
         </header>
 
-        {/* Barra de busca */}
-        <div className="mb-6">
-          <div className="relative">
+        {/* Barra de busca e Abas */}
+        <div className="mb-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div className="flex bg-card border border-border p-1 rounded-xl w-full md:w-auto">
+            <button 
+              onClick={() => setActiveTab('MEUS')}
+              className={`flex-1 md:px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'MEUS' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}`}
+            >
+              Meus Clientes
+            </button>
+            <button 
+              onClick={() => setActiveTab('GERAIS')}
+              className={`flex-1 md:px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'GERAIS' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}`}
+            >
+              Clientes Gerais
+            </button>
+          </div>
+
+          <div className="relative w-full md:max-w-md">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar por nome, CPF/CNPJ ou e-mail..."
-              className="w-full pl-12 h-12 shadow-sm bg-card border-border text-foreground"
+              className="w-full pl-12 h-11 shadow-sm bg-card border-border text-foreground rounded-xl"
             />
           </div>
         </div>

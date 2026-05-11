@@ -32,6 +32,12 @@ export type ClientListItem = {
   cep?: string | null;
   createdAt?: string;
   _count?: { projects: number };
+  userId?: string | null;
+  user?: {
+    id: string;
+    name: string;
+    role: string;
+  } | null;
 };
 
 export type Inverter = {

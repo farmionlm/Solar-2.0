@@ -13,6 +13,7 @@ datasource db {
 enum Role {
   ADMIN
   PARTNER
+  TECHNICIAN
 }
 
 model User {
@@ -25,6 +26,12 @@ model User {
   resetTokenExp DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @default(now()) @updatedAt
+  
+  // Relacionamento Hierárquico: Parceiro > Técnico
+  companyId     String?
+  company       User?     @relation("PartnerTechnicians", fields: [companyId], references: [id])
+  technicians   User[]    @relation("PartnerTechnicians")
+  
   clients       Client[]
 }
 

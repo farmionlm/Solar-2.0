@@ -13,7 +13,17 @@ export async function GET() {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
     }
 
-    const whereClause = session.user.role === 'ADMIN' ? {} : { userId: session.user.id };
+    let whereClause: any = {};
+    
+    if (session.user.role !== 'ADMIN') {
+      const companyId = session.user.role === 'PARTNER' ? session.user.id : session.user.companyId;
+      whereClause = {
+        OR: [
+          { userId: companyId },
+          { user: { companyId: companyId } }
+        ]
+      };
+    }
 
     const clients = await prisma.client.findMany({
       where: whereClause,
@@ -21,6 +31,9 @@ export async function GET() {
       include: {
         _count: {
           select: { projects: true }
+        },
+        user: {
+          select: { name: true, role: true, id: true }
         }
       }
     });
@@ -121,13 +134,25 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID não fornecido.' }, { status: 400 });
     }
 
-    // Parceiros só podem deletar seus próprios clientes
+    // Verificação de permissões hierárquicas
     if (session.user.role !== 'ADMIN') {
       const client = await prisma.client.findUnique({
         where: { id },
-        select: { userId: true },
+        include: { user: { select: { companyId: true } } },
       });
-      if (!client || client.userId !== session.user.id) {
+      
+      if (!client) {
+        return NextResponse.json({ error: 'Cliente não encontrado.' }, { status: 404 });
+      }
+
+      let isAllowed = false;
+      if (client.userId === session.user.id) {
+        isAllowed = true; // Dono do cliente
+      } else if (session.user.role === 'PARTNER' && client.user?.companyId === session.user.id) {
+        isAllowed = true; // Parceiro deletando cliente do seu técnico
+      }
+
+      if (!isAllowed) {
         return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
       }
     }

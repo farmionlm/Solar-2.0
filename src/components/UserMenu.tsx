@@ -23,7 +23,9 @@ export function UserMenu() {
         </div>
         <div className="hidden sm:block text-sm">
           <p className="font-bold text-foreground leading-none">{session.user.name}</p>
-          <p className="text-xs text-muted-foreground mt-1 font-bold">{session.user.role === 'ADMIN' ? 'Administrador' : 'Parceiro'}</p>
+          <p className="text-xs text-muted-foreground mt-1 font-bold">
+            {session.user.role === 'ADMIN' ? 'Administrador' : session.user.role === 'PARTNER' ? 'Parceiro' : 'Técnico'}
+          </p>
         </div>
       </div>
       
@@ -39,6 +41,22 @@ export function UserMenu() {
             >
               <Users className="w-5 h-5" />
               <span className="hidden sm:inline-block ml-2 font-bold">Parceiros</span>
+            </Button>
+          </Link>
+          <div className="w-px h-8 bg-border mx-1"></div>
+        </>
+      )}
+
+      {session.user.role === 'PARTNER' && (
+        <>
+          <Link href="/tecnicos">
+            <Button 
+              variant="ghost" 
+              className="text-primary hover:text-primary hover:bg-primary/10 p-2 h-auto rounded-lg"
+              title="Gestão de Técnicos"
+            >
+              <Users className="w-5 h-5" />
+              <span className="hidden sm:inline-block ml-2 font-bold">Técnicos</span>
             </Button>
           </Link>
           <div className="w-px h-8 bg-border mx-1"></div>
