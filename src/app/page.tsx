@@ -11,6 +11,7 @@ import { SimulationTable } from "@/components/SimulationTable";
 import { ClientLinkingForm } from "@/components/ClientLinkingForm";
 import { UserMenu } from "@/components/UserMenu";
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
+import { ExcelParserService } from "@/services/ExcelParserService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -89,133 +90,31 @@ function HomeContent() {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const data = new Uint8Array(event.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: "array" });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-
-        if (jsonData.length < 2) {
-          setError("A planilha parece estar vazia ou não contém dados suficientes.");
-          setIsProcessing(false);
-          return;
-        }
-
-        calculateAndDisplay(jsonData);
-      } catch {
-        setError("Erro ao ler o arquivo. Certifique-se de que é um Excel ou CSV válido.");
+        if (!event.target?.result) throw new Error("Erro na leitura");
+        const jsonData = ExcelParserService.parseBuffer(event.target.result as ArrayBuffer);
+        const calculatedResults = ExcelParserService.calculateUnits(jsonData, Number(modulePower));
+        setResults(calculatedResults);
+      } catch (err: any) {
+        setError(err.message || "Erro ao ler o arquivo. Certifique-se de que é um Excel ou CSV válido e contém os dados necessários.");
+      } finally {
         setIsProcessing(false);
       }
     };
     reader.readAsArrayBuffer(file);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const calculateAndDisplay = (data: any[][]) => {
-    const headers = data[0].map((h) => String(h).toLowerCase());
-
-    let codeIdx = -1;
-    let nameIdx = -1;
-    let consIdx = -1;
-
-    for (let i = 0; i < headers.length; i++) {
-      const h = headers[i];
-      if (h.includes("cód") || h.includes("cod") || h.includes("instala")) codeIdx = codeIdx === -1 ? i : codeIdx;
-      if (h.includes("nome") || h.includes("escola") || h.includes("unidade")) nameIdx = nameIdx === -1 ? i : nameIdx;
-      if (h.includes("consumo") || h.includes("média") || h.includes("media") || h.includes("kwh")) consIdx = consIdx === -1 ? i : consIdx;
-    }
-
-    if (codeIdx === -1 && headers.length > 0) codeIdx = 0;
-    if (nameIdx === -1 && headers.length > 1) nameIdx = 1;
-    if (consIdx === -1 && headers.length > 2) consIdx = 2;
-
-    if (codeIdx === -1 || nameIdx === -1 || consIdx === -1) {
-      setError("Não foi possível identificar as colunas necessárias.");
-      setIsProcessing(false);
-      return;
-    }
-
-    const processedUnits: ProcessedUnit[] = [];
-
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      if (!row || row.length === 0 || (!row[codeIdx] && !row[nameIdx] && !row[consIdx])) continue;
-
-      const code = String(row[codeIdx] || "N/A");
-      const name = String(row[nameIdx] || "N/A");
-      const rawCons = String(row[consIdx]).replace(",", ".").replace(/[^\d.-]/g, "");
-      const monthlyCons = parseFloat(rawCons);
-
-      if (isNaN(monthlyCons) || monthlyCons <= 0) continue;
-
-      const solarData = calculateUnitSolarData(monthlyCons, Number(modulePower));
-
-      processedUnits.push({ 
-        code, 
-        name, 
-        monthlyCons, 
-        ...solarData 
-      });
-    }
-
-    const totals = calculateProjectTotals(processedUnits);
-
-    if (processedUnits.length === 0) {
-      setError("Nenhum dado numérico válido de consumo foi encontrado.");
-      setResults(null);
-    } else {
-      setResults({
-      units: processedUnits,
-      ...totals
-    });
-    }
-    
-    setIsProcessing(false);
-  };
-
   const exportToExcel = () => {
     if (!results) return;
 
     const projName = projectName || "Dimensionamento Solar";
+    const workbook = ExcelParserService.generateExportWorkbook(
+      projName,
+      Number(modulePower),
+      results.totalKwp,
+      results.totalModules,
+      results.units
+    );
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const exportData: any[][] = [
-      ["Relatório de Dimensionamento Fotovoltaico"],
-      ["Projeto:", projName],
-      ["Potência do Módulo:", `${modulePower} W`],
-      ["Total Necessário:", `${results.totalKwp.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWp`],
-      ["Total de Módulos:", `${results.totalModules} unid.`],
-      [],
-      ["Código de Instalação", "Nome da Escola / Unidade", "Média Mensal (kWh)", "Consumo Diário (kWh/dia)", "kWp Necessário", "Qtd. Módulos"]
-    ];
-
-    results.units.forEach(u => {
-      exportData.push([u.code, u.name, u.monthlyCons, u.dailyCons, u.requiredKwp, u.requiredModules]);
-    });
-    
-    exportData.push([
-      "TOTAL", "-",
-      results.units.reduce((acc, u) => acc + u.monthlyCons, 0),
-      results.units.reduce((acc, u) => acc + u.dailyCons, 0),
-      results.totalKwp, results.totalModules
-    ]);
-
-    const worksheet = XLSX.utils.aoa_to_sheet(exportData);
-    worksheet["!cols"] = [{ wch: 20 }, { wch: 40 }, { wch: 20 }, { wch: 22 }, { wch: 20 }, { wch: 15 }];
-    
-    const range = XLSX.utils.decode_range(worksheet['!ref'] || "A1:F1");
-    for (let R = 6; R <= range.e.r; ++R) {
-      for (let C = 2; C <= 4; ++C) {
-        const cell_ref = XLSX.utils.encode_cell({c:C, r:R});
-        if(worksheet[cell_ref]) worksheet[cell_ref].z = "#,##0.00";
-      }
-      const cell_ref_F = XLSX.utils.encode_cell({c:5, r:R});
-      if(worksheet[cell_ref_F]) worksheet[cell_ref_F].z = "#,##0";
-    }
-    
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Dimensionamento");
     XLSX.writeFile(workbook, `Dimensionamento_${projName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.xlsx`);
   };
 
