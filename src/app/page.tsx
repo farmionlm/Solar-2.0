@@ -102,7 +102,7 @@ function DashboardContent() {
                   <Link href="/simulador" className="flex-1 bg-white/20 hover:bg-white/30 text-white font-bold py-2 px-4 rounded-lg text-center transition-colors text-sm">
                     Simular
                   </Link>
-                  <Link href="/clientes" className="flex-1 bg-black/20 hover:bg-black/30 text-white font-bold py-2 px-4 rounded-lg text-center flex items-center justify-center gap-1 transition-colors text-sm">
+                  <Link href="/funil" className="flex-1 bg-black/20 hover:bg-black/30 text-white font-bold py-2 px-4 rounded-lg text-center flex items-center justify-center gap-1 transition-colors text-sm">
                     Ver Funil <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>

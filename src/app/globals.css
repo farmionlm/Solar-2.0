@@ -97,3 +97,16 @@
     @apply font-sans;
   }
 }
+
+/* ── Print styles (for Proposal PDF page) ─────────────────────────── */
+@media print {
+  /* Hide the floating home button from all pages */
+  a[title="Início"] {
+    display: none !important;
+  }
+  /* Ensure backgrounds and colors print correctly */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

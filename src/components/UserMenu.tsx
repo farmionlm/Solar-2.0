@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { LogOut, User, ShieldCheck, Users, Activity, Settings } from 'lucide-react';
+import { LogOut, User, ShieldCheck, Users, Activity, Settings, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -73,6 +73,35 @@ export function UserMenu() {
           <div className="w-px h-8 bg-border mx-1"></div>
         </>
       )}
+
+      {/* Settings for PARTNER */}
+      {session.user.role === 'PARTNER' && (
+        <>
+          <Link href="/configuracoes">
+            <Button
+              variant="ghost"
+              className="text-primary hover:text-primary hover:bg-primary/10 p-2 h-auto rounded-lg"
+              title="Configurações da Empresa"
+            >
+              <Settings className="w-5 h-5" />
+              <span className="hidden sm:inline-block ml-2 font-bold">Config</span>
+            </Button>
+          </Link>
+          <div className="w-px h-8 bg-border mx-1"></div>
+        </>
+      )}
+
+      <Link href="/funil">
+        <Button
+          variant="ghost"
+          className="text-primary hover:text-primary hover:bg-primary/10 p-2 h-auto rounded-lg"
+          title="Funil de Vendas"
+        >
+          <LayoutDashboard className="w-5 h-5" />
+          <span className="hidden sm:inline-block ml-2 font-bold">Funil</span>
+        </Button>
+      </Link>
+      <div className="w-px h-8 bg-border mx-1"></div>
 
       {(session.user.role === 'ADMIN' || session.user.role === 'PARTNER') && (
         <>
