@@ -184,16 +184,30 @@ export default function Clientes() {
 
                   {/* Partner badge — only shown in Clientes Gerais tab */}
                   {activeTab === 'GERAIS' && (() => {
-                    // Resolve partner: if user is PARTNER, use user.name; if TECHNICIAN, use user.company.name
-                    const partnerName = client.user?.role === 'PARTNER'
-                      ? client.user.name
-                      : client.user?.company?.name || client.user?.name || null;
-                    return partnerName ? (
-                      <div className="mt-3 flex items-center gap-1.5 bg-primary/10 text-primary text-xs font-bold px-2.5 py-1 rounded-lg w-fit">
-                        <Building className="w-3 h-3 shrink-0" />
-                        <span className="truncate max-w-[160px]">{partnerName}</span>
+                    const u = client.user;
+                    // Resolve partner name
+                    const partnerName = u?.role === 'PARTNER'
+                      ? u.name
+                      : u?.company?.name ?? null;
+                    // Resolve technician name (only if created by a technician)
+                    const techName = u?.role === 'TECHNICIAN' ? u.name : null;
+
+                    return (
+                      <div className="mt-3 space-y-1.5">
+                        <div className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg w-fit ${partnerName ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'}`}>
+                          <Building className="w-3 h-3 shrink-0" />
+                          <span className="truncate max-w-[160px]">
+                            {partnerName ?? 'Sem parceiro (Admin)'}
+                          </span>
+                        </div>
+                        {techName && (
+                          <div className="flex items-center gap-1.5 bg-secondary text-muted-foreground text-xs font-semibold px-2.5 py-1 rounded-lg w-fit">
+                            <Users className="w-3 h-3 shrink-0" />
+                            <span className="truncate max-w-[160px]">Técnico: {techName}</span>
+                          </div>
+                        )}
                       </div>
-                    ) : null;
+                    );
                   })()}
 
                 </div>

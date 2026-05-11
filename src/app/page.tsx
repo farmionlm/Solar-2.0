@@ -69,16 +69,16 @@ function DashboardContent() {
           <>
             {/* Cards de KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+              <Link href="/funil" className="bg-card border border-border rounded-2xl p-6 shadow-xl relative overflow-hidden group hover:border-primary/50 hover:shadow-primary/10 transition-all cursor-pointer">
                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                   <BarChart3 className="w-20 h-20 text-primary" />
                 </div>
                 <h3 className="text-muted-foreground font-bold text-sm uppercase tracking-wider mb-2">Total de Projetos</h3>
                 <div className="text-5xl font-black text-foreground mb-2">{metrics.totalProjects || 0}</div>
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <span className="text-emerald-500 font-bold">+ Cadastrados no sistema</span>
+                  <span className="text-emerald-500 font-bold group-hover:text-primary transition-colors">→ Ver todos no Funil</span>
                 </p>
-              </div>
+              </Link>
 
               <div className="bg-card border border-border rounded-2xl p-6 shadow-xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
