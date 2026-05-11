@@ -37,6 +37,8 @@ export type ClientListItem = {
     id: string;
     name: string;
     role: string;
+    companyId?: string | null;
+    company?: { id: string; name: string } | null;
   } | null;
 };
 

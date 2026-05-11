@@ -33,7 +33,15 @@ export async function GET() {
           select: { projects: true }
         },
         user: {
-          select: { name: true, role: true, id: true }
+          select: { 
+            id: true,
+            name: true, 
+            role: true, 
+            companyId: true,
+            company: {
+              select: { id: true, name: true }
+            }
+          }
         }
       }
     });

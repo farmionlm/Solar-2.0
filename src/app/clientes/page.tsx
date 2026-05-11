@@ -5,7 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { fetcher } from "@/utils/fetcher";
-import { ArrowLeft, Users, Search, Trash2, ChevronRight, Phone, Mail, MapPin, FileText, Home } from "lucide-react";
+import { ArrowLeft, Users, Search, Trash2, ChevronRight, Phone, Mail, MapPin, FileText, Home, Building } from "lucide-react";
 
 import { ClientListItem as Client } from "@/types";
 import { UserMenu } from "@/components/UserMenu";
@@ -181,6 +181,20 @@ export default function Clientes() {
                     {client.email && <p className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {client.email}</p>}
                     {client.address && <p className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {client.address}</p>}
                   </div>
+
+                  {/* Partner badge — only shown in Clientes Gerais tab */}
+                  {activeTab === 'GERAIS' && (() => {
+                    // Resolve partner: if user is PARTNER, use user.name; if TECHNICIAN, use user.company.name
+                    const partnerName = client.user?.role === 'PARTNER'
+                      ? client.user.name
+                      : client.user?.company?.name || client.user?.name || null;
+                    return partnerName ? (
+                      <div className="mt-3 flex items-center gap-1.5 bg-primary/10 text-primary text-xs font-bold px-2.5 py-1 rounded-lg w-fit">
+                        <Building className="w-3 h-3 shrink-0" />
+                        <span className="truncate max-w-[160px]">{partnerName}</span>
+                      </div>
+                    ) : null;
+                  })()}
 
                 </div>
 
