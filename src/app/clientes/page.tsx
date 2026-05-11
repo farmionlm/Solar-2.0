@@ -140,12 +140,12 @@ export default function Clientes() {
               <p className="text-muted-foreground font-medium">Gerencie seus clientes e equipamentos</p>
             </div>
           </Link>
-          <div className="flex gap-3">
-            <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg shadow-md active:scale-95 h-10 px-5">
-              <Users className="w-5 h-5 mr-2" />
-              Novo Cliente
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+            <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg shadow-md active:scale-95 h-10 px-4 sm:px-5">
+              <Users className="w-5 h-5 sm:mr-2" />
+              <span className="hidden sm:inline">Novo Cliente</span>
             </Button>
-            <Link href="/" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
+            <Link href="/" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-4 sm:px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
               <ArrowLeft className="w-5 h-5" />
               <span className="hidden sm:inline">Nova Simulação</span>
             </Link>

@@ -37,10 +37,10 @@ export default function RootLayout({
         </Providers>
         <Link 
           href="/" 
-          className="fixed bottom-6 right-6 bg-card border border-border text-primary p-4 rounded-full shadow-2xl hover:bg-primary hover:text-primary-foreground transition-all z-50 group active:scale-90"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 bg-card border border-border text-primary p-3 sm:p-4 rounded-full shadow-2xl hover:bg-primary hover:text-primary-foreground transition-all z-50 group active:scale-90"
           title="Início"
         >
-          <Home className="w-6 h-6" />
+          <Home className="w-5 h-5 sm:w-6 sm:h-6" />
           <span className="absolute right-full mr-3 bg-secondary border border-border text-foreground px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
             Voltar ao Início
           </span>

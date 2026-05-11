@@ -128,12 +128,12 @@ export default function Historico() {
               <p className="text-muted-foreground font-medium">Seus dimensionamentos salvos</p>
             </div>
           </Link>
-          <div className="flex gap-3">
-            <Link href="/clientes" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+            <Link href="/clientes" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-4 sm:px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
               <Users className="w-5 h-5" />
-              Clientes
+              <span className="hidden sm:inline">Clientes</span>
             </Link>
-            <Link href="/" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
+            <Link href="/" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-4 sm:px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
               <ArrowLeft className="w-5 h-5" />
               <span className="hidden sm:inline">Nova Simulação</span>
             </Link>

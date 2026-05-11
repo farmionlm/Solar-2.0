@@ -15,7 +15,7 @@ interface SimulationTableProps {
 
 export const SimulationTable: React.FC<SimulationTableProps> = ({ units }) => {
   return (
-    <div className="border border-border rounded-2xl overflow-hidden shadow-xl bg-card">
+    <div className="border border-border rounded-2xl overflow-x-auto shadow-xl bg-card">
       <Table>
         <TableHeader className="bg-secondary/30">
           <TableRow className="border-border">
