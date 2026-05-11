@@ -63,6 +63,17 @@ export async function POST(request: Request) {
       },
     });
 
+    const companyId = session.user.role === 'PARTNER' ? session.user.id : (session.user.companyId || 'ADMIN');
+
+    await prisma.auditLog.create({
+      data: {
+        action: 'PROJETO_CRIADO',
+        details: `Simulação gerada: ${project.name} (${project.totalKwp} kWp)`,
+        userId: session.user.id,
+        companyId: companyId
+      }
+    });
+
     return NextResponse.json({ success: true, project, clientId: resolvedClientId }, { status: 201 });
   } catch (error) {
     console.error('Erro ao salvar projeto:', error);
