@@ -6,17 +6,24 @@ import { authOptions } from "../auth/[...nextauth]/route";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'PARTNER') {
+    if (!session || (session.user.role !== 'PARTNER' && session.user.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const companyId = session.user.role === 'ADMIN' ? searchParams.get('companyId') : session.user.id;
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'Company ID é necessário.' }, { status: 400 });
     }
 
     const technicians = await prisma.user.findMany({
       where: { 
         role: 'TECHNICIAN',
-        companyId: session.user.id 
+        companyId: companyId 
       },
       select: {
         id: true,
@@ -40,14 +47,16 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'PARTNER') {
+    if (!session || (session.user.role !== 'PARTNER' && session.user.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
     }
 
-    const { name, email, password } = await request.json();
+    const { name, email, password, companyId: bodyCompanyId } = await request.json();
 
-    if (!name || !email || !password) {
-      return NextResponse.json({ error: 'Nome, email e senha são obrigatórios.' }, { status: 400 });
+    const companyId = session.user.role === 'ADMIN' ? bodyCompanyId : session.user.id;
+
+    if (!name || !email || !password || !companyId) {
+      return NextResponse.json({ error: 'Nome, email, senha e empresa são obrigatórios.' }, { status: 400 });
     }
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -63,7 +72,7 @@ export async function POST(request: Request) {
         email,
         passwordHash,
         role: 'TECHNICIAN',
-        companyId: session.user.id
+        companyId: companyId
       },
       select: {
         id: true,

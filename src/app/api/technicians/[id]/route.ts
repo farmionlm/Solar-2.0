@@ -9,17 +9,21 @@ export const dynamic = 'force-dynamic';
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'PARTNER') {
+    if (!session || (session.user.role !== 'PARTNER' && session.user.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
     }
 
     const { id } = await params;
     const { name, email, password } = await request.json();
 
-    // Verify ownership
+    // Verify ownership or Admin role
     const tech = await prisma.user.findUnique({ where: { id } });
-    if (!tech || tech.companyId !== session.user.id || tech.role !== 'TECHNICIAN') {
-      return NextResponse.json({ error: 'Técnico não encontrado ou sem permissão.' }, { status: 403 });
+    if (!tech || tech.role !== 'TECHNICIAN') {
+      return NextResponse.json({ error: 'Técnico não encontrado.' }, { status: 404 });
+    }
+    
+    if (session.user.role !== 'ADMIN' && tech.companyId !== session.user.id) {
+      return NextResponse.json({ error: 'Sem permissão para editar este técnico.' }, { status: 403 });
     }
 
     const updateData: any = {};
@@ -52,16 +56,20 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'PARTNER') {
+    if (!session || (session.user.role !== 'PARTNER' && session.user.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
     }
 
     const { id } = await params;
 
-    // Verify ownership
+    // Verify ownership or Admin role
     const tech = await prisma.user.findUnique({ where: { id } });
-    if (!tech || tech.companyId !== session.user.id || tech.role !== 'TECHNICIAN') {
-      return NextResponse.json({ error: 'Técnico não encontrado ou sem permissão.' }, { status: 403 });
+    if (!tech || tech.role !== 'TECHNICIAN') {
+      return NextResponse.json({ error: 'Técnico não encontrado.' }, { status: 404 });
+    }
+
+    if (session.user.role !== 'ADMIN' && tech.companyId !== session.user.id) {
+      return NextResponse.json({ error: 'Sem permissão para deletar este técnico.' }, { status: 403 });
     }
 
     await prisma.user.delete({

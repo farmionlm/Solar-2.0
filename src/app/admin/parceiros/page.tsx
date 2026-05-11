@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Plus, ShieldCheck, Mail, Building, Trash2, Edit2, AlertTriangle, KeyRound } from 'lucide-react';
+import { Plus, ShieldCheck, Mail, Building, Trash2, Edit2, AlertTriangle, KeyRound, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UserMenu } from '@/components/UserMenu';
@@ -297,6 +297,16 @@ export default function AdminPartnersPage() {
                   </span>
                 </div>
                 <div className="md:col-span-3 flex justify-end gap-2 border-t border-border md:border-t-0 pt-2 md:pt-0">
+                  <Link href={`/admin/parceiros/${user.id}/tecnicos`}>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="text-cyan-500 hover:text-cyan-600 hover:bg-cyan-900/10 h-9 w-9 md:h-8 md:w-8"
+                      title="Ver Técnicos"
+                    >
+                      <Users className="w-4.5 h-4.5 md:w-4 md:h-4" />
+                    </Button>
+                  </Link>
                   <Button 
                     variant="ghost" 
                     size="icon"
