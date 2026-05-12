@@ -5,14 +5,14 @@ import Link from "next/link";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { fetcher } from "@/utils/fetcher";
-import { ArrowLeft, Users, Search, Trash2, ChevronRight, Phone, Mail, MapPin, FileText, Home, Building } from "lucide-react";
+import { ArrowLeft, Users, Search, Trash2, ChevronRight, Phone, Mail, MapPin, FileText, Home, Building, Sun } from "lucide-react";
 
 import { ClientListItem as Client } from "@/types";
 import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { formatUnidadeConsumidora, formatCpfCnpj, formatPhone } from "@/utils/formatters";
+import { formatCpfCnpj, formatPhone } from "@/utils/formatters";
 
 export default function Clientes() {
   const { data: session } = useSession();
@@ -22,7 +22,7 @@ export default function Clientes() {
   const [showModal, setShowModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [newClient, setNewClient] = useState({
-    name: "", cpfCnpj: "", phone: "", email: "", address: "", installationNumber: ""
+    name: "", cpfCnpj: "", phone: "", email: "", address: ""
   });
 
   const handleSaveClient = async (e: React.FormEvent) => {
@@ -37,7 +37,7 @@ export default function Clientes() {
       });
       if (!res.ok) throw new Error("Erro ao salvar");
       setShowModal(false);
-      setNewClient({ name: "", cpfCnpj: "", phone: "", email: "", address: "", installationNumber: "" });
+      setNewClient({ name: "", cpfCnpj: "", phone: "", email: "", address: "" });
       mutate();
     } catch {
       alert("Erro ao criar cliente.");
@@ -93,8 +93,8 @@ export default function Clientes() {
               <Users className="w-5 h-5 sm:mr-2" />
               <span className="hidden sm:inline">Novo Cliente</span>
             </Button>
-            <Link href="/" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-4 sm:px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
-              <ArrowLeft className="w-5 h-5" />
+            <Link href="/simulador" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-4 sm:px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
+              <Sun className="w-5 h-5" />
               <span className="hidden sm:inline">Nova Simulação</span>
             </Link>
             <UserMenu />
@@ -150,7 +150,7 @@ export default function Clientes() {
                 : "Tente buscar por outro termo."}
             </p>
             {(!clients || clients.length === 0) && (
-              <Link href="/" className="inline-block bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20">
+              <Link href="/simulador" className="inline-block bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20">
                 Criar Simulação
               </Link>
             )}
@@ -263,11 +263,6 @@ export default function Clientes() {
                   <label className="block text-sm font-bold text-muted-foreground mb-1">Endereço</label>
                   <Input type="text" value={newClient.address} onChange={(e) => setNewClient({...newClient, address: e.target.value})}
                     placeholder="Rua, Número, Cidade/UF" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-bold text-muted-foreground mb-1">Unidade Consumidora</label>
-                  <Input type="text" value={formatUnidadeConsumidora(newClient.installationNumber || "")} onChange={(e) => setNewClient({...newClient, installationNumber: formatUnidadeConsumidora(e.target.value)})}
-                    placeholder="Ex: 0.000.939.307.054-04" />
                 </div>
               </div>
               <div className="flex gap-3 justify-end mt-8">

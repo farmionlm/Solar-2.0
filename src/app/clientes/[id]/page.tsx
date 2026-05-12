@@ -941,7 +941,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Opção 1: Planilha */}
                   <Link
-                    href={`/?clientId=${id}`}
+                    href={`/simulador?clientId=${id}`}
                     className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-border hover:border-primary hover:bg-secondary/30 transition-all cursor-pointer"
                   >
                     <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center group-hover:bg-primary/30 transition-colors">

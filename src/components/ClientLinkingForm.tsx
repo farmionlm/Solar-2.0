@@ -3,7 +3,7 @@ import { Users, ChevronDown, ChevronUp, Search, ChevronRight, X } from 'lucide-r
 import { ClientData, ClientListItem } from '@/types';
 import { Input } from '@/components/ui/input';
 
-import { formatUnidadeConsumidora, formatCpfCnpj, formatPhone, formatCep } from "@/utils/formatters";
+import { formatCpfCnpj, formatPhone, formatCep } from "@/utils/formatters";
 
 interface ClientLinkingFormProps {
   showClientForm: boolean;
@@ -61,7 +61,7 @@ export const ClientLinkingForm: React.FC<ClientLinkingFormProps> = ({
               <button 
                 onClick={() => {
                   setPreSelectedClient(null);
-                  setClientData({ name: "", cpfCnpj: "", phone: "", email: "", address: "", neighborhood: "", city: "", cep: "", installationNumber: "" });
+                  setClientData({ name: "", cpfCnpj: "", phone: "", email: "", address: "", neighborhood: "", city: "", cep: "" });
                 }}
                 className="flex items-center gap-1 text-red-400 hover:bg-red-950/30 px-3 py-1.5 rounded-lg font-bold transition-all text-sm"
               >
@@ -172,11 +172,6 @@ export const ClientLinkingForm: React.FC<ClientLinkingFormProps> = ({
                     <label className="block text-sm font-bold text-muted-foreground mb-1">Cidade / UF</label>
                     <Input type="text" value={clientData.city || ""} onChange={(e) => setClientData({...clientData, city: e.target.value})}
                       placeholder="Cidade/UF" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-bold text-muted-foreground mb-1">Unidade Consumidora</label>
-                    <Input type="text" value={formatUnidadeConsumidora(clientData.installationNumber || "")} onChange={(e) => setClientData({...clientData, installationNumber: formatUnidadeConsumidora(e.target.value)})}
-                      placeholder="Ex: 0.000.939.307.054-04" />
                   </div>
                 </div>
               )}
