@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent, useDroppable } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ArrowLeft, LayoutDashboard, Sun, Clock, CheckCircle, Briefcase, FileText, ExternalLink, Trash2 } from "lucide-react";
@@ -20,6 +20,18 @@ const COLUMNS = [
   { id: "INSTALLATION", title: "Instalação", icon: <Clock className="w-4 h-4 text-purple-400" />, color: "border-purple-500/50 bg-purple-500/5" },
   { id: "COMPLETED", title: "Concluído", icon: <Sun className="w-4 h-4 text-yellow-500" />, color: "border-yellow-500/50 bg-yellow-500/5" }
 ];
+
+function DroppableColumn({ colId, items, children }: { colId: string, items: any[], children: React.ReactNode }) {
+  const { setNodeRef } = useDroppable({ id: colId });
+
+  return (
+    <SortableContext id={colId} items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+      <div ref={setNodeRef} className="flex-1 p-3 overflow-y-auto min-h-[150px]">
+        {children}
+      </div>
+    </SortableContext>
+  );
+}
 
 function SortableItem({ id, project, onDelete }: { id: string, project: any, onDelete: (id: string) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -296,22 +308,16 @@ export default function KanbanPage() {
                   </span>
                 </div>
                 
-                <SortableContext
-                  id={col.id}
-                  items={items[col.id]?.map(i => i.id) || []}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="flex-1 p-3 overflow-y-auto min-h-[150px]">
-                    {items[col.id]?.map((project) => (
-                      <SortableItem key={project.id} id={project.id} project={project} onDelete={handleDelete} />
-                    ))}
-                    {(!items[col.id] || items[col.id].length === 0) && (
-                      <div className="h-full flex items-center justify-center text-muted-foreground/40 text-sm font-medium border-2 border-dashed border-border/50 rounded-xl p-8 text-center">
-                        Arraste projetos para cá
-                      </div>
-                    )}
-                  </div>
-                </SortableContext>
+                <DroppableColumn colId={col.id} items={items[col.id] || []}>
+                  {items[col.id]?.map((project) => (
+                    <SortableItem key={project.id} id={project.id} project={project} onDelete={handleDelete} />
+                  ))}
+                  {(!items[col.id] || items[col.id].length === 0) && (
+                    <div className="h-full flex items-center justify-center text-muted-foreground/40 text-sm font-medium border-2 border-dashed border-border/50 rounded-xl p-8 text-center">
+                      Arraste projetos para cá
+                    </div>
+                  )}
+                </DroppableColumn>
               </div>
             ))}
 
