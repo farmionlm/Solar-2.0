@@ -526,35 +526,35 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
           {isEditingClient ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Nome Completo</label>
+                <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Nome Completo</label>
                 <Input type="text" value={editClientData.name} onChange={(e) => setEditClientData({...editClientData, name: e.target.value})} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">CPF / CNPJ</label>
+                <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">CPF / CNPJ</label>
                 <Input type="text" value={editClientData.cpfCnpj} onChange={(e) => setEditClientData({...editClientData, cpfCnpj: formatCpfCnpj(e.target.value)})} placeholder="000.000.000-00 ou 00.000.000/0001-00" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Telefone</label>
+                <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Telefone</label>
                 <Input type="text" value={editClientData.phone} onChange={(e) => setEditClientData({...editClientData, phone: formatPhone(e.target.value)})} placeholder="(00) 00000-0000" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">E-mail</label>
+                <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">E-mail</label>
                 <Input type="email" value={editClientData.email} onChange={(e) => setEditClientData({...editClientData, email: e.target.value})} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">CEP</label>
+                <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">CEP</label>
                 <Input type="text" value={editClientData.cep} onChange={(e) => setEditClientData({...editClientData, cep: formatCep(e.target.value)})} placeholder="00000-000" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Endereço (Rua, Número)</label>
+                <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Endereço (Rua, Número)</label>
                 <Input type="text" value={editClientData.address} onChange={(e) => setEditClientData({...editClientData, address: e.target.value})} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Bairro</label>
+                <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Bairro</label>
                 <Input type="text" value={editClientData.neighborhood} onChange={(e) => setEditClientData({...editClientData, neighborhood: e.target.value})} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Cidade / UF</label>
+                <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Cidade / UF</label>
                 <Input type="text" value={editClientData.city} onChange={(e) => setEditClientData({...editClientData, city: e.target.value})} />
               </div>
             </div>
@@ -579,7 +579,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
           </div>
 
           {client.projects.length === 0 ? (
-            <p className="text-slate-500 text-center py-8">Nenhum projeto vinculado a este cliente.</p>
+            <p className="text-muted-foreground text-center py-8">Nenhum projeto vinculado a este cliente.</p>
           ) : (
             <div className="space-y-4">
               {client.projects.map((proj) => {
@@ -670,27 +670,27 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Unidade Consumidora (UC)</label>
+                              <label className="block text-xs font-bold text-muted-foreground mb-1">Unidade Consumidora (UC)</label>
                               <Input type="text" value={formatUnidadeConsumidora(currentEquip.installationNumber ?? "")} onChange={(e) => handleEquipmentChange(proj.id, 'installationNumber', formatUnidadeConsumidora(e.target.value))} placeholder="0.000.000.000.000-00" />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Geração Mensal Estimada (kWh)</label>
+                              <label className="block text-xs font-bold text-muted-foreground mb-1">Geração Mensal Estimada (kWh)</label>
                               <Input type="number" value={currentEquip.generationKwh ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'generationKwh', e.target.value)} />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Percentual de Redução (%)</label>
+                              <label className="block text-xs font-bold text-muted-foreground mb-1">Percentual de Redução (%)</label>
                               <Input type="number" value={currentEquip.reductionPercent ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'reductionPercent', e.target.value)} />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Área Total (m²)</label>
+                              <label className="block text-xs font-bold text-muted-foreground mb-1">Área Total (m²)</label>
                               <Input type="number" value={currentEquip.areaOccupied ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'areaOccupied', e.target.value)} />
                             </div>
 
-                            <div className="col-span-full border-t border-slate-100 my-2"></div>
+                            <div className="col-span-full border-t border-border my-2"></div>
 
                             {/* Seleção do Módulo pelo Catálogo */}
                             <div className="md:col-span-2 lg:col-span-4">
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Módulo Fotovoltaico (Catálogo)</label>
+                              <label className="block text-xs font-bold text-muted-foreground mb-1">Módulo Fotovoltaico (Catálogo)</label>
                               <select
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 value={""}
@@ -709,15 +709,15 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                             </div>
 
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Fabricante do Módulo</label>
+                              <label className="block text-xs font-bold text-muted-foreground mb-1">Fabricante do Módulo</label>
                               <Input type="text" value={currentEquip.moduleManufacturer ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'moduleManufacturer', e.target.value)} />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Modelo do Módulo</label>
+                              <label className="block text-xs font-bold text-muted-foreground mb-1">Modelo do Módulo</label>
                               <Input type="text" value={currentEquip.moduleModel ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'moduleModel', e.target.value)} />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Corrente do Módulo (Imp - A)</label>
+                              <label className="block text-xs font-bold text-muted-foreground mb-1">Corrente do Módulo (Imp - A)</label>
                               <Input type="number" value={currentEquip.moduleCurrent ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'moduleCurrent', e.target.value)} />
                             </div>
 
@@ -767,19 +767,19 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                        {/* ── Campos técnicos editáveis ── */}
                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
                                          <div>
-                                           <label className="block text-xs font-bold text-slate-500 mb-1">Fabricante</label>
+                                           <label className="block text-xs font-bold text-muted-foreground mb-1">Fabricante</label>
                                            <Input type="text" value={inv.manufacturer || ""} onChange={(e) => handleInverterChange(proj.id, idx, 'manufacturer', e.target.value)} className="h-9 text-xs" />
                                          </div>
                                          <div>
-                                           <label className="block text-xs font-bold text-slate-500 mb-1">Modelo</label>
+                                           <label className="block text-xs font-bold text-muted-foreground mb-1">Modelo</label>
                                            <Input type="text" value={inv.model || ""} onChange={(e) => handleInverterChange(proj.id, idx, 'model', e.target.value)} className="h-9 text-xs" />
                                          </div>
                                          <div>
-                                           <label className="block text-xs font-bold text-slate-500 mb-1">Potência Saída (kW)</label>
+                                           <label className="block text-xs font-bold text-muted-foreground mb-1">Potência Saída (kW)</label>
                                            <Input type="number" value={inv.outputPower ?? ""} onChange={(e) => handleInverterChange(proj.id, idx, 'outputPower', e.target.value)} className="h-9 text-xs" />
                                          </div>
                                          <div>
-                                           <label className="block text-xs font-bold text-slate-500 mb-1">Corrente Saída (A)</label>
+                                           <label className="block text-xs font-bold text-muted-foreground mb-1">Corrente Saída (A)</label>
                                            <Input type="number" value={inv.outputCurrent ?? ""} onChange={(e) => handleInverterChange(proj.id, idx, 'outputCurrent', e.target.value)} className="h-9 text-xs" />
                                          </div>
                                          <div>
@@ -872,7 +872,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                             <div className="space-y-3">
                                               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
                                                 {currentModulesArray.map((modCount, i) => (
-                                                  <div key={i} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-100">
+                                                  <div key={i} className="flex items-center gap-2 bg-secondary/30 px-3 py-1.5 rounded-lg border border-border">
                                                     <span>✓ 01 string com</span>
                                                     <Input
                                                       type="number"
@@ -883,13 +883,13 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                                         newArr[i] = newVal;
                                                         handleInverterChange(proj.id, idx, "stringLayout", newArr.join(","));
                                                       }}
-                                                      className="w-16 h-8 text-xs text-center font-mono p-1 border-slate-200"
+                                                      className="w-16 h-8 text-xs text-center font-mono p-1 border-border bg-background text-foreground"
                                                     />
                                                     <span>módulos em série ligada à entrada <strong>{String(i + 1).padStart(2, "0")}</strong></span>
                                                   </div>
                                                 ))}
                                               </div>
-                                              <p className="mt-2 text-slate-500 font-medium">
+                                              <p className="mt-2 text-muted-foreground font-medium">
                                                 Total de entradas: {totalEntries} | Total de módulos somados neste inversor: {currentModulesArray.reduce((acc, c) => acc + c, 0)}
                                               </p>
                                             </div>
@@ -1191,7 +1191,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-1">Potência do Módulo (W)</label>
+                  <label className="block text-sm font-semibold text-muted-foreground mb-1">Potência do Módulo (W)</label>
                   <Input
                     type="number"
                     value={reSimModulePower}
