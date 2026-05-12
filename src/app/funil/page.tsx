@@ -43,11 +43,27 @@ function SortableItem({ id, project, onDelete }: { id: string, project: any, onD
         className="cursor-grab active:cursor-grabbing"
       >
         <div className="flex justify-between items-start mb-2">
-          <h4 className="font-bold text-foreground text-sm group-hover:text-primary transition-colors pr-2">{project.name || "Sem nome"}</h4>
-          <span className="text-xs font-black bg-primary/10 text-primary px-2 py-0.5 rounded-full shrink-0">{project.totalKwp} kWp</span>
+          <h4 className="font-bold text-foreground text-sm group-hover:text-primary transition-colors pr-2">
+            {project.clientId ? (
+              <Link href={`/clientes/${project.clientId}`} className="hover:underline">
+                {project.name || "Sem nome"}
+              </Link>
+            ) : (
+              project.name || "Sem nome"
+            )}
+          </h4>
+          <span className="text-xs font-black bg-primary/10 text-primary px-2 py-0.5 rounded-full shrink-0">
+            {Number(project.totalKwp).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kWp
+          </span>
         </div>
         <p className="text-xs text-muted-foreground font-medium mb-3">
-          {project.client?.name ? `Cliente: ${project.client.name}` : "Sem cliente vinculado"}
+          {project.clientId ? (
+            <Link href={`/clientes/${project.clientId}`} className="hover:text-primary transition-colors">
+              Cliente: {project.client?.name || "Sem nome"}
+            </Link>
+          ) : (
+            "Sem cliente vinculado"
+          )}
         </p>
         <div className="flex justify-between items-center text-[10px] text-muted-foreground/80 font-medium">
           <span>{format(new Date(project.createdAt), "dd MMM, yyyy", { locale: ptBR })}</span>
@@ -282,7 +298,9 @@ export default function KanbanPage() {
                 <div className="bg-card border border-primary ring-2 ring-primary/50 shadow-2xl p-4 rounded-xl cursor-grabbing opacity-90 scale-105 rotate-2">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-bold text-foreground text-sm">{activeProject.name || "Sem nome"}</h4>
-                    <span className="text-xs font-black bg-primary/10 text-primary px-2 py-0.5 rounded-full">{activeProject.totalKwp} kWp</span>
+                    <span className="text-xs font-black bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                      {Number(activeProject.totalKwp).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kWp
+                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground font-medium mb-3">
                     {activeProject.client?.name ? `Cliente: ${activeProject.client.name}` : "Sem cliente vinculado"}
