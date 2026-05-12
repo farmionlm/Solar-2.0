@@ -158,7 +158,7 @@ export default function KanbanPage() {
       const activeItems = prev[activeContainer];
       const overItems = prev[overContainer];
       const activeIndex = activeItems.findIndex((item) => item.id === activeId);
-      const overIndex = overId in prev ? overItems.length + 1 : overItems.findIndex((item) => item.id === overId);
+      const overIndex = overId in prev ? overItems.length : overItems.findIndex((item) => item.id === overId);
 
       return {
         ...prev,
@@ -186,24 +186,35 @@ export default function KanbanPage() {
 
     if (!activeContainer || !overContainer) return;
 
-    if (activeContainer === overContainer) {
-      // Reordering within the same column
-      const activeIndex = items[activeContainer].findIndex((item) => item.id === activeId);
-      const overIndex = items[overContainer].findIndex((item) => item.id === overId);
+    const activeIndex = items[activeContainer].findIndex((item) => item.id === activeId);
+    const overIndex = overId in items ? items[overContainer].length : items[overContainer].findIndex((item) => item.id === overId);
 
-      if (activeIndex !== overIndex) {
-        setItems((items) => ({
-          ...items,
-          [activeContainer]: arrayMove(items[activeContainer], activeIndex, overIndex),
-        }));
-      }
-    } else {
-      // Moved to a different column, update DB
+    // Reorder within the container if indices changed
+    if (activeIndex !== overIndex && overIndex !== -1 && activeIndex !== -1) {
+      setItems((prevItems) => ({
+        ...prevItems,
+        [activeContainer]: arrayMove(prevItems[activeContainer], activeIndex, overIndex),
+      }));
+    }
+
+    // Check if the item moved to a new column compared to its database status
+    const activeItem = items[activeContainer].find(i => i.id === activeId);
+    if (activeItem && activeItem.status !== activeContainer) {
+      // Optimistically update status to prevent infinite loops
+      setItems(prev => {
+        const next = { ...prev };
+        const idx = next[activeContainer].findIndex(i => i.id === activeId);
+        if (idx > -1) {
+          next[activeContainer][idx] = { ...next[activeContainer][idx], status: activeContainer };
+        }
+        return next;
+      });
+
       try {
         await fetch(`/api/projects/${activeId}/status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: overContainer })
+          body: JSON.stringify({ status: activeContainer })
         });
         mutate(); // Revalidate
       } catch (err) {
