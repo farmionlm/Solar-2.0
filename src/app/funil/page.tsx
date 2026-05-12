@@ -181,45 +181,55 @@ export default function KanbanPage() {
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const activeContainer = findContainer(activeId);
-    const overContainer = findContainer(overId);
+    // Usa os dados originais do banco para saber a coluna real do projeto
+    // já que o estado 'items' pode estar no meio de uma atualização visual do handleDragOver
+    const originalProject = projectsData?.find((p: any) => p.id === activeId);
+    if (!originalProject) return;
 
-    if (!activeContainer || !overContainer) return;
+    const originalStatus = originalProject.status;
 
-    const activeIndex = items[activeContainer].findIndex((item) => item.id === activeId);
-    const overIndex = overId in items ? items[overContainer].length : items[overContainer].findIndex((item) => item.id === overId);
-
-    // Reorder within the container if indices changed
-    if (activeIndex !== overIndex && overIndex !== -1 && activeIndex !== -1) {
-      setItems((prevItems) => ({
-        ...prevItems,
-        [activeContainer]: arrayMove(prevItems[activeContainer], activeIndex, overIndex),
-      }));
+    // Descobre para qual coluna o item foi solto
+    let overContainer = overId;
+    if (!(overContainer in items)) {
+      overContainer = Object.keys(items).find(key => items[key].some(i => i.id === overId)) || overContainer;
     }
 
-    // Check if the item moved to a new column compared to its database status
-    const activeItem = items[activeContainer].find(i => i.id === activeId);
-    if (activeItem && activeItem.status !== activeContainer) {
-      // Optimistically update status to prevent infinite loops
-      setItems(prev => {
-        const next = { ...prev };
-        const idx = next[activeContainer].findIndex(i => i.id === activeId);
-        if (idx > -1) {
-          next[activeContainer][idx] = { ...next[activeContainer][idx], status: activeContainer };
-        }
-        return next;
-      });
+    if (!(overContainer in items)) return;
+
+    if (originalStatus !== overContainer) {
+      // Mudou de coluna! Atualiza optimisticamente o cache do SWR para evitar "flicker" visual
+      mutate((currentData: any) => {
+        if (!Array.isArray(currentData)) return currentData;
+        return currentData.map((p: any) => p.id === activeId ? { ...p, status: overContainer } : p);
+      }, false);
 
       try {
-        await fetch(`/api/projects/${activeId}/status`, {
+        const res = await fetch(`/api/projects/${activeId}/status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: activeContainer })
+          body: JSON.stringify({ status: overContainer })
         });
-        mutate(); // Revalidate
+        
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText);
+        }
+        
+        mutate(); // Revalida silenciosamente com o banco
       } catch (err) {
         console.error("Failed to update status", err);
-        mutate(); // Revert on failure
+        mutate(); // Em caso de erro, reverte
+      }
+    } else {
+      // Reordenação na mesma coluna
+      const activeIndex = items[originalStatus].findIndex((item) => item.id === activeId);
+      const overIndex = items[originalStatus].findIndex((item) => item.id === overId);
+
+      if (activeIndex !== overIndex && activeIndex !== -1 && overIndex !== -1) {
+        setItems((prev) => ({
+          ...prev,
+          [originalStatus]: arrayMove(prev[originalStatus], activeIndex, overIndex),
+        }));
       }
     }
   };
