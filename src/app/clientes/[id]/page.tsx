@@ -308,6 +308,23 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     }));
   };
 
+  const handleUnitChange = (projId: string, unitIndex: number, field: string, value: string | number) => {
+    setProjectEquipments(prev => {
+      const projState = prev[projId] || {};
+      const currentUnits = [ ...(projState.units || client?.projects.find((p: Project) => p.id === projId)?.units || []) ];
+      if (currentUnits[unitIndex]) {
+        currentUnits[unitIndex] = { ...currentUnits[unitIndex], [field]: value };
+      }
+      return {
+        ...prev,
+        [projId]: {
+          ...projState,
+          units: currentUnits
+        }
+      };
+    });
+  };
+
   const handleInverterChange = (projId: string, inverterIndex: number, field: keyof Inverter, value: string | number) => {
     setProjectEquipments(prev => {
       const existingInverters = [ ...(prev[projId]?.inverters || client?.projects.find((p: Project) => p.id === projId)?.inverters || []) ];
@@ -599,6 +616,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                   professionalCrt: proj.professionalCrt || "",
                   installationNumber: proj.installationNumber || proj.units[0]?.code || "",
                   inverters: proj.inverters || [],
+                  totalModules: proj.totalModules,
+                  units: proj.units || [],
                   ...projectEquipments[proj.id]
                 };
 
@@ -930,9 +949,17 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                             <div className="text-xs text-muted-foreground uppercase font-black">kWp Total</div>
                             <div className="text-lg font-bold text-primary">{proj.totalKwp.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</div>
                           </div>
-                          <div className="bg-card rounded-xl p-3 border border-border text-center shadow-xl">
+                          <div className="bg-card rounded-xl p-3 border border-border text-center shadow-xl flex flex-col justify-between">
                             <div className="text-xs text-muted-foreground uppercase font-black">Qtd Módulos</div>
-                            <div className="text-lg font-bold text-primary">{proj.totalModules}</div>
+                            <div className="mt-1 flex justify-center">
+                              <Input 
+                                type="number" 
+                                min={1}
+                                value={currentEquip.totalModules ?? ""} 
+                                onChange={(e) => handleEquipmentChange(proj.id, 'totalModules', e.target.value)} 
+                                className="h-8 w-20 text-center font-bold text-primary text-lg"
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -948,13 +975,21 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {proj.units.map((u, i) => (
+                              {(currentEquip.units || []).map((u: any, i: number) => (
                                 <TableRow key={i} className="hover:bg-secondary/10 border-border">
                                   <TableCell className="text-foreground font-medium py-3">{formatUnidadeConsumidora(u.code)}</TableCell>
                                   <TableCell className="text-muted-foreground py-3">{u.name}</TableCell>
-                                  <TableCell className="text-muted-foreground text-right font-mono py-3">{u.monthlyCons.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                                  <TableCell className="text-primary font-bold text-right font-mono py-3">{u.requiredKwp.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                                  <TableCell className="text-primary font-black text-right py-3">{u.requiredModules}</TableCell>
+                                  <TableCell className="text-muted-foreground text-right font-mono py-3">{Number(u.monthlyCons).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell className="text-primary font-bold text-right font-mono py-3">{Number(u.requiredKwp).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell className="text-primary font-black text-right py-3 flex justify-end">
+                                    <Input 
+                                      type="number" 
+                                      min={1}
+                                      value={u.requiredModules ?? ""} 
+                                      onChange={(e) => handleUnitChange(proj.id, i, 'requiredModules', e.target.value)} 
+                                      className="h-8 w-16 text-center font-bold text-primary"
+                                    />
+                                  </TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>

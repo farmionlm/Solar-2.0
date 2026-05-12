@@ -1,4 +1,5 @@
 export type ProcessedUnit = {
+  id?: string;
   code: string;
   name: string;
   monthlyCons: number;

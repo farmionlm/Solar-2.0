@@ -12,7 +12,7 @@ import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { formatCpfCnpj, formatPhone } from "@/utils/formatters";
+import { formatCpfCnpj, formatPhone, formatCep } from "@/utils/formatters";
 
 export default function Clientes() {
   const { data: session } = useSession();
@@ -22,7 +22,7 @@ export default function Clientes() {
   const [showModal, setShowModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [newClient, setNewClient] = useState({
-    name: "", cpfCnpj: "", phone: "", email: "", address: ""
+    name: "", cpfCnpj: "", phone: "", email: "", address: "", cep: "", neighborhood: "", city: ""
   });
 
   const handleSaveClient = async (e: React.FormEvent) => {
@@ -37,7 +37,7 @@ export default function Clientes() {
       });
       if (!res.ok) throw new Error("Erro ao salvar");
       setShowModal(false);
-      setNewClient({ name: "", cpfCnpj: "", phone: "", email: "", address: "" });
+      setNewClient({ name: "", cpfCnpj: "", phone: "", email: "", address: "", cep: "", neighborhood: "", city: "" });
       mutate();
     } catch {
       alert("Erro ao criar cliente.");
@@ -260,9 +260,24 @@ export default function Clientes() {
                     placeholder="email@exemplo.com" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-muted-foreground mb-1">Endereço</label>
+                  <label className="block text-sm font-bold text-muted-foreground mb-1">CEP</label>
+                  <Input type="text" value={newClient.cep} onChange={(e) => setNewClient({...newClient, cep: formatCep(e.target.value)})}
+                    placeholder="00000-000" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-muted-foreground mb-1">Endereço (Rua, Número)</label>
                   <Input type="text" value={newClient.address} onChange={(e) => setNewClient({...newClient, address: e.target.value})}
-                    placeholder="Rua, Número, Cidade/UF" />
+                    placeholder="Ex: Rua das Flores, 123" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-muted-foreground mb-1">Bairro</label>
+                  <Input type="text" value={newClient.neighborhood} onChange={(e) => setNewClient({...newClient, neighborhood: e.target.value})}
+                    placeholder="Ex: Centro" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-muted-foreground mb-1">Cidade / UF</label>
+                  <Input type="text" value={newClient.city} onChange={(e) => setNewClient({...newClient, city: e.target.value})}
+                    placeholder="Ex: São Paulo / SP" />
                 </div>
               </div>
               <div className="flex gap-3 justify-end mt-8">

@@ -141,7 +141,7 @@ export async function PUT(request: Request) {
       generationKwh, reductionPercent, moduleManufacturer, moduleArea,
       moduleCurrent, inverterManufacturer, inverterOutputPower,
       inverterOutputCurrent, areaOccupied, professionalName, professionalCrt,
-      inverters, installationNumber
+      inverters, installationNumber, totalModules, units
     } = body;
 
     if (!id) {
@@ -165,6 +165,7 @@ export async function PUT(request: Request) {
         ...(professionalName !== undefined && { professionalName: professionalName?.trim() || null }),
         ...(professionalCrt !== undefined && { professionalCrt: professionalCrt?.trim() || null }),
         ...(installationNumber !== undefined && { installationNumber: installationNumber?.trim() || null }),
+        ...(totalModules !== undefined && { totalModules: Number(totalModules) }),
       }
     });
 
@@ -189,6 +190,18 @@ export async function PUT(request: Request) {
       }
     }
 
+
+    // Atualiza módulos por unidade individual (edição rápida)
+    if (Array.isArray(units) && units.length > 0) {
+      await Promise.all(
+        units.map((u: { id: string; requiredModules: number }) =>
+          prisma.consumerUnit.update({
+            where: { id: u.id },
+            data: { requiredModules: Number(u.requiredModules) },
+          })
+        )
+      );
+    }
 
     return NextResponse.json(project);
   } catch (error) {
