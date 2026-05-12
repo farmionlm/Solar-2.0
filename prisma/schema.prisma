@@ -84,6 +84,9 @@ model Project {
   totalModules Int
   installationNumber String?
   
+  // Valores e Orçamento
+  estimatedCost      Float?
+  
   // Equipamentos vinculados ao projeto
   moduleModel           String?
   inverterModel         String?

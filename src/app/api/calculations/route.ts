@@ -141,7 +141,7 @@ export async function PUT(request: Request) {
       generationKwh, reductionPercent, moduleManufacturer, moduleArea,
       moduleCurrent, inverterManufacturer, inverterOutputPower,
       inverterOutputCurrent, areaOccupied, professionalName, professionalCrt,
-      inverters, installationNumber, totalModules, units
+      inverters, installationNumber, totalModules, units, estimatedCost
     } = body;
 
     if (!id) {
@@ -166,6 +166,7 @@ export async function PUT(request: Request) {
         ...(professionalCrt !== undefined && { professionalCrt: professionalCrt?.trim() || null }),
         ...(installationNumber !== undefined && { installationNumber: installationNumber?.trim() || null }),
         ...(totalModules !== undefined && { totalModules: Number(totalModules) }),
+        ...(estimatedCost !== undefined && { estimatedCost: estimatedCost ? Number(estimatedCost) : null }),
       }
     });
 

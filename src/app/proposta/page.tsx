@@ -21,7 +21,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 // ── Constants ────────────────────────────────────────────────────────────────
 const TARIFF_KWH = 0.85;          // Avg Brazilian tariff R$/kWh
 const ANNUAL_TARIFF_INCREASE = 0.05; // 5% yearly increase
-const SYSTEM_LIFETIME_YEARS = 25;
+const SYSTEM_LIFETIME_YEARS = 5;
 const AVG_COST_PER_KWP = 4800;    // R$ per kWp (avg Brazilian market)
 const CO2_KG_PER_KWH = 0.1;       // CO2 offset per kWh (Brazilian grid avg)
 
@@ -101,12 +101,12 @@ function PropostaContent() {
   // ── Calculations ──────────────────────────────────────────────────────────
   const monthlyGenKwh = p.totalKwp * 120; // Simple approximation: 120kWh/kWp/month
   const annualGenKwh = monthlyGenKwh * 12;
-  const systemCost = Math.round(p.totalKwp * AVG_COST_PER_KWP);
+  const systemCost = p.estimatedCost ? Number(p.estimatedCost) : Math.round(p.totalKwp * AVG_COST_PER_KWP);
   const monthlySavings = monthlyGenKwh * TARIFF_KWH;
   const savingsData = generateSavingsData(monthlyGenKwh, systemCost);
   const paybackYear = savingsData.find(d => d["Economia Acumulada"] >= 0)?.year ?? "N/A";
-  const totalSavings25 = savingsData[SYSTEM_LIFETIME_YEARS - 1]["Economia Acumulada"];
-  const co2Saved = Math.round((annualGenKwh * CO2_KG_PER_KWH * 25) / 1000); // tonnes in 25 years
+  const totalSavingsPeriod = savingsData[SYSTEM_LIFETIME_YEARS - 1]["Economia Acumulada"];
+  const co2Saved = Math.round((annualGenKwh * CO2_KG_PER_KWH * SYSTEM_LIFETIME_YEARS) / 1000); // tonnes in period
 
   const displayClient = safeClientName || p.client?.name || "Prezado Cliente";
   const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
@@ -191,13 +191,13 @@ function PropostaContent() {
             icon={<Leaf className="w-8 h-8 text-green-500" />}
             label="CO₂ Evitado"
             value={`${co2Saved} ton`}
-            sub="em 25 anos"
+            sub={`em ${SYSTEM_LIFETIME_YEARS} anos`}
           />
         </div>
 
         {/* ── ROI CHART ───────────────────────────────────────────────────── */}
         <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-6 mb-8 print:shadow-none print:border-slate-200">
-          <h3 className="text-xl font-black text-slate-800 mb-1">Retorno do Investimento (ROI) em 25 Anos</h3>
+          <h3 className="text-xl font-black text-slate-800 mb-1">Retorno do Investimento (ROI) em {SYSTEM_LIFETIME_YEARS} Anos</h3>
           <p className="text-slate-400 text-sm font-medium mb-6">
             Com tarifa atual de R$ {TARIFF_KWH}/kWh e reajuste anual de {(ANNUAL_TARIFF_INCREASE * 100).toFixed(0)}%.
           </p>
@@ -232,9 +232,9 @@ function PropostaContent() {
           <div className="mt-4 bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-3">
             <CheckCircle className="w-6 h-6 text-emerald-500 shrink-0" />
             <p className="text-emerald-800 font-bold text-sm">
-              Economia Total Estimada em 25 anos:{" "}
+              Economia Total Estimada em {SYSTEM_LIFETIME_YEARS} anos:{" "}
               <span className="text-emerald-600 text-lg">
-                R$ {totalSavings25.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                R$ {totalSavingsPeriod.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </span>
             </p>
           </div>

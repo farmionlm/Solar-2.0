@@ -615,6 +615,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                   professionalName: proj.professionalName || "",
                   professionalCrt: proj.professionalCrt || "",
                   installationNumber: proj.installationNumber || proj.units[0]?.code || "",
+                  estimatedCost: proj.estimatedCost || "",
                   inverters: proj.inverters || [],
                   totalModules: proj.totalModules,
                   units: proj.units || [],
@@ -705,7 +706,18 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               <Input type="number" value={currentEquip.areaOccupied ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'areaOccupied', e.target.value)} />
                             </div>
 
-                            <div className="col-span-full border-t border-border my-2"></div>
+                            <div>
+                               <label className="block text-xs font-bold text-muted-foreground mb-1 text-primary italic">Valor de Venda (Orçamento R$)</label>
+                               <Input 
+                                 type="number" 
+                                 placeholder="Ex: 35000"
+                                 value={currentEquip.estimatedCost ?? ""} 
+                                 onChange={(e) => handleEquipmentChange(proj.id, 'estimatedCost', e.target.value)} 
+                                 className="border-primary/40 focus:border-primary"
+                               />
+                             </div>
+
+                             <div className="col-span-full border-t border-border my-2"></div>
 
                             {/* Seleção do Módulo pelo Catálogo */}
                             <div className="md:col-span-2 lg:col-span-4">
