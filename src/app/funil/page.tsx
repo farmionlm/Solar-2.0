@@ -216,8 +216,9 @@ export default function KanbanPage() {
         }
         
         mutate(); // Revalida silenciosamente com o banco
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to update status", err);
+        alert("Erro na atualização do funil: " + err.message);
         mutate(); // Em caso de erro, reverte
       }
     } else {
