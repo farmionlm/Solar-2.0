@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { Sun, Zap, TrendingUp, Clock, Leaf, PrinterIcon, ArrowLeft, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import type { Project } from "@/types";
 import {
   AreaChart,
   Area,
@@ -67,9 +68,12 @@ function PropostaContent() {
   const clientName = searchParams.get("clientName");
 
   // Grab the project from the full list since we don't have a single-item API
-  const { data: allProjects, isLoading } = useSWR("/api/calculations", fetcher);
+  const { data: allProjects, isLoading } = useSWR<Project[]>("/api/calculations", fetcher);
   const { data: companySettings } = useSWR("/api/settings", fetcher);
-  const p = allProjects?.find((x: any) => x.id === projectId);
+  const p = allProjects?.find((x) => x.id === projectId);
+
+  // Sanitiza o nome do cliente vindo da URL (evita XSS passivo em conteúdo renderizado)
+  const safeClientName = clientName ? clientName.trim().slice(0, 200) : null;
 
   if (isLoading || !allProjects) {
     return (
@@ -104,7 +108,7 @@ function PropostaContent() {
   const totalSavings25 = savingsData[SYSTEM_LIFETIME_YEARS - 1]["Economia Acumulada"];
   const co2Saved = Math.round((annualGenKwh * CO2_KG_PER_KWH * 25) / 1000); // tonnes in 25 years
 
-  const displayClient = clientName || p.client?.name || "Prezado Cliente";
+  const displayClient = safeClientName || p.client?.name || "Prezado Cliente";
   const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 
   return (

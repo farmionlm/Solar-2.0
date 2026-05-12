@@ -1,5 +1,7 @@
 "use client";
 
+import React from "react";
+
 import Link from "next/link";
 import useSWR from "swr";
 import { fetcher } from "@/utils/fetcher";
@@ -44,6 +46,9 @@ export default function Historico() {
       ["Código de Instalação", "Nome da Unidade", "Média Mensal (kWh)", "Consumo Diário (kWh/dia)", "kWp Necessário", "Qtd. Módulos"]
     ];
 
+    // Captura o índice da 1ª linha de dados (base-0) ANTES de inserir as unidades
+    const dataStartRow = exportData.length;
+
     project.units.forEach(u => {
       exportData.push([
         u.code, 
@@ -78,8 +83,8 @@ export default function Historico() {
     
     const range = XLSX.utils.decode_range(worksheet['!ref'] || "A1:F1");
     
-    // Formatação de números
-    const dataStartRow = 22; // Linha 23 (base 0 é 22)
+    // Formatação de números — linha de início calculada dinamicamente
+    // dataStartRow foi capturado antes do forEach, portanto aponta para a 1ª linha de dados
     for (let R = dataStartRow; R <= range.e.r; ++R) {
       for (let C = 2; C <= 4; ++C) {
         const cell_ref = XLSX.utils.encode_cell({c:C, r:R});

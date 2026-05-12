@@ -55,9 +55,21 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { brandColor, logoUrl, companyPhone, companyWebsite, name } = body;
 
-    const targetId = session.user.role === 'ADMIN'
-      ? (body.userId || session.user.id) // ADMIN can edit any user if userId is provided
-      : session.user.id;
+    // PARTNER sempre edita apenas a si mesmo — body.userId é ignorado para não-ADMINs,
+    // impedindo que um parceiro sobrescreva dados de outro usuário via payload manipulado.
+    let targetId: string = session.user.id;
+
+    if (session.user.role === 'ADMIN' && body.userId) {
+      // ADMIN pode editar qualquer usuário, mas valida que o alvo existe primeiro
+      const targetUser = await prisma.user.findUnique({
+        where: { id: body.userId },
+        select: { id: true },
+      });
+      if (!targetUser) {
+        return NextResponse.json({ error: 'Usuário alvo não encontrado.' }, { status: 404 });
+      }
+      targetId = body.userId;
+    }
 
     const updated = await prisma.user.update({
       where: { id: targetId },
