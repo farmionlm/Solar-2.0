@@ -19,6 +19,10 @@ import { formatUnidadeConsumidora, formatCpfCnpj, formatPhone, formatCep } from 
 export default function ClienteDetalhe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: client, error: swrError, isLoading, mutate } = useSWR<ClientDetail>(`/api/clients/${id}`, fetcher);
+
+  // Catálogo de equipamentos
+  const { data: dbModules } = useSWR<{ id: string; manufacturer: string; model: string; powerW: number }[]>('/api/equipments/modules', fetcher);
+  const { data: dbInverters } = useSWR<{ id: string; manufacturer: string; model: string; powerW: number; numMppts: number | null; inputsPerMppt: number | null }[]>('/api/equipments/inverters', fetcher);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -684,6 +688,26 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
                             <div className="col-span-full border-t border-slate-100 my-2"></div>
 
+                            {/* Seleção do Módulo pelo Catálogo */}
+                            <div className="md:col-span-2 lg:col-span-4">
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Módulo Fotovoltaico (Catálogo)</label>
+                              <select
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                value={""}
+                                onChange={(e) => {
+                                  const mod = dbModules?.find(m => m.id === e.target.value);
+                                  if (!mod) return;
+                                  handleEquipmentChange(proj.id, 'moduleManufacturer', mod.manufacturer);
+                                  handleEquipmentChange(proj.id, 'moduleModel', mod.model);
+                                }}
+                              >
+                                <option value="">— Selecionar do catálogo —</option>
+                                {(dbModules || []).map(m => (
+                                  <option key={m.id} value={m.id}>{m.manufacturer} — {m.model} ({m.powerW}W)</option>
+                                ))}
+                              </select>
+                            </div>
+
                             <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Fabricante do Módulo</label>
                               <Input type="text" value={currentEquip.moduleManufacturer ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'moduleManufacturer', e.target.value)} />
@@ -719,6 +743,26 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                    {currentEquip.inverters.map((inv: Inverter, idx: number) => (
                                     <div key={idx} className="bg-card border border-border rounded-xl p-4 shadow-xl relative space-y-3">
                                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3 items-end">
+                                        <div className="lg:col-span-3">
+                                          <label className="block text-xs font-bold text-slate-500 mb-1">Inversor (Catálogo)</label>
+                                          <select
+                                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                            value={""}
+                                            onChange={(e) => {
+                                              const catalogInv = dbInverters?.find(i => i.id === e.target.value);
+                                              if (!catalogInv) return;
+                                              handleInverterChange(proj.id, idx, 'manufacturer', catalogInv.manufacturer);
+                                              handleInverterChange(proj.id, idx, 'model', catalogInv.model);
+                                              handleInverterChange(proj.id, idx, 'outputPower', catalogInv.powerW / 1000);
+                                              if (catalogInv.numMppts) handleInverterChange(proj.id, idx, 'numMppts', catalogInv.numMppts);
+                                            }}
+                                          >
+                                            <option value="">— Catálogo —</option>
+                                            {(dbInverters || []).map(i => (
+                                              <option key={i.id} value={i.id}>{i.manufacturer} — {i.model} ({i.powerW}W)</option>
+                                            ))}
+                                          </select>
+                                        </div>
                                         <div>
                                           <label className="block text-xs font-bold text-slate-500 mb-1">Fabricante</label>
                                           <Input type="text" value={inv.manufacturer || ""} onChange={(e) => handleInverterChange(proj.id, idx, 'manufacturer', e.target.value)} className="h-9 text-xs" />

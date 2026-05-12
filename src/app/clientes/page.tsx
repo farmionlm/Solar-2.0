@@ -5,7 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { fetcher } from "@/utils/fetcher";
-import { ArrowLeft, Users, Search, Trash2, ChevronRight, Phone, Mail, MapPin, FileText, Home, Building, Sun } from "lucide-react";
+import { Users, Search, Trash2, ChevronRight, Phone, Mail, MapPin, FileText, Home, Building, Sun } from "lucide-react";
 
 import { ClientListItem as Client } from "@/types";
 import { UserMenu } from "@/components/UserMenu";
