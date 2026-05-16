@@ -141,7 +141,8 @@ export async function PUT(request: Request) {
       generationKwh, reductionPercent, moduleManufacturer, moduleArea,
       moduleCurrent, inverterManufacturer, inverterOutputPower,
       inverterOutputCurrent, areaOccupied, professionalName, professionalCrt,
-      inverters, installationNumber, totalModules, units, estimatedCost
+      inverters, installationNumber, totalModules, units, estimatedCost,
+      totalKwp, modulePower, address, neighborhood, city, cep
     } = body;
 
     if (!id) {
@@ -166,6 +167,12 @@ export async function PUT(request: Request) {
         ...(professionalCrt !== undefined && { professionalCrt: professionalCrt?.trim() || null }),
         ...(installationNumber !== undefined && { installationNumber: installationNumber?.trim() || null }),
         ...(totalModules !== undefined && { totalModules: Number(totalModules) }),
+        ...(totalKwp !== undefined && { totalKwp: Number(totalKwp) }),
+        ...(modulePower !== undefined && { modulePower: Number(modulePower) }),
+        ...(address !== undefined && { address: address?.trim() || null }),
+        ...(neighborhood !== undefined && { neighborhood: neighborhood?.trim() || null }),
+        ...(city !== undefined && { city: city?.trim() || null }),
+        ...(cep !== undefined && { cep: cep?.trim() || null }),
         ...(estimatedCost !== undefined && { estimatedCost: estimatedCost ? Number(estimatedCost) : null }),
       }
     });
@@ -195,10 +202,13 @@ export async function PUT(request: Request) {
     // Atualiza módulos por unidade individual (edição rápida)
     if (Array.isArray(units) && units.length > 0) {
       await Promise.all(
-        units.map((u: { id: string; requiredModules: number }) =>
+        units.map((u: { id: string; requiredModules: number; requiredKwp: number }) =>
           prisma.consumerUnit.update({
             where: { id: u.id },
-            data: { requiredModules: Number(u.requiredModules) },
+            data: { 
+              requiredModules: Number(u.requiredModules),
+              requiredKwp: Number(u.requiredKwp)
+            },
           })
         )
       );

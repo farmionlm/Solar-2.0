@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
-import { Settings, Plus, Trash2, ArrowLeft, Cpu, Zap } from 'lucide-react';
+import { Settings, Plus, Trash2, ArrowLeft, Cpu, Zap, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UserMenu } from '@/components/UserMenu';
@@ -191,7 +191,7 @@ export default function AdminEquipmentsPage() {
                       )}
                       <td className="p-4 text-center flex justify-center gap-1">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(item)} className="text-primary hover:bg-primary/10">
-                          <Plus className="w-4 h-4 rotate-45" /> {/* Use a better icon if possible, but keeping it simple */}
+                          <Pencil className="w-4 h-4" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id, activeTab)} className="text-red-500 hover:bg-red-900/20">
                           <Trash2 className="w-4 h-4" />

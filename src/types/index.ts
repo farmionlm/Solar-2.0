@@ -80,6 +80,10 @@ export type Project = {
   areaOccupied?: number | null;
   professionalName?: string | null;
   professionalCrt?: string | null;
+  address?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  cep?: string | null;
   units: ProcessedUnit[];
   inverters?: Inverter[];
   _count?: { units: number };
