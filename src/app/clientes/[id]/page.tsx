@@ -745,7 +745,6 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                   totalKwp: projectState.totalKwp !== undefined ? Number(projectState.totalKwp) : proj.totalKwp,
                   generationKwh: projectState.generationKwh !== undefined ? Number(projectState.generationKwh) : (proj.generationKwh ?? Math.round(proj.totalKwp * 120))
                 };
-                };
 
                 return (
                   <div key={proj.id} className="border border-border rounded-xl overflow-hidden shadow-xl hover:shadow-black/50 transition-all">
