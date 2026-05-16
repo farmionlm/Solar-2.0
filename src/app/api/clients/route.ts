@@ -105,6 +105,29 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'ID do cliente é obrigatório.' }, { status: 400 });
     }
 
+    // Validação de propriedade (Security)
+    if (session.user.role !== 'ADMIN') {
+      const existingClient = await prisma.client.findUnique({
+        where: { id },
+        include: { user: { select: { companyId: true } } },
+      });
+      
+      if (!existingClient) {
+        return NextResponse.json({ error: 'Cliente não encontrado.' }, { status: 404 });
+      }
+
+      let isAllowed = false;
+      if (existingClient.userId === session.user.id) {
+        isAllowed = true; // Dono do cliente
+      } else if (session.user.role === 'PARTNER' && existingClient.user?.companyId === session.user.id) {
+        isAllowed = true; // Parceiro editando cliente do seu técnico
+      }
+
+      if (!isAllowed) {
+        return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
+      }
+    }
+
     const client = await prisma.client.update({
       where: { id },
       data: {

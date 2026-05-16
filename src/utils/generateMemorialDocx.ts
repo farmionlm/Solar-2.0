@@ -204,12 +204,17 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
                 const normalizedInputs = Array.from({ length: mpptsCount }).map((_, i) => mpptInputsArray[i] || 1);
                 const totalEntries = normalizedInputs.reduce((a, b) => a + b, 0);
 
-                const defaultModulesPerEntry = Math.floor(project.totalModules / totalEntries);
+                const totalModulesToDistribute = project.totalModules || 0;
+                const defaultModulesPerEntry = Math.floor(totalModulesToDistribute / totalEntries);
+                const remainder = totalModulesToDistribute % totalEntries;
+
                 let currentModulesArray: number[] = [];
                 if (inv.stringLayout) {
                   currentModulesArray = inv.stringLayout.split(",").map(n => Number(n) || 0);
                 } else {
-                  currentModulesArray = Array.from({ length: totalEntries }).map(() => defaultModulesPerEntry);
+                  currentModulesArray = Array.from({ length: totalEntries }).map((_, i) => 
+                    defaultModulesPerEntry + (i < remainder ? 1 : 0)
+                  );
                 }
 
                 return [

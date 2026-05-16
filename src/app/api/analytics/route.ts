@@ -12,11 +12,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
     }
 
-    let userFilter = {};
-    if (session.user.role === 'TECHNICIAN') {
-      userFilter = { clientId: { not: undefined } }; // Basic filter, actually technicians can see company data or just theirs
-      // To keep it simple, let's show company-wide stats to everyone in the company, or restrict to Admin/Partner
-    }
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
 
     // Determine the company ID to filter projects by company
     // A project belongs to a client, and a client belongs to a user (Partner or Technician)
@@ -31,7 +30,12 @@ export async function GET() {
             { userId: companyId },
             { user: { companyId: companyId } }
           ]
-        }
+        },
+        createdAt: { gte: sixMonthsAgo }
+      };
+    } else {
+      projectWhereClause = {
+        createdAt: { gte: sixMonthsAgo }
       };
     }
 
@@ -49,7 +53,7 @@ export async function GET() {
     const totalKwp = projects.reduce((acc, curr) => acc + (curr.totalKwp || 0), 0);
 
     // 3. Status Distribution
-    const statusCounts = projects.reduce((acc: any, curr) => {
+    const statusCounts = projects.reduce((acc: Record<string, number>, curr) => {
       acc[curr.status] = (acc[curr.status] || 0) + 1;
       return acc;
     }, {});
@@ -63,20 +67,15 @@ export async function GET() {
     ];
 
     // 4. Monthly Evolution (Last 6 months)
-    const monthlyDataMap: any = {};
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-    sixMonthsAgo.setDate(1);
+    const monthlyDataMap: Record<string, { name: string, projetos: number, kwp: number }> = {};
 
     projects.forEach(p => {
-      if (new Date(p.createdAt) >= sixMonthsAgo) {
-        const monthYear = new Date(p.createdAt).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
-        if (!monthlyDataMap[monthYear]) {
-          monthlyDataMap[monthYear] = { name: monthYear, projetos: 0, kwp: 0 };
-        }
-        monthlyDataMap[monthYear].projetos += 1;
-        monthlyDataMap[monthYear].kwp += p.totalKwp || 0;
+      const monthYear = new Date(p.createdAt).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+      if (!monthlyDataMap[monthYear]) {
+        monthlyDataMap[monthYear] = { name: monthYear, projetos: 0, kwp: 0 };
       }
+      monthlyDataMap[monthYear].projetos += 1;
+      monthlyDataMap[monthYear].kwp += p.totalKwp || 0;
     });
 
     const monthlyData = Object.values(monthlyDataMap);

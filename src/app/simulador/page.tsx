@@ -1,16 +1,15 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import Link from "next/link";
-import { Sun, History, Upload, Save, Download, Users, ArrowLeft } from "lucide-react";
+import { Sun, Upload, Save, Download, Users, ArrowLeft } from "lucide-react";
 import { ProcessedUnit, ClientData, ClientListItem } from "@/types";
 import { ResultCards } from "@/components/ResultCards";
 import { SimulationTable } from "@/components/SimulationTable";
 import { ClientLinkingForm } from "@/components/ClientLinkingForm";
 import { UserMenu } from "@/components/UserMenu";
-import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 import { ExcelParserService } from "@/services/ExcelParserService";
 import { HSP_BY_UF, DEFAULT_HSP } from "@/utils/solarIrradiation";
 import useSWR from "swr";
@@ -52,11 +51,17 @@ function SimulatorContent() {
   const [clientLinkMode, setClientLinkMode] = useState<'existing' | 'new'>('existing');
   const [clientSearchTerm, setClientSearchTerm] = useState("");
 
-  const [results, setResults] = useState<{
-    units: ProcessedUnit[];
-    totalKwp: number;
-    totalModules: number;
-  } | null>(null);
+  const results = useMemo(() => {
+    if (rawExcelData && modulePower && Number(modulePower) > 0) {
+      try {
+        return ExcelParserService.calculateUnits(rawExcelData, Number(modulePower), irradiation);
+      } catch (err) {
+        console.error("Erro ao recalcular:", err);
+        return null;
+      }
+    }
+    return null;
+  }, [modulePower, irradiation, rawExcelData]);
 
   useEffect(() => {
     fetch("/api/clients")
@@ -86,18 +91,6 @@ function SimulatorContent() {
         .catch(err => console.error("Erro ao buscar cliente pré-selecionado", err));
     }
   }, [clientId]);
-
-  // Recalculate if modulePower or irradiation changes and we have raw data
-  useEffect(() => {
-    if (rawExcelData && modulePower && Number(modulePower) > 0) {
-      try {
-        const calculatedResults = ExcelParserService.calculateUnits(rawExcelData, Number(modulePower), irradiation);
-        setResults(calculatedResults);
-      } catch (err: any) {
-        console.error("Erro ao recalcular:", err);
-      }
-    }
-  }, [modulePower, irradiation, rawExcelData]);
 
   const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, "");
@@ -152,8 +145,6 @@ function SimulatorContent() {
         if (!event.target?.result) throw new Error("Erro na leitura");
         const jsonData = ExcelParserService.parseBuffer(event.target.result as ArrayBuffer);
         setRawExcelData(jsonData);
-        const calculatedResults = ExcelParserService.calculateUnits(jsonData, Number(modulePower), irradiation);
-        setResults(calculatedResults);
       } catch (err: any) {
         setError(err.message || "Erro ao ler o arquivo. Certifique-se de que é um Excel ou CSV válido e contém os dados necessários.");
       } finally {

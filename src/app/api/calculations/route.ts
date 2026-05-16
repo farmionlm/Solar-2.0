@@ -18,63 +18,66 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Dados incompletos ou inválidos.' }, { status: 400 });
     }
 
-    // Se recebeu dados de novo cliente, cria o cliente primeiro
-    let resolvedClientId = clientId || null;
+    // Se recebeu dados de novo cliente, cria o cliente e o projeto em uma transação
+    const result = await prisma.$transaction(async (tx) => {
+      let resolvedClientId = clientId || null;
 
-    if (!resolvedClientId && clientData && clientData.name?.trim()) {
-      const newClient = await prisma.client.create({
+      if (!resolvedClientId && clientData && clientData.name?.trim()) {
+        const newClient = await tx.client.create({
+          data: {
+            name: clientData.name.trim(),
+            cpfCnpj: clientData.cpfCnpj?.trim() || null,
+            phone: clientData.phone?.trim() || null,
+            email: clientData.email?.trim() || null,
+            address: clientData.address?.trim() || null,
+            neighborhood: clientData.neighborhood?.trim() || null,
+            city: clientData.city?.trim() || null,
+            cep: clientData.cep?.trim() || null,
+            installationNumber: clientData.installationNumber?.trim() || null,
+            userId: session.user.id,
+          }
+        });
+        resolvedClientId = newClient.id;
+      }
+
+      const project = await tx.project.create({
         data: {
-          name: clientData.name.trim(),
-          cpfCnpj: clientData.cpfCnpj?.trim() || null,
-          phone: clientData.phone?.trim() || null,
-          email: clientData.email?.trim() || null,
-          address: clientData.address?.trim() || null,
-          neighborhood: clientData.neighborhood?.trim() || null,
-          city: clientData.city?.trim() || null,
-          cep: clientData.cep?.trim() || null,
-          installationNumber: clientData.installationNumber?.trim() || null,
+          name: name || 'Projeto sem nome',
+          modulePower,
+          totalKwp,
+          totalModules,
+          moduleModel: moduleModel || null,
+          inverterModel: inverterModel || null,
+          installationNumber: installationNumber || null,
+          clientId: resolvedClientId,
+          units: {
+            create: units.map((unit: any) => ({
+              code: String(unit.code),
+              name: String(unit.name),
+              monthlyCons: Number(unit.monthlyCons),
+              dailyCons: Number(unit.dailyCons),
+              requiredKwp: Number(unit.requiredKwp),
+              requiredModules: Number(unit.requiredModules),
+            })),
+          },
+        },
+      });
+
+      const companyId = session.user.role === 'PARTNER' ? session.user.id : (session.user.companyId || 'ADMIN');
+
+      await tx.auditLog.create({
+        data: {
+          action: 'PROJETO_CRIADO',
+          details: `Simulação gerada: ${project.name} (${project.totalKwp} kWp)`,
           userId: session.user.id,
+          companyId: companyId
         }
       });
-      resolvedClientId = newClient.id;
-    }
 
-    // Save to database
-    const project = await prisma.project.create({
-      data: {
-        name: name || 'Projeto sem nome',
-        modulePower,
-        totalKwp,
-        totalModules,
-        moduleModel: moduleModel || null,
-        inverterModel: inverterModel || null,
-        installationNumber: installationNumber || null,
-        clientId: resolvedClientId,
-        units: {
-          create: units.map((unit: { code: string | number; name: string; monthlyCons: string | number; dailyCons: string | number; requiredKwp: string | number; requiredModules: string | number }) => ({
-            code: String(unit.code),
-            name: String(unit.name),
-            monthlyCons: Number(unit.monthlyCons),
-            dailyCons: Number(unit.dailyCons),
-            requiredKwp: Number(unit.requiredKwp),
-            requiredModules: Number(unit.requiredModules),
-          })),
-        },
-      },
+      return { project, clientId: resolvedClientId };
     });
 
-    const companyId = session.user.role === 'PARTNER' ? session.user.id : (session.user.companyId || 'ADMIN');
-
-    await prisma.auditLog.create({
-      data: {
-        action: 'PROJETO_CRIADO',
-        details: `Simulação gerada: ${project.name} (${project.totalKwp} kWp)`,
-        userId: session.user.id,
-        companyId: companyId
-      }
-    });
-
-    return NextResponse.json({ success: true, project, clientId: resolvedClientId }, { status: 201 });
+    return NextResponse.json({ success: true, ...result }, { status: 201 });
   } catch (error) {
     console.error('Erro ao salvar projeto:', error);
     return NextResponse.json({ error: 'Erro interno ao salvar no banco de dados.' }, { status: 500 });
@@ -112,11 +115,18 @@ export async function DELETE(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
     if (!id) {
       return NextResponse.json({ error: 'ID não fornecido.' }, { status: 400 });
+    }
+
+    // Validação de propriedade (Security)
+    const project = await prisma.project.findUnique({
+      where: { id },
+      select: { client: { select: { userId: true } } }
+    });
+
+    if (!project || (session.user.role !== 'ADMIN' && project.client?.userId !== session.user.id)) {
+      return NextResponse.json({ error: 'Acesso negado ou projeto não encontrado.' }, { status: 403 });
     }
 
     await prisma.project.delete({
@@ -149,72 +159,83 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'ID do projeto é obrigatório.' }, { status: 400 });
     }
 
-    const project = await prisma.project.update({
+    // Validação de propriedade (Security)
+    const existingProject = await prisma.project.findUnique({
       where: { id },
-      data: {
-        ...(moduleModel !== undefined && { moduleModel: moduleModel?.trim() || null }),
-        ...(inverterModel !== undefined && { inverterModel: inverterModel?.trim() || null }),
-        ...(generationKwh !== undefined && { generationKwh: generationKwh ? Number(generationKwh) : null }),
-        ...(reductionPercent !== undefined && { reductionPercent: reductionPercent ? Number(reductionPercent) : null }),
-        ...(moduleManufacturer !== undefined && { moduleManufacturer: moduleManufacturer?.trim() || null }),
-        ...(moduleArea !== undefined && { moduleArea: moduleArea ? Number(moduleArea) : null }),
-        ...(moduleCurrent !== undefined && { moduleCurrent: moduleCurrent ? Number(moduleCurrent) : null }),
-        ...(inverterManufacturer !== undefined && { inverterManufacturer: inverterManufacturer?.trim() || null }),
-        ...(inverterOutputPower !== undefined && { inverterOutputPower: inverterOutputPower ? Number(inverterOutputPower) : null }),
-        ...(inverterOutputCurrent !== undefined && { inverterOutputCurrent: inverterOutputCurrent ? Number(inverterOutputCurrent) : null }),
-        ...(areaOccupied !== undefined && { areaOccupied: areaOccupied ? Number(areaOccupied) : null }),
-        ...(professionalName !== undefined && { professionalName: professionalName?.trim() || null }),
-        ...(professionalCrt !== undefined && { professionalCrt: professionalCrt?.trim() || null }),
-        ...(installationNumber !== undefined && { installationNumber: installationNumber?.trim() || null }),
-        ...(totalModules !== undefined && { totalModules: Number(totalModules) }),
-        ...(totalKwp !== undefined && { totalKwp: Number(totalKwp) }),
-        ...(modulePower !== undefined && { modulePower: Number(modulePower) }),
-        ...(address !== undefined && { address: address?.trim() || null }),
-        ...(neighborhood !== undefined && { neighborhood: neighborhood?.trim() || null }),
-        ...(city !== undefined && { city: city?.trim() || null }),
-        ...(cep !== undefined && { cep: cep?.trim() || null }),
-        ...(estimatedCost !== undefined && { estimatedCost: estimatedCost ? Number(estimatedCost) : null }),
-      }
+      select: { client: { select: { userId: true } } }
     });
 
-    if (Array.isArray(inverters)) {
-      await prisma.projectInverter.deleteMany({ where: { projectId: id } });
-      if (inverters.length > 0) {
-        await prisma.projectInverter.createMany({
-          data: inverters.map((inv: { manufacturer?: string; model?: string; outputPower?: string | number; outputCurrent?: string | number; quantity?: string | number; numMppts?: string | number; inputsPerMppt?: string | number; mpptInputs?: string | null; stringLayout?: string | null }) => ({
-            projectId: id,
-            manufacturer: inv.manufacturer || null,
-            model: inv.model || null,
-            outputPower: inv.outputPower ? Number(inv.outputPower) : null,
-            outputCurrent: inv.outputCurrent ? Number(inv.outputCurrent) : null,
-            quantity: inv.quantity ? Number(inv.quantity) : 1,
-            numMppts: inv.numMppts ? Number(inv.numMppts) : 1,
-            inputsPerMppt: inv.inputsPerMppt ? Number(inv.inputsPerMppt) : 1,
-            mpptInputs: inv.mpptInputs || null,
-            stringLayout: inv.stringLayout || null,
-          }))
+    if (!existingProject || (session.user.role !== 'ADMIN' && existingProject.client?.userId !== session.user.id)) {
+      return NextResponse.json({ error: 'Acesso negado ou projeto não encontrado.' }, { status: 403 });
+    }
 
-        });
+    const updatedProject = await prisma.$transaction(async (tx) => {
+      const project = await tx.project.update({
+        where: { id },
+        data: {
+          ...(moduleModel !== undefined && { moduleModel: moduleModel?.trim() || null }),
+          ...(inverterModel !== undefined && { inverterModel: inverterModel?.trim() || null }),
+          ...(generationKwh !== undefined && { generationKwh: generationKwh ? Number(generationKwh) : null }),
+          ...(reductionPercent !== undefined && { reductionPercent: reductionPercent ? Number(reductionPercent) : null }),
+          ...(moduleManufacturer !== undefined && { moduleManufacturer: moduleManufacturer?.trim() || null }),
+          ...(moduleArea !== undefined && { moduleArea: moduleArea ? Number(moduleArea) : null }),
+          ...(moduleCurrent !== undefined && { moduleCurrent: moduleCurrent ? Number(moduleCurrent) : null }),
+          ...(inverterManufacturer !== undefined && { inverterManufacturer: inverterManufacturer?.trim() || null }),
+          ...(inverterOutputPower !== undefined && { inverterOutputPower: inverterOutputPower ? Number(inverterOutputPower) : null }),
+          ...(inverterOutputCurrent !== undefined && { inverterOutputCurrent: inverterOutputCurrent ? Number(inverterOutputCurrent) : null }),
+          ...(areaOccupied !== undefined && { areaOccupied: areaOccupied ? Number(areaOccupied) : null }),
+          ...(professionalName !== undefined && { professionalName: professionalName?.trim() || null }),
+          ...(professionalCrt !== undefined && { professionalCrt: professionalCrt?.trim() || null }),
+          ...(installationNumber !== undefined && { installationNumber: installationNumber?.trim() || null }),
+          ...(totalModules !== undefined && { totalModules: Number(totalModules) }),
+          ...(totalKwp !== undefined && { totalKwp: Number(totalKwp) }),
+          ...(modulePower !== undefined && { modulePower: Number(modulePower) }),
+          ...(address !== undefined && { address: address?.trim() || null }),
+          ...(neighborhood !== undefined && { neighborhood: neighborhood?.trim() || null }),
+          ...(city !== undefined && { city: city?.trim() || null }),
+          ...(cep !== undefined && { cep: cep?.trim() || null }),
+          ...(estimatedCost !== undefined && { estimatedCost: estimatedCost ? Number(estimatedCost) : null }),
+        }
+      });
+
+      if (Array.isArray(inverters)) {
+        await tx.projectInverter.deleteMany({ where: { projectId: id } });
+        if (inverters.length > 0) {
+          await tx.projectInverter.createMany({
+            data: inverters.map((inv: any) => ({
+              projectId: id,
+              manufacturer: inv.manufacturer || null,
+              model: inv.model || null,
+              outputPower: inv.outputPower ? Number(inv.outputPower) : null,
+              outputCurrent: inv.outputCurrent ? Number(inv.outputCurrent) : null,
+              quantity: inv.quantity ? Number(inv.quantity) : 1,
+              numMppts: inv.numMppts ? Number(inv.numMppts) : 1,
+              inputsPerMppt: inv.inputsPerMppt ? Number(inv.inputsPerMppt) : 1,
+              mpptInputs: inv.mpptInputs || null,
+              stringLayout: inv.stringLayout || null,
+            }))
+          });
+        }
       }
-    }
 
+      if (Array.isArray(units) && units.length > 0) {
+        await Promise.all(
+          units.map((u: any) =>
+            tx.consumerUnit.update({
+              where: { id: u.id },
+              data: { 
+                requiredModules: Number(u.requiredModules),
+                requiredKwp: Number(u.requiredKwp)
+              },
+            })
+          )
+        );
+      }
 
-    // Atualiza módulos por unidade individual (edição rápida)
-    if (Array.isArray(units) && units.length > 0) {
-      await Promise.all(
-        units.map((u: { id: string; requiredModules: number; requiredKwp: number }) =>
-          prisma.consumerUnit.update({
-            where: { id: u.id },
-            data: { 
-              requiredModules: Number(u.requiredModules),
-              requiredKwp: Number(u.requiredKwp)
-            },
-          })
-        )
-      );
-    }
+      return project;
+    });
 
-    return NextResponse.json(project);
+    return NextResponse.json(updatedProject);
   } catch (error) {
     console.error('Erro ao atualizar projeto:', error);
     return NextResponse.json({ error: 'Erro interno ao atualizar.' }, { status: 500 });
@@ -234,32 +255,45 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Dados incompletos.' }, { status: 400 });
     }
 
-    // Apaga unidades antigas e insere as novas
-    await prisma.consumerUnit.deleteMany({ where: { projectId: id } });
-
-    const project = await prisma.project.update({
+    // Validação de propriedade (Security)
+    const existingProject = await prisma.project.findUnique({
       where: { id },
-      data: {
-        modulePower: Number(modulePower),
-        totalKwp: Number(totalKwp),
-        totalModules: Number(totalModules),
-        ...(installationNumber !== undefined && { installationNumber: installationNumber?.trim() || null }),
-        generationKwh: Math.round(Number(totalKwp) * 120),
-        units: {
-          create: units.map((unit: { code: string | number; name: string; monthlyCons: string | number; dailyCons: string | number; requiredKwp: string | number; requiredModules: string | number }) => ({
-            code: String(unit.code),
-            name: String(unit.name),
-            monthlyCons: Number(unit.monthlyCons),
-            dailyCons: Number(unit.dailyCons),
-            requiredKwp: Number(unit.requiredKwp),
-            requiredModules: Number(unit.requiredModules),
-          })),
-        },
-      },
+      select: { client: { select: { userId: true } } }
     });
 
+    if (!existingProject || (session.user.role !== 'ADMIN' && existingProject.client?.userId !== session.user.id)) {
+      return NextResponse.json({ error: 'Acesso negado ou projeto não encontrado.' }, { status: 403 });
+    }
 
-    return NextResponse.json({ success: true, project });
+    const updatedProject = await prisma.$transaction(async (tx) => {
+      // Apaga unidades antigas e insere as novas
+      await tx.consumerUnit.deleteMany({ where: { projectId: id } });
+
+      const project = await tx.project.update({
+        where: { id },
+        data: {
+          modulePower: Number(modulePower),
+          totalKwp: Number(totalKwp),
+          totalModules: Number(totalModules),
+          ...(installationNumber !== undefined && { installationNumber: installationNumber?.trim() || null }),
+          generationKwh: Math.round(Number(totalKwp) * 120),
+          units: {
+            create: units.map((unit: any) => ({
+              code: String(unit.code),
+              name: String(unit.name),
+              monthlyCons: Number(unit.monthlyCons),
+              dailyCons: Number(unit.dailyCons),
+              requiredKwp: Number(unit.requiredKwp),
+              requiredModules: Number(unit.requiredModules),
+            })),
+          },
+        },
+      });
+
+      return project;
+    });
+
+    return NextResponse.json({ success: true, project: updatedProject });
   } catch (error) {
     console.error('Erro ao re-simular projeto:', error);
     return NextResponse.json({ error: 'Erro interno ao re-simular.' }, { status: 500 });
