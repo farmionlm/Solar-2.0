@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, BorderStyle, WidthType, PageBreak } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType, PageBreak } from "docx";
 import { saveAs } from "file-saver";
 import { Project, ClientDetail, Inverter } from "@/types";
 
@@ -213,11 +213,17 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
                 }
 
                 return [
-                  new Paragraph({ text: `Inversor ${String(idx + 1).padStart(2, "0")}:`, bold: true, spacing: { before: 200, after: 100 } }),
+                  new Paragraph({ 
+                    children: [new TextRun({ text: `Inversor ${String(idx + 1).padStart(2, "0")}:`, bold: true })], 
+                    spacing: { before: 200, after: 100 } 
+                  }),
                   ...currentModulesArray.map((modCount, i) => 
-                    new Paragraph({ text: `  - 01 string com ${String(modCount).padStart(2, "0")} módulos em série ligada à entrada ${String(i + 1).padStart(2, "0")} do inversor;` })
+                    new Paragraph({ children: [new TextRun({ text: `  - 01 string com ${String(modCount).padStart(2, "0")} módulos em série ligada à entrada ${String(i + 1).padStart(2, "0")} do inversor;` })] })
                   ),
-                  new Paragraph({ text: `Total: ${currentModulesArray.reduce((acc, c) => acc + c, 0)} módulos.`, spacing: { after: 200 } }),
+                  new Paragraph({ 
+                    children: [new TextRun({ text: `Total: ${currentModulesArray.reduce((acc, c) => acc + c, 0)} módulos.` })], 
+                    spacing: { after: 200 } 
+                  }),
                   
                   new Table({
                     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -266,22 +272,22 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
                       }),
                     ],
                   }),
-                  new Paragraph({ text: "", spacing: { after: 400 } }),
+                  new Paragraph({ children: [new TextRun({ text: "" })], spacing: { after: 400 } }),
                 ];
               })
             : [
-                new Paragraph({ text: `Os ${project.totalModules || 0} módulos serão conectados e divididos em strings de acordo com os limites de tensão e corrente das entradas MPPT do inversor especificado.` })
+                new Paragraph({ children: [new TextRun({ text: `Os ${project.totalModules || 0} módulos serão conectados e divididos em strings de acordo com os limites de tensão e corrente das entradas MPPT do inversor especificado.` })] })
               ]
           ),
 
-          new Paragraph({ text: "Estruturas de fixação dos painéis fotovoltaicos:", bold: true, spacing: { before: 200, after: 100 } }),
-          new Paragraph({ text: "Serão utilizados estruturas metálicas para fixação dos painéis no telhado da área.", spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Estruturas de fixação dos painéis fotovoltaicos:", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Serão utilizados estruturas metálicas para fixação dos painéis no telhado da área." })], spacing: { after: 200 } }),
 
-          new Paragraph({ text: "Cabos e conexões:", bold: true, spacing: { after: 100 } }),
-          new Paragraph({ text: "Serão utilizados cabos solares com proteção UV de 4,0 mm². As conexões serão feitas por conectores MC4 com proteção UV e resistência a amoníaco.", spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Cabos e conexões:", bold: true })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Serão utilizados cabos solares com proteção UV de 4,0 mm². As conexões serão feitas por conectores MC4 com proteção UV e resistência a amoníaco." })], spacing: { after: 200 } }),
 
-          new Paragraph({ text: "String Box:", bold: true, spacing: { after: 100 } }),
-          new Paragraph({ text: "Não haverá String Box externa. O DPS e as proteções são integradas ao inversor.", spacing: { after: 400 } }),
+          new Paragraph({ children: [new TextRun({ text: "String Box:", bold: true })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Não haverá String Box externa. O DPS e as proteções são integradas ao inversor." })], spacing: { after: 400 } }),
 
           // Assinatura
           new Paragraph({
