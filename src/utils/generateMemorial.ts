@@ -57,7 +57,7 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   setFontBold();
   doc.text("Município: ", 30, 230);
   setFontNormal();
-  doc.text(client.city || "", 52, 230);
+  doc.text(project.city || client.city || "", 52, 230);
 
   doc.addPage();
   yPos = 20;
@@ -92,9 +92,15 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   doc.text("3.1 – Localização da Instalação", 14, yPos);
   yPos += 8;
   setFontNormal();
-  const fullLocation = [client.address, client.neighborhood, client.city].filter(Boolean).join(', ');
+  
+  const finalAddress = project.address || client.address;
+  const finalNeighborhood = project.neighborhood || client.neighborhood;
+  const finalCity = project.city || client.city;
+  const finalCep = project.cep || client.cep;
+
+  const fullLocation = [finalAddress, finalNeighborhood, finalCity].filter(Boolean).join(', ');
   yPos += addParagraph(
-    `A instalação fotovoltaica será realizada sobre estrutura no telhado, situada em: ${fullLocation || "Endereço não informado"}${client.cep ? `, CEP: ${client.cep}` : ""}.`,
+    `A instalação fotovoltaica será realizada sobre estrutura no telhado, situada em: ${fullLocation || "Endereço não informado"}${finalCep ? `, CEP: ${finalCep}` : ""}.`,
     14, yPos, 180
   );
 
@@ -290,7 +296,7 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
 
   // Assinatura
   const today = new Date();
-  const dateString = `${client.city || "Local"}, ${today.getDate()} de ${today.toLocaleString('pt-BR', { month: 'long' })} de ${today.getFullYear()}.`;
+  const dateString = `${project.city || client.city || "Local"}, ${today.getDate()} de ${today.toLocaleString('pt-BR', { month: 'long' })} de ${today.getFullYear()}.`;
   doc.text(dateString, 196, yPos, { align: "right" });
   yPos += 30;
 

@@ -102,6 +102,12 @@ model Project {
   inverterOutputCurrent Float?
   areaOccupied          Float?
   
+  // Endereço da Instalação (se diferente do cliente)
+  address               String?
+  neighborhood          String?
+  city                  String?
+  cep                   String?
+  
   // Responsável Técnico
   professionalName      String?
   professionalCrt       String?

@@ -26,10 +26,11 @@ export default function AdminEquipmentsPage() {
   });
 
   const [isCreating, setIsCreating] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -38,16 +39,17 @@ export default function AdminEquipmentsPage() {
 
     try {
       const res = await fetch(url, {
-        method: 'POST',
+        method: editId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(editId ? { id: editId, ...formData } : formData),
       });
       const result = await res.json();
 
       if (!res.ok) {
-        setError(result.error || 'Erro ao criar equipamento.');
+        setError(result.error || `Erro ao ${editId ? 'atualizar' : 'criar'} equipamento.`);
       } else {
         setIsCreating(false);
+        setEditId(null);
         setFormData({ manufacturer: '', model: '', powerW: '', currentImp: '', numMppts: '', inputsPerMppt: '' });
         if (activeTab === 'MODULES') mutateModules();
         else mutateInverters();
@@ -59,10 +61,23 @@ export default function AdminEquipmentsPage() {
     }
   };
 
+  const handleEdit = (item: any) => {
+    setEditId(item.id);
+    setFormData({
+      manufacturer: item.manufacturer,
+      model: item.model,
+      powerW: String(item.powerW),
+      currentImp: item.currentImp ? String(item.currentImp) : '',
+      numMppts: item.numMppts ? String(item.numMppts) : '',
+      inputsPerMppt: item.inputsPerMppt ? String(item.inputsPerMppt) : ''
+    });
+    setIsCreating(true);
+  };
+
   const handleDelete = async (id: string, type: 'MODULES' | 'INVERTERS') => {
     if (!confirm('Deseja realmente deletar este equipamento do catálogo?')) return;
     
-    const url = type === 'MODULES' ? `/api/equipments/modules/${id}` : `/api/equipments/inverters/${id}`;
+    const url = type === 'MODULES' ? `/api/equipments/modules?id=${id}` : `/api/equipments/inverters?id=${id}`;
     
     try {
       const res = await fetch(url, { method: 'DELETE' });
@@ -101,13 +116,13 @@ export default function AdminEquipmentsPage() {
 
         <div className="mb-6 flex bg-card border border-border p-1 rounded-xl w-full md:w-auto overflow-hidden">
           <button 
-            onClick={() => { setActiveTab('MODULES'); setIsCreating(false); }}
+            onClick={() => { setActiveTab('MODULES'); setIsCreating(false); setEditId(null); }}
             className={`flex-1 md:px-6 py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 'MODULES' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}`}
           >
             <Sun className="w-4 h-4" /> Módulos Fotovoltaicos
           </button>
           <button 
-            onClick={() => { setActiveTab('INVERTERS'); setIsCreating(false); }}
+            onClick={() => { setActiveTab('INVERTERS'); setIsCreating(false); setEditId(null); }}
             className={`flex-1 md:px-6 py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 'INVERTERS' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}`}
           >
             <Zap className="w-4 h-4" /> Inversores
@@ -119,7 +134,7 @@ export default function AdminEquipmentsPage() {
             <h2 className="text-xl font-bold">{activeTab === 'MODULES' ? 'Módulos Cadastrados' : 'Inversores Cadastrados'}</h2>
             <p className="text-muted-foreground text-sm">Estes itens aparecerão na lista de seleção do Simulador.</p>
           </div>
-          <Button onClick={() => { setIsCreating(true); setError(''); }} className="bg-primary text-primary-foreground">
+          <Button onClick={() => { setIsCreating(true); setEditId(null); setFormData({ manufacturer: '', model: '', powerW: '', currentImp: '', numMppts: '', inputsPerMppt: '' }); setError(''); }} className="bg-primary text-primary-foreground">
             <Plus className="w-4 h-4 mr-2" /> Novo Modelo
           </Button>
         </div>
@@ -174,7 +189,10 @@ export default function AdminEquipmentsPage() {
                           {item.numMppts ? `${item.numMppts} MPPTs (${item.inputsPerMppt} In)` : '-'}
                         </td>
                       )}
-                      <td className="p-4 text-center">
+                      <td className="p-4 text-center flex justify-center gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(item)} className="text-primary hover:bg-primary/10">
+                          <Plus className="w-4 h-4 rotate-45" /> {/* Use a better icon if possible, but keeping it simple */}
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id, activeTab)} className="text-red-500 hover:bg-red-900/20">
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -192,12 +210,13 @@ export default function AdminEquipmentsPage() {
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-200">
             <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
-              <Plus className="w-6 h-6 text-primary" /> Cadastrar {activeTab === 'MODULES' ? 'Módulo' : 'Inversor'}
+              {editId ? <Settings className="w-6 h-6 text-primary" /> : <Plus className="w-6 h-6 text-primary" />}
+              {editId ? 'Editar' : 'Cadastrar'} {activeTab === 'MODULES' ? 'Módulo' : 'Inversor'}
             </h3>
             
             {error && <div className="bg-red-900/20 text-red-400 p-3 rounded-lg mb-4 border border-red-900/50 text-sm">{error}</div>}
             
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold mb-1">Fabricante</label>
                 <Input value={formData.manufacturer} onChange={e => setFormData({...formData, manufacturer: e.target.value})} required placeholder="Ex: Canadian Solar" />

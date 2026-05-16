@@ -658,6 +658,10 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                   totalModules: proj.totalModules,
                   totalKwp: proj.totalKwp,
                   modulePower: proj.modulePower,
+                  address: proj.address || "",
+                  neighborhood: proj.neighborhood || "",
+                  city: proj.city || "",
+                  cep: proj.cep || "",
                   units: proj.units || [],
                   ...projectEquipments[proj.id]
                 };
@@ -755,6 +759,23 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                  onChange={(e) => handleEquipmentChange(proj.id, 'estimatedCost', e.target.value)} 
                                  className="border-primary/40 focus:border-primary"
                                />
+                             </div>
+
+                             <div className="md:col-span-2 lg:col-span-3">
+                               <label className="block text-xs font-bold text-muted-foreground mb-1">Endereço da Instalação (Rua, Nº)</label>
+                               <Input type="text" value={currentEquip.address ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'address', e.target.value)} placeholder="Se vazio, usa o endereço do cliente" />
+                             </div>
+                             <div>
+                               <label className="block text-xs font-bold text-muted-foreground mb-1">Bairro</label>
+                               <Input type="text" value={currentEquip.neighborhood ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'neighborhood', e.target.value)} />
+                             </div>
+                             <div>
+                               <label className="block text-xs font-bold text-muted-foreground mb-1">Cidade / UF</label>
+                               <Input type="text" value={currentEquip.city ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'city', e.target.value)} />
+                             </div>
+                             <div>
+                               <label className="block text-xs font-bold text-muted-foreground mb-1">CEP</label>
+                               <Input type="text" value={formatCep(currentEquip.cep ?? "")} onChange={(e) => handleEquipmentChange(proj.id, 'cep', formatCep(e.target.value))} placeholder="00000-000" />
                              </div>
 
                              <div className="col-span-full border-t border-border my-2"></div>
