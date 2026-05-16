@@ -11,6 +11,7 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
   
   const finalGeneration = project.generationKwh || Math.round((project.totalKwp || 0) * 120);
   const finalReduction = project.reductionPercent || 90;
+  let invMan = project.inverterManufacturer || "-";
   let invOutCur = project.inverterOutputCurrent || "-";
   let invOutPow = project.inverterOutputPower || "-";
   let invMod = project.inverterModel || "-";
