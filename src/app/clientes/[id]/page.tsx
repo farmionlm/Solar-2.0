@@ -303,51 +303,39 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     setProjectEquipments(prev => {
       const projState = prev[projId] || {};
       const project = client?.projects.find((p: Project) => p.id === projId);
+      
       const nextState = {
-        ...(prev[projId] || {}),
+        ...projState,
         [field]: value
       };
 
-      const currentModulePower = Number(nextState.modulePower || projState.modulePower || project?.modulePower || 0);
+      const modulePower = Number(nextState.modulePower ?? project?.modulePower ?? 0);
 
-      if (field === 'modulePower') {
-        // Recalcular kWp de todas as unidades se a potência do módulo mudou
-        const units = nextState.units || projState.units || project?.units || [];
-        nextState.units = units.map((u: any) => ({
-          ...u,
-          requiredKwp: (Number(u.requiredModules) * Number(value)) / 1000
-        }));
-        // Recalcular totais
-        nextState.totalModules = nextState.units.reduce((acc: number, u: any) => acc + (Number(u.requiredModules) || 0), 0);
-        nextState.totalKwp = nextState.units.reduce((acc: number, u: any) => acc + (Number(u.requiredKwp) || 0), 0);
-      } else if (field === 'totalModules') {
-        const newVal = Number(value) || 0;
-        // Se mudou o total de módulos no card superior, recalcula o kWp total do projeto
-        nextState.totalKwp = (newVal * currentModulePower) / 1000;
+      // Recalcular dependências se mudar módulo ou potência
+      if (field === 'modulePower' || field === 'totalModules') {
+        const units = nextState.units || project?.units || [];
+        const totalModules = Number(nextState.totalModules ?? project?.totalModules ?? 0);
+        
+        // Sincronizar kWp total
+        nextState.totalKwp = (totalModules * modulePower) / 1000;
 
-        // Se houver apenas uma unidade, sincroniza ela automaticamente para manter coerência visual e de cálculo
-        const currentUnits = [ ...(nextState.units || projState.units || project?.units || []) ];
-        if (currentUnits.length === 1) {
-          currentUnits[0] = {
-            ...currentUnits[0],
-            requiredModules: newVal,
+        // Sincronizar primeira unidade se for projeto de unidade única
+        if (units.length === 1) {
+          const newUnits = [{
+            ...units[0],
+            requiredModules: totalModules,
             requiredKwp: nextState.totalKwp
-          };
-          nextState.units = currentUnits;
+          }];
+          nextState.units = newUnits;
         }
-      }
 
-      // Recalcular geração estimada (kWh/mês) baseada no novo kWp total
-      // Usamos o fator de eficiência ORIGINAL do projeto para que a nova geração reflita o aumento de capacidade
-      const originalUnit = project?.units?.[0];
-      const currentTotalKwp = nextState.totalKwp ?? projState.totalKwp ?? project?.totalKwp ?? 0;
-      
-      if (currentTotalKwp > 0) {
-        let factor = 109; // Fallback HSP 4.0
+        // Recalcular Geração Estimada baseada no novo kWp
+        const originalUnit = project?.units?.[0];
+        let factor = 109; // Fallback
         if (originalUnit && Number(originalUnit.requiredKwp) > 0) {
           factor = Number(originalUnit.monthlyCons) / Number(originalUnit.requiredKwp);
         }
-        nextState.generationKwh = Math.round(currentTotalKwp * factor);
+        nextState.generationKwh = Math.round(nextState.totalKwp * factor);
       }
 
       return {
@@ -361,41 +349,41 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     setProjectEquipments(prev => {
       const projState = prev[projId] || {};
       const project = client?.projects.find((p: Project) => p.id === projId);
-      const currentUnits = [ ...(projState.units || project?.units || []) ];
-      const modulePower = Number(projState.modulePower || project?.modulePower || 0);
+      const units = [ ...(projState.units || project?.units || []) ];
+      const modulePower = Number(projState.modulePower ?? project?.modulePower ?? 0);
 
-      if (currentUnits[unitIndex]) {
+      if (units[unitIndex]) {
         const newVal = field === 'requiredModules' ? (Number(value) || 0) : value;
-        currentUnits[unitIndex] = { ...currentUnits[unitIndex], [field]: newVal };
+        units[unitIndex] = { ...units[unitIndex], [field]: newVal };
 
         if (field === 'requiredModules') {
-          currentUnits[unitIndex].requiredKwp = (Number(newVal) * modulePower) / 1000;
+          units[unitIndex].requiredKwp = (Number(newVal) * modulePower) / 1000;
         }
       }
 
-      // Recalcular totais do projeto baseados nas unidades
-      const totalModules = currentUnits.reduce((acc, u) => acc + (Number(u.requiredModules) || 0), 0);
-      const totalKwp = currentUnits.reduce((acc, u) => acc + (Number(u.requiredKwp) || 0), 0);
+      const totalModules = units.reduce((acc, u) => acc + (Number(u.requiredModules) || 0), 0);
+      const totalKwp = units.reduce((acc, u) => acc + (Number(u.requiredKwp) || 0), 0);
 
-      // Recalcular geração estimada do projeto usando fator original
-      let newGenerationKwh = projState.generationKwh || project?.generationKwh || 0;
-      if (totalKwp > 0) {
-        const originalUnit = project?.units?.[0];
-        let factor = 109;
-        if (originalUnit && Number(originalUnit.requiredKwp) > 0) {
-          factor = Number(originalUnit.monthlyCons) / Number(originalUnit.requiredKwp);
-        }
-        newGenerationKwh = Math.round(totalKwp * factor);
+      // Recalcular geração estimada usando fator original
+      const originalUnit = project?.units?.[0];
+      let factor = 109;
+      if (originalUnit && Number(originalUnit.requiredKwp) > 0) {
+        factor = Number(originalUnit.monthlyCons) / Number(originalUnit.requiredKwp);
       }
+      const generationKwh = Math.round(totalKwp * factor);
 
       return {
         ...prev,
         [projId]: {
           ...projState,
-          units: currentUnits,
+          units,
           totalModules,
           totalKwp,
-          generationKwh: newGenerationKwh
+          generationKwh
+        }
+      };
+    });
+  };enerationKwh
         }
       };
     });
