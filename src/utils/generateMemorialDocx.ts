@@ -231,7 +231,10 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
                       new TableRow({
                         children: [
                           new TableCell({
-                            children: [new Paragraph({ text: `INVERSOR ${String(idx + 1).padStart(2, "0")} - ${inv.model || "MODELO"}`.toUpperCase(), alignment: AlignmentType.CENTER, bold: true })],
+                            children: [new Paragraph({ 
+                              children: [new TextRun({ text: `INVERSOR ${String(idx + 1).padStart(2, "0")} - ${inv.model || "MODELO"}`.toUpperCase(), bold: true })],
+                              alignment: AlignmentType.CENTER 
+                            })],
                             columnSpan: mpptsCount + 1,
                             shading: { fill: "EBEBEB" },
                           }),
@@ -240,12 +243,18 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
                       new TableRow({
                         children: [
                           new TableCell({
-                            children: [new Paragraph({ text: "ENTRADAS", alignment: AlignmentType.CENTER, bold: true })],
+                            children: [new Paragraph({ 
+                              children: [new TextRun({ text: "ENTRADAS", bold: true })],
+                              alignment: AlignmentType.CENTER 
+                            })],
                             shading: { fill: "F5F5F5" },
                           }),
                           ...Array.from({ length: mpptsCount }).map((_, m) => 
                             new TableCell({
-                              children: [new Paragraph({ text: `MPPT${m + 1}`, alignment: AlignmentType.CENTER, bold: true })],
+                              children: [new Paragraph({ 
+                                children: [new TextRun({ text: `MPPT${m + 1}`, bold: true })],
+                                alignment: AlignmentType.CENTER 
+                              })],
                               shading: { fill: "F5F5F5" },
                             })
                           ),
@@ -254,7 +263,10 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
                       new TableRow({
                         children: [
                           new TableCell({
-                            children: [new Paragraph({ text: "Nº DE PLACAS", alignment: AlignmentType.CENTER })],
+                            children: [new Paragraph({ 
+                              children: [new TextRun({ text: "Nº DE PLACAS" })],
+                              alignment: AlignmentType.CENTER 
+                            })],
                           }),
                           ...Array.from({ length: mpptsCount }).map((_, m) => {
                             let mpptTotalModules = 0;
@@ -265,7 +277,10 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
                               globalEntryCounter++;
                             }
                             return new TableCell({
-                              children: [new Paragraph({ text: String(mpptTotalModules), alignment: AlignmentType.CENTER })],
+                              children: [new Paragraph({ 
+                                children: [new TextRun({ text: String(mpptTotalModules) })],
+                                alignment: AlignmentType.CENTER 
+                              })],
                             });
                           }),
                         ],
