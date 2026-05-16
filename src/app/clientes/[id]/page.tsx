@@ -337,6 +337,20 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         }
       }
 
+      // Recalcular geração estimada (kWh/mês) baseada no novo kWp total
+      const unitsForGen = nextState.units || projState.units || project?.units || [];
+      const currentTotalKwp = nextState.totalKwp ?? projState.totalKwp ?? project?.totalKwp ?? 0;
+      
+      if (unitsForGen.length > 0 && currentTotalKwp > 0) {
+        const firstUnit = unitsForGen[0];
+        if (Number(firstUnit.requiredKwp) > 0) {
+          const factor = Number(firstUnit.monthlyCons) / Number(firstUnit.requiredKwp);
+          nextState.generationKwh = Math.round(currentTotalKwp * factor);
+        } else {
+          nextState.generationKwh = Math.round(currentTotalKwp * 109); // Fallback HSP 4.0
+        }
+      }
+
       return {
         ...prev,
         [projId]: nextState
@@ -360,9 +374,17 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         }
       }
 
-      // Recalcular totais do projeto baseados nas unidades
-      const totalModules = currentUnits.reduce((acc, u) => acc + (Number(u.requiredModules) || 0), 0);
-      const totalKwp = currentUnits.reduce((acc, u) => acc + (Number(u.requiredKwp) || 0), 0);
+      // Recalcular geração estimada do projeto
+      let newGenerationKwh = projState.generationKwh || project?.generationKwh || 0;
+      if (currentUnits.length > 0 && totalKwp > 0) {
+        const firstUnit = currentUnits[0];
+        if (Number(firstUnit.requiredKwp) > 0) {
+          const factor = Number(firstUnit.monthlyCons) / Number(firstUnit.requiredKwp);
+          newGenerationKwh = Math.round(totalKwp * factor);
+        } else {
+          newGenerationKwh = Math.round(totalKwp * 109);
+        }
+      }
 
       return {
         ...prev,
@@ -370,7 +392,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
           ...projState,
           units: currentUnits,
           totalModules,
-          totalKwp
+          totalKwp,
+          generationKwh: newGenerationKwh
         }
       };
     });
