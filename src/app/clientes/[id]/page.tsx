@@ -374,6 +374,10 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         }
       }
 
+      // Recalcular totais do projeto baseados nas unidades
+      const totalModules = currentUnits.reduce((acc, u) => acc + (Number(u.requiredModules) || 0), 0);
+      const totalKwp = currentUnits.reduce((acc, u) => acc + (Number(u.requiredKwp) || 0), 0);
+
       // Recalcular geração estimada do projeto
       let newGenerationKwh = projState.generationKwh || project?.generationKwh || 0;
       if (currentUnits.length > 0 && totalKwp > 0) {
