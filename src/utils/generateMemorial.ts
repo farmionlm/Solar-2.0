@@ -116,7 +116,8 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   doc.text(`Fabricante: ${project.moduleManufacturer || "-"}`, 14, yPos); yPos += 5;
   doc.text(`Modelo: ${project.moduleModel || "-"}`, 14, yPos); yPos += 5;
   doc.text(`Quantidade de módulos: ${project.totalModules || 0}`, 14, yPos); yPos += 5;
-  doc.text(`Área Total (m2): ${project.areaOccupied || "-"}`, 14, yPos); yPos += 5;
+  const calculatedArea = (project.totalModules || 0) * 3;
+  doc.text(`Área Total (m2): ${calculatedArea.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 14, yPos); yPos += 5;
   doc.text(`Potência máxima: ${project.modulePower || 0} WP`, 14, yPos); yPos += 5;
   doc.text(`Corrente máxima: ${project.moduleCurrent || "-"} A`, 14, yPos); yPos += 10;
 
@@ -160,7 +161,8 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
 
   setFontNormal();
   doc.text("Sobre o local:", 14, yPos); yPos += 5;
-  doc.text(`Área mínima que o sistema ocupará é de ${project.areaOccupied || "-"} m².`, 14, yPos); yPos += 10;
+  const calculatedArea2 = (project.totalModules || 0) * 3;
+  doc.text(`Área mínima que o sistema ocupará é de ${calculatedArea2.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} m².`, 14, yPos); yPos += 10;
 
   doc.text("Arranjo dos painéis:", 14, yPos); yPos += 6;
   if (project.inverters && project.inverters.length > 0) {

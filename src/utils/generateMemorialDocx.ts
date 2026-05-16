@@ -8,6 +8,19 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
   const finalCity = project.city || client.city;
   const finalCep = project.cep || client.cep;
   const fullLocation = [finalAddress, finalNeighborhood, finalCity].filter(Boolean).join(', ');
+  
+  let invMan = project.inverterManufacturer || "-";
+  let invOutCur = project.inverterOutputCurrent || "-";
+  let invOutPow = project.inverterOutputPower || "-";
+  let invMod = project.inverterModel || "-";
+
+  if (project.inverters && project.inverters.length > 0) {
+    const firstInv = project.inverters[0];
+    invMan = firstInv.manufacturer || invMan;
+    invOutCur = firstInv.outputCurrent || invOutCur;
+    invOutPow = firstInv.outputPower || invOutPow;
+    invMod = firstInv.model || invMod;
+  }
 
   const doc = new Document({
     sections: [
@@ -136,7 +149,7 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
           new Paragraph({ children: [new TextRun({ text: `Fabricante: ${project.moduleManufacturer || "-"}` })] }),
           new Paragraph({ children: [new TextRun({ text: `Modelo: ${project.moduleModel || "-"}` })] }),
           new Paragraph({ children: [new TextRun({ text: `Quantidade de módulos: ${project.totalModules || 0}` })] }),
-          new Paragraph({ children: [new TextRun({ text: `Área Total (m2): ${project.areaOccupied || "-"}` })] }),
+          new Paragraph({ children: [new TextRun({ text: `Área Total (m2): ${((project.totalModules || 0) * 3).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` })] }),
           new Paragraph({ children: [new TextRun({ text: `Potência máxima: ${project.modulePower || 0} WP` })] }),
           new Paragraph({
             children: [new TextRun({ text: `Corrente máxima: ${project.moduleCurrent || "-"} A` })],
@@ -187,7 +200,7 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
             spacing: { after: 100 },
           }),
           new Paragraph({
-            children: [new TextRun({ text: `Área mínima que o sistema ocupará é de ${project.areaOccupied || "-"} m².` })],
+            children: [new TextRun({ text: `Área mínima que o sistema ocupará é de ${((project.totalModules || 0) * 3).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} m².` })],
             spacing: { after: 200 },
           }),
 
@@ -307,7 +320,17 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
           new Paragraph({ children: [new TextRun({ text: "Serão utilizados cabos solares com proteção UV de 4,0 mm². As conexões serão feitas por conectores MC4 com proteção UV e resistência a amoníaco." })], spacing: { after: 200 } }),
 
           new Paragraph({ children: [new TextRun({ text: "String Box:", bold: true })], spacing: { after: 100 } }),
-          new Paragraph({ children: [new TextRun({ text: "Não haverá String Box externa. O DPS e as proteções são integradas ao inversor." })], spacing: { after: 400 } }),
+          new Paragraph({ children: [new TextRun({ text: "Não haverá String Box externa. O DPS e as proteções são integradas ao inversor." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Inversor:", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ 
+            children: [
+              new TextRun({ 
+                text: `Serão utilizados um inversor da marca ${String(invMan).toUpperCase()} operando em ${invOutCur}A (CA) com potência de ${invOutPow} kW, modelo ${invMod}. Não será utilizado transformador, pois a conexão da unidade consumidora é 220V.` 
+              })
+            ], 
+            spacing: { after: 400 } 
+          }),
 
           // Assinatura
           new Paragraph({
