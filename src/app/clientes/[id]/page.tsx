@@ -21,7 +21,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const { data: client, error: swrError, isLoading, mutate } = useSWR<ClientDetail>(`/api/clients/${id}`, fetcher);
 
   // Catálogo de equipamentos
-  const { data: dbModules } = useSWR<{ id: string; manufacturer: string; model: string; powerW: number }[]>('/api/equipments/modules', fetcher);
+  const { data: dbModules } = useSWR<{ id: string; manufacturer: string; model: string; powerW: number; currentImp: number | null }[]>('/api/equipments/modules', fetcher);
   const { data: dbInverters } = useSWR<{ id: string; manufacturer: string; model: string; powerW: number; numMppts: number | null; inputsPerMppt: number | null }[]>('/api/equipments/inverters', fetcher);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -299,27 +299,65 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [projectEquipments, setProjectEquipments] = useState<Record<string, any>>({});
 
   const handleEquipmentChange = (projId: string, field: string, value: string | number) => {
-    setProjectEquipments(prev => ({
-      ...prev,
-      [projId]: {
+    setProjectEquipments(prev => {
+      const projState = prev[projId] || {};
+      const project = client?.projects.find((p: Project) => p.id === projId);
+      const nextState = {
         ...(prev[projId] || {}),
         [field]: value
+      };
+
+      const currentModulePower = Number(nextState.modulePower || projState.modulePower || project?.modulePower || 0);
+
+      if (field === 'modulePower') {
+        // Recalcular kWp de todas as unidades se a potência do módulo mudou
+        const units = nextState.units || projState.units || project?.units || [];
+        nextState.units = units.map((u: any) => ({
+          ...u,
+          requiredKwp: (Number(u.requiredModules) * Number(value)) / 1000
+        }));
+        // Recalcular totais
+        nextState.totalModules = nextState.units.reduce((acc: number, u: any) => acc + (Number(u.requiredModules) || 0), 0);
+        nextState.totalKwp = nextState.units.reduce((acc: number, u: any) => acc + (Number(u.requiredKwp) || 0), 0);
+      } else if (field === 'totalModules') {
+        // Se mudou o total de módulos no card superior, recalcula o kWp total do projeto
+        nextState.totalKwp = (Number(value) * currentModulePower) / 1000;
       }
-    }));
+
+      return {
+        ...prev,
+        [projId]: nextState
+      };
+    });
   };
 
   const handleUnitChange = (projId: string, unitIndex: number, field: string, value: string | number) => {
     setProjectEquipments(prev => {
       const projState = prev[projId] || {};
-      const currentUnits = [ ...(projState.units || client?.projects.find((p: Project) => p.id === projId)?.units || []) ];
+      const project = client?.projects.find((p: Project) => p.id === projId);
+      const currentUnits = [ ...(projState.units || project?.units || []) ];
+      const modulePower = Number(projState.modulePower || project?.modulePower || 0);
+
       if (currentUnits[unitIndex]) {
-        currentUnits[unitIndex] = { ...currentUnits[unitIndex], [field]: value };
+        const newVal = field === 'requiredModules' ? (Number(value) || 0) : value;
+        currentUnits[unitIndex] = { ...currentUnits[unitIndex], [field]: newVal };
+
+        if (field === 'requiredModules') {
+          currentUnits[unitIndex].requiredKwp = (Number(newVal) * modulePower) / 1000;
+        }
       }
+
+      // Recalcular totais do projeto baseados nas unidades
+      const totalModules = currentUnits.reduce((acc, u) => acc + (Number(u.requiredModules) || 0), 0);
+      const totalKwp = currentUnits.reduce((acc, u) => acc + (Number(u.requiredKwp) || 0), 0);
+
       return {
         ...prev,
         [projId]: {
           ...projState,
-          units: currentUnits
+          units: currentUnits,
+          totalModules,
+          totalKwp
         }
       };
     });
@@ -618,6 +656,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                   estimatedCost: proj.estimatedCost || "",
                   inverters: proj.inverters || [],
                   totalModules: proj.totalModules,
+                  totalKwp: proj.totalKwp,
+                  modulePower: proj.modulePower,
                   units: proj.units || [],
                   ...projectEquipments[proj.id]
                 };
@@ -730,6 +770,10 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                   if (!mod) return;
                                   handleEquipmentChange(proj.id, 'moduleManufacturer', mod.manufacturer);
                                   handleEquipmentChange(proj.id, 'moduleModel', mod.model);
+                                  handleEquipmentChange(proj.id, 'modulePower', mod.powerW);
+                                  if (mod.currentImp) {
+                                    handleEquipmentChange(proj.id, 'moduleCurrent', mod.currentImp);
+                                  }
                                 }}
                               >
                                 <option value="">— Selecionar do catálogo —</option>
@@ -955,11 +999,11 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                         <div className="grid grid-cols-3 gap-4 mb-4">
                           <div className="bg-card rounded-xl p-3 border border-border text-center shadow-xl">
                             <div className="text-xs text-muted-foreground uppercase font-black">Módulo Base</div>
-                            <div className="text-lg font-bold text-foreground">{proj.modulePower}W</div>
+                            <div className="text-lg font-bold text-foreground">{currentEquip.modulePower}W</div>
                           </div>
                           <div className="bg-card rounded-xl p-3 border border-border text-center shadow-xl">
                             <div className="text-xs text-muted-foreground uppercase font-black">kWp Total</div>
-                            <div className="text-lg font-bold text-primary">{proj.totalKwp.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</div>
+                            <div className="text-lg font-bold text-primary">{Number(currentEquip.totalKwp).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</div>
                           </div>
                           <div className="bg-card rounded-xl p-3 border border-border text-center shadow-xl flex flex-col justify-between">
                             <div className="text-xs text-muted-foreground uppercase font-black">Qtd Módulos</div>

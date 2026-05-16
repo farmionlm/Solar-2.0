@@ -168,6 +168,7 @@ model SolarModule {
   manufacturer String
   model        String
   powerW       Float
+  currentImp   Float?   // Corrente de Máxima Potência (A)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

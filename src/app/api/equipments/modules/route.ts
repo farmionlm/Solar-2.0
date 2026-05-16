@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
     }
 
-    const { manufacturer, model, powerW } = await request.json();
+    const { manufacturer, model, powerW, currentImp } = await request.json();
 
     if (!manufacturer || !model || !powerW) {
       return NextResponse.json({ error: 'Dados incompletos.' }, { status: 400 });
@@ -34,7 +34,8 @@ export async function POST(request: Request) {
       data: {
         manufacturer,
         model,
-        powerW: Number(powerW)
+        powerW: Number(powerW),
+        currentImp: currentImp ? Number(currentImp) : null
       }
     });
 

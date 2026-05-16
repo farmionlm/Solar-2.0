@@ -20,6 +20,7 @@ export default function AdminEquipmentsPage() {
     manufacturer: '',
     model: '',
     powerW: '',
+    currentImp: '',
     numMppts: '',
     inputsPerMppt: ''
   });
@@ -47,7 +48,7 @@ export default function AdminEquipmentsPage() {
         setError(result.error || 'Erro ao criar equipamento.');
       } else {
         setIsCreating(false);
-        setFormData({ manufacturer: '', model: '', powerW: '', numMppts: '', inputsPerMppt: '' });
+        setFormData({ manufacturer: '', model: '', powerW: '', currentImp: '', numMppts: '', inputsPerMppt: '' });
         if (activeTab === 'MODULES') mutateModules();
         else mutateInverters();
       }
@@ -139,6 +140,7 @@ export default function AdminEquipmentsPage() {
                   <th className="p-4 font-semibold text-muted-foreground text-center">
                     {activeTab === 'MODULES' ? 'Potência (W)' : 'Potência Nominal AC (W)'}
                   </th>
+                  {activeTab === 'MODULES' && <th className="p-4 font-semibold text-muted-foreground text-center">Corrente (A)</th>}
                   {activeTab === 'INVERTERS' && <th className="p-4 font-semibold text-muted-foreground text-center">MPPTs</th>}
                   <th className="p-4 font-semibold text-muted-foreground text-center">Ações</th>
                 </tr>
@@ -162,6 +164,11 @@ export default function AdminEquipmentsPage() {
                           {item.powerW} W
                         </span>
                       </td>
+                      {activeTab === 'MODULES' && (
+                        <td className="p-4 text-center text-sm font-medium text-muted-foreground">
+                          {item.currentImp ? `${item.currentImp} A` : '-'}
+                        </td>
+                      )}
                       {activeTab === 'INVERTERS' && (
                         <td className="p-4 text-center text-sm text-muted-foreground">
                           {item.numMppts ? `${item.numMppts} MPPTs (${item.inputsPerMppt} In)` : '-'}
@@ -203,6 +210,13 @@ export default function AdminEquipmentsPage() {
                 <label className="block text-sm font-semibold mb-1">Potência (W)</label>
                 <Input type="number" value={formData.powerW} onChange={e => setFormData({...formData, powerW: e.target.value})} required placeholder="Ex: 550" />
               </div>
+              
+              {activeTab === 'MODULES' && (
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Corrente Imp (A) (Opcional)</label>
+                  <Input type="number" step="0.01" value={formData.currentImp} onChange={e => setFormData({...formData, currentImp: e.target.value})} placeholder="Ex: 13.50" />
+                </div>
+              )}
               
               {activeTab === 'INVERTERS' && (
                 <div className="grid grid-cols-2 gap-4">
