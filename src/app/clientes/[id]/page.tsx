@@ -319,13 +319,16 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         // Sincronizar kWp total
         nextState.totalKwp = (totalModules * modulePower) / 1000;
 
-        // Sincronizar primeira unidade se for projeto de unidade única
-        if (units.length === 1) {
-          const newUnits = [{
-            ...units[0],
+        // Sincronizar unidades para manter coerência
+        const newUnits = [ ...units ];
+        if (newUnits.length > 0) {
+          // No caso de múltiplas unidades, ajustamos a primeira para manter o total sincronizado
+          // ou se for apenas uma, ela recebe o valor total.
+          newUnits[0] = {
+            ...newUnits[0],
             requiredModules: totalModules,
             requiredKwp: nextState.totalKwp
-          }];
+          };
           nextState.units = newUnits;
         }
 
@@ -658,32 +661,15 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
           ) : (
             <div className="space-y-4">
               {client.projects.map((proj) => {
+                const projectState = projectEquipments[proj.id] || {};
                 const currentEquip = {
-                  moduleModel: proj.moduleModel || "",
-                  inverterModel: proj.inverterModel || "",
-                  generationKwh: proj.generationKwh ?? Math.round(proj.totalKwp * 120),
-                  reductionPercent: proj.reductionPercent ?? 90,
-                  moduleManufacturer: proj.moduleManufacturer || "",
-                  moduleArea: proj.moduleArea || "",
-                  moduleCurrent: proj.moduleCurrent || "",
-                  inverterManufacturer: proj.inverterManufacturer || "",
-                  inverterOutputPower: proj.inverterOutputPower || "",
-                  inverterOutputCurrent: proj.inverterOutputCurrent || "",
-                  areaOccupied: proj.areaOccupied ?? (proj.totalModules * 3),
-                  professionalName: proj.professionalName || "",
-                  professionalCrt: proj.professionalCrt || "",
-                  installationNumber: proj.installationNumber || proj.units[0]?.code || "",
-                  estimatedCost: proj.estimatedCost || "",
-                  inverters: proj.inverters || [],
-                  totalModules: proj.totalModules,
-                  totalKwp: proj.totalKwp,
-                  modulePower: proj.modulePower,
-                  address: proj.address || "",
-                  neighborhood: proj.neighborhood || "",
-                  city: proj.city || "",
-                  cep: proj.cep || "",
-                  units: proj.units || [],
-                  ...projectEquipments[proj.id]
+                  ...proj,
+                  ...projectState,
+                  // Garantir que valores reativos do estado local sobrescrevam os originais
+                  totalModules: projectState.totalModules !== undefined ? Number(projectState.totalModules) : proj.totalModules,
+                  totalKwp: projectState.totalKwp !== undefined ? Number(projectState.totalKwp) : proj.totalKwp,
+                  generationKwh: projectState.generationKwh !== undefined ? Number(projectState.generationKwh) : (proj.generationKwh ?? Math.round(proj.totalKwp * 120))
+                };
                 };
 
                 return (
@@ -778,7 +764,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-muted-foreground mb-1">Geração Mensal Estimada (kWh)</label>
-                              <Input type="number" value={currentEquip.generationKwh ?? ""} onChange={(e) => handleEquipmentChange(proj.id, 'generationKwh', e.target.value)} />
+                              <Input type="number" value={currentEquip.generationKwh ?? ""} readOnly className="bg-secondary/20 cursor-not-allowed opacity-80" />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-muted-foreground mb-1">Percentual de Redução (%)</label>
