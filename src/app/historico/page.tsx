@@ -120,16 +120,11 @@ export default function Historico() {
       <div className="max-w-6xl mx-auto">
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <div className="flex items-center gap-3">
-            <div className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg">
+            <Link href="/" title="Voltar ao Início" className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg hover:scale-105 transition-transform active:scale-95">
               <HistoryIcon className="w-8 h-8" />
-            </div>
+            </Link>
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Link href="/" className="flex items-center gap-1 text-muted-foreground font-bold text-xs uppercase tracking-wider hover:text-primary transition-colors" title="Voltar ao Início">
-                  <Home className="w-3 h-3" />
-                </Link>
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground transition-colors">Histórico de Projetos</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">Histórico de Projetos</h1>
               <p className="text-muted-foreground font-medium">Seus dimensionamentos salvos</p>
             </div>
           </div>

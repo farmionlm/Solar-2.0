@@ -525,16 +525,14 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <div>
             <div className="flex items-center gap-4 mb-2">
-              <Link href="/" className="flex items-center gap-1 text-muted-foreground font-bold hover:text-primary transition-colors text-sm" title="Voltar ao Início">
-                <Home className="w-3.5 h-3.5" />
+              <Link href="/" title="Voltar ao Início" className="text-muted-foreground hover:text-primary transition-colors">
+                <Home className="w-4 h-4" />
               </Link>
               <Link href="/clientes" className="flex items-center gap-1 text-primary font-bold hover:underline text-sm">
                 <ArrowLeft className="w-4 h-4" /> Voltar para Clientes
               </Link>
             </div>
-            <Link href="/" className="group/logo block">
-              <h1 className="text-3xl font-black tracking-tight text-foreground group-hover/logo:text-primary transition-colors">{client.name}</h1>
-            </Link>
+            <h1 className="text-3xl font-black tracking-tight text-foreground">{client.name}</h1>
           </div>
           <div className="flex gap-3">
             <button
