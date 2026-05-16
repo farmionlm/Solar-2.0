@@ -321,8 +321,20 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         nextState.totalModules = nextState.units.reduce((acc: number, u: any) => acc + (Number(u.requiredModules) || 0), 0);
         nextState.totalKwp = nextState.units.reduce((acc: number, u: any) => acc + (Number(u.requiredKwp) || 0), 0);
       } else if (field === 'totalModules') {
+        const newVal = Number(value) || 0;
         // Se mudou o total de módulos no card superior, recalcula o kWp total do projeto
-        nextState.totalKwp = (Number(value) * currentModulePower) / 1000;
+        nextState.totalKwp = (newVal * currentModulePower) / 1000;
+
+        // Se houver apenas uma unidade, sincroniza ela automaticamente para manter coerência visual e de cálculo
+        const currentUnits = [ ...(nextState.units || projState.units || project?.units || []) ];
+        if (currentUnits.length === 1) {
+          currentUnits[0] = {
+            ...currentUnits[0],
+            requiredModules: newVal,
+            requiredKwp: nextState.totalKwp
+          };
+          nextState.units = currentUnits;
+        }
       }
 
       return {
