@@ -9,7 +9,8 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
   const finalCep = project.cep || client.cep;
   const fullLocation = [finalAddress, finalNeighborhood, finalCity].filter(Boolean).join(', ');
   
-  let invMan = project.inverterManufacturer || "-";
+  const finalGeneration = project.generationKwh || Math.round((project.totalKwp || 0) * 120);
+  const finalReduction = project.reductionPercent || 90;
   let invOutCur = project.inverterOutputCurrent || "-";
   let invOutPow = project.inverterOutputPower || "-";
   let invMod = project.inverterModel || "-";
@@ -108,7 +109,7 @@ export const generateMemorialDocx = async (client: ClientDetail, project: Projec
           new Paragraph({
             children: [
               new TextRun({
-                text: `Geração de ${project.totalKwp?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} kW de potência de pico com fornecimento de ${project.generationKwh || 0} kWh/mês de energia elétrica. Redução em torno de ${project.reductionPercent || 0}% na fatura de energia elétrica.`,
+                text: `Geração de ${project.totalKwp?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} kW de potência de pico com fornecimento de ${finalGeneration} kWh/mês de energia elétrica. Redução em torno de ${finalReduction}% na fatura de energia elétrica.`,
               }),
             ],
             spacing: { after: 400 },

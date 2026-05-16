@@ -79,8 +79,10 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   doc.text("2 – CAPACIDADE INSTALADA", 14, yPos);
   yPos += 8;
   setFontNormal();
+  const finalGen = project.generationKwh || Math.round((project.totalKwp || 0) * 120);
+  const finalRed = project.reductionPercent || 90;
   yPos += addParagraph(
-    `Geração de ${project.totalKwp?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} kW de potência de pico com fornecimento de ${project.generationKwh || 0} kWh/mês de energia elétrica. Redução em torno de ${project.reductionPercent || 0}% na fatura de energia elétrica.`,
+    `Geração de ${project.totalKwp?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} kW de potência de pico com fornecimento de ${finalGen} kWh/mês de energia elétrica. Redução em torno de ${finalRed}% na fatura de energia elétrica.`,
     14, yPos, 180
   );
 
