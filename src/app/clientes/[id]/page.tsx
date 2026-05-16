@@ -341,11 +341,18 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         }
 
         // Recalcular Geração Estimada baseada no novo kWp
+        // Prioridade: Consumo original / kWp original. Fallback: 120 (média Brasil)
         const originalUnit = project?.units?.[0];
-        let factor = 109; // Fallback
-        if (originalUnit && Number(originalUnit.requiredKwp) > 0) {
-          factor = Number(originalUnit.monthlyCons) / Number(originalUnit.requiredKwp);
+        let factor = 120;
+        const origCons = Number(originalUnit?.monthlyCons || 0);
+        const origKwp = Number(originalUnit?.requiredKwp || 0);
+        
+        if (origCons > 0 && origKwp > 0) {
+          factor = origCons / origKwp;
+        } else if (project?.generationKwh && project?.totalKwp) {
+          factor = project.generationKwh / project.totalKwp;
         }
+        
         nextState.generationKwh = Math.round(nextState.totalKwp * factor);
       }
 
@@ -377,9 +384,14 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
       // Recalcular geração estimada usando fator original
       const originalUnit = project?.units?.[0];
-      let factor = 109;
-      if (originalUnit && Number(originalUnit.requiredKwp) > 0) {
-        factor = Number(originalUnit.monthlyCons) / Number(originalUnit.requiredKwp);
+      let factor = 120;
+      const origCons = Number(originalUnit?.monthlyCons || 0);
+      const origKwp = Number(originalUnit?.requiredKwp || 0);
+
+      if (origCons > 0 && origKwp > 0) {
+        factor = origCons / origKwp;
+      } else if (project?.generationKwh && project?.totalKwp) {
+        factor = project.generationKwh / project.totalKwp;
       }
       const generationKwh = Math.round(totalKwp * factor);
 
