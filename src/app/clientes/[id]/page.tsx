@@ -33,6 +33,10 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     name: "", cpfCnpj: "", phone: "", email: "", address: "", neighborhood: "", city: "", cep: ""
   });
 
+  // Definições para tabelas manuais
+  type ManualRow = { code: string; name: string; kWp: number | ""; modules: number | "" };
+  const emptyRow = (): ManualRow => ({ code: "", name: "", kWp: "", modules: "" });
+
   // Estado do modal de re-simulação
   const [reSimProject, setReSimProject] = useState<Project | null>(null);
   const [reSimModulePower, setReSimModulePower] = useState<number | "">("");
@@ -42,8 +46,6 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [reSimRows, setReSimRows] = useState<ManualRow[]>([emptyRow()]);
 
   // Estado do modal de Novo Projeto
-  type ManualRow = { code: string; name: string; kWp: number | ""; modules: number | "" };
-  const emptyRow = (): ManualRow => ({ code: "", name: "", kWp: "", modules: "" });
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [newProjectMode, setNewProjectMode] = useState<'choice' | 'manual'>('choice');
   const [manualProjectName, setManualProjectName] = useState("");
