@@ -38,6 +38,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [reSimModulePower, setReSimModulePower] = useState<number | "">("");
   const [reSimError, setReSimError] = useState("");
   const [reSimLoading, setReSimLoading] = useState(false);
+  const [reSimMode, setReSimMode] = useState<'choice' | 'excel' | 'manual'>('choice');
+  const [reSimRows, setReSimRows] = useState<ManualRow[]>([emptyRow()]);
 
   // Estado do modal de Novo Projeto
   type ManualRow = { code: string; name: string; kWp: number | ""; modules: number | "" };
@@ -61,6 +63,10 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
   const updateManualRow = (idx: number, field: keyof ManualRow, value: string | number) => {
     setManualRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
+  };
+
+  const updateReSimRow = (idx: number, field: keyof ManualRow, value: string | number) => {
+    setReSimRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
   };
 
   const handleSaveManualProject = async () => {
@@ -521,6 +527,75 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     reader.readAsArrayBuffer(file);
   };
 
+  const handleReSimManual = async () => {
+    setReSimError("");
+    if (!reSimProject) return;
+    if (!reSimModulePower || Number(reSimModulePower) <= 0) {
+      setReSimError("Informe a potência do módulo (W).");
+      return;
+    }
+
+    const validRows = reSimRows.filter(
+      r => String(r.code).trim() && String(r.name).trim() && Number(r.modules) > 0
+    );
+    if (validRows.length === 0) {
+      setReSimError("Adicione pelo menos uma unidade com todos os campos preenchidos.");
+      return;
+    }
+
+    setReSimLoading(true);
+    try {
+      const modPower = Number(reSimModulePower) || 0;
+      const validRowsData = validRows.map(r => {
+        const calculatedKwp = (Number(r.modules) * modPower) / 1000;
+        return {
+          code: String(r.code).trim(),
+          name: String(r.name).trim(),
+          monthlyCons: 0,
+          dailyCons: 0,
+          requiredKwp: calculatedKwp,
+          requiredModules: Number(r.modules),
+        };
+      });
+
+      const totalKwp = validRowsData.reduce((acc, r) => acc + r.requiredKwp, 0);
+      const totalModules = validRowsData.reduce((acc, r) => acc + r.requiredModules, 0);
+
+      const res = await fetch("/api/calculations", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: reSimProject.id,
+          modulePower: modPower,
+          totalKwp,
+          totalModules,
+          units: validRowsData,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Falha ao re-simular.");
+      
+      setReSimProject(null);
+      setReSimModulePower("");
+      setReSimRows([emptyRow()]);
+      setReSimMode('choice');
+      
+      setProjectEquipments(prev => {
+        const next = { ...prev };
+        delete next[reSimProject.id];
+        return next;
+      });
+      
+      await mutate();
+      setSaveMsg("Projeto re-simulado manualmente com sucesso!");
+      setTimeout(() => setSaveMsg(""), 3000);
+    } catch {
+      setReSimError("Erro ao salvar a re-simulação manual.");
+    } finally {
+      setReSimLoading(false);
+    }
+  };
+
   if (isLoading && !client) {
     return (
       <div className="min-h-screen bg-background flex justify-center items-center">
@@ -737,7 +812,19 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={(e) => { e.stopPropagation(); setReSimProject(proj); setReSimModulePower(proj.modulePower); setReSimError(""); }}
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setReSimProject(proj); 
+                            setReSimModulePower(proj.modulePower); 
+                            setReSimError(""); 
+                            setReSimMode('choice');
+                            setReSimRows(proj.units.map(u => ({ 
+                              code: u.code, 
+                              name: u.name, 
+                              kWp: u.requiredKwp, 
+                              modules: u.requiredModules 
+                            })));
+                          }}
                           className="text-amber-400 bg-amber-950/30 hover:bg-amber-900/50"
                           title="Refazer Simulação"
                         >
@@ -1312,63 +1399,181 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
       {/* Modal de Re-Simulação */}
       {reSimProject && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-card border border-border rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="bg-primary p-6 text-primary-foreground flex justify-between items-center">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <RefreshCw className="w-5 h-5" /> Refazer Simulação
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className={`bg-card border border-border rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh] ${reSimMode === 'manual' ? 'w-full max-w-4xl' : 'w-full max-w-lg'}`}>
+            <div className="bg-primary p-6 text-primary-foreground flex justify-between items-center flex-shrink-0">
+              <h2 className="text-xl font-black flex items-center gap-2">
+                <RefreshCw className="w-5 h-5" /> Refazer Simulação: {reSimProject.name}
               </h2>
               <button onClick={() => { setReSimProject(null); setReSimModulePower(""); setReSimError(""); }} className="text-white/80 hover:text-white text-2xl font-bold">&times;</button>
             </div>
-            <div className="p-6">
-              <p className="text-sm text-muted-foreground mb-5">
-                Projeto: <strong className="text-foreground">{reSimProject.name || "Sem nome"}</strong><br />
-                Os dados de kWp, módulos e unidades serão substituídos pelos novos resultados. Os dados técnicos (fabricantes, inversores, etc.) serão preservados.
-              </p>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-muted-foreground mb-1">Potência do Módulo (W)</label>
-                  <Input
-                    type="number"
-                    value={reSimModulePower}
-                    onChange={(e) => setReSimModulePower(e.target.value ? Number(e.target.value) : "")}
-                    placeholder="Ex: 700"
-                    className="font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-muted-foreground mb-1">Nova Planilha de Consumo (.xlsx)</label>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls,.csv"
-                      onChange={handleReSimFile}
-                      disabled={reSimLoading}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                    />
-                    <div className={`w-full p-4 rounded-xl border-2 border-dashed flex items-center justify-center gap-2 font-medium transition-all ${reSimLoading ? "border-amber-200 bg-amber-50 text-amber-400" : "border-amber-300 bg-amber-50/50 hover:bg-amber-50 text-amber-600"}`}>
-                      {reSimLoading ? (
-                        <><RefreshCw className="w-5 h-5 animate-spin" /> Processando...</>
-                      ) : (
-                        <><Upload className="w-5 h-5" /> Selecionar Arquivo</>
-                      )}
+            
+            <div className="overflow-y-auto flex-grow p-6">
+              {reSimMode === 'choice' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+                  <button 
+                    onClick={() => setReSimMode('excel')}
+                    className="group bg-card hover:bg-primary/5 border-2 border-border hover:border-primary/50 p-8 rounded-3xl transition-all flex flex-col items-center gap-4 text-center shadow-lg hover:shadow-primary/10"
+                  >
+                    <div className="bg-primary/10 group-hover:bg-primary/20 p-5 rounded-2xl transition-colors">
+                      <Upload className="w-10 h-10 text-primary" />
                     </div>
-                  </div>
+                    <div>
+                      <h3 className="text-lg font-black text-foreground">Importar Planilha</h3>
+                      <p className="text-sm text-muted-foreground mt-2">Atualizar consumo através de arquivo Excel (.xlsx)</p>
+                    </div>
+                  </button>
+
+                  <button 
+                    onClick={() => setReSimMode('manual')}
+                    className="group bg-card hover:bg-primary/5 border-2 border-border hover:border-primary/50 p-8 rounded-3xl transition-all flex flex-col items-center gap-4 text-center shadow-lg hover:shadow-primary/10"
+                  >
+                    <div className="bg-primary/10 group-hover:bg-primary/20 p-5 rounded-2xl transition-colors">
+                      <Pencil className="w-10 h-10 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-foreground">Inserir Manualmente</h3>
+                      <p className="text-sm text-muted-foreground mt-2">Editar unidades e quantidades de módulos manualmente</p>
+                    </div>
+                  </button>
                 </div>
+              )}
 
-                {reSimError && (
-                  <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-medium p-3 rounded-xl">
-                    {reSimError}
+              {(reSimMode === 'excel' || reSimMode === 'manual') && (
+                <div className="space-y-6">
+                  <div className="bg-secondary/20 p-4 rounded-2xl border border-border">
+                    <label className="block text-xs font-black text-muted-foreground mb-1.5 uppercase">Potência do Módulo (W)</label>
+                    <Input
+                      type="number"
+                      value={reSimModulePower}
+                      onChange={(e) => setReSimModulePower(e.target.value ? Number(e.target.value) : "")}
+                      placeholder="Ex: 700"
+                      className="font-bold text-lg h-12"
+                    />
                   </div>
-                )}
-              </div>
 
-              <div className="flex justify-end mt-6">
+                  {reSimMode === 'excel' ? (
+                    <div className="space-y-4">
+                      <label className="block text-sm font-bold text-muted-foreground mb-1">Nova Planilha de Consumo (.xlsx)</label>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls,.csv"
+                          onChange={handleReSimFile}
+                          disabled={reSimLoading}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                        />
+                        <div className={`w-full p-12 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-4 font-medium transition-all ${reSimLoading ? "border-primary/20 bg-primary/5 text-primary/40" : "border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary"}`}>
+                          <Upload className={`w-12 h-12 ${reSimLoading ? "animate-bounce" : ""}`} />
+                          <div className="text-center">
+                            <span className="text-lg font-black">Selecionar Arquivo Excel</span>
+                            <p className="text-sm opacity-70">Clique ou arraste o arquivo aqui</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">Unidades do Projeto</h3>
+                        <Button 
+                          onClick={() => setReSimRows(prev => [...prev, emptyRow()])}
+                          variant="outline"
+                          size="sm"
+                          className="rounded-lg font-bold border-primary text-primary hover:bg-primary/10"
+                        >
+                          + Adicionar Unidade
+                        </Button>
+                      </div>
+
+                      <div className="border border-border rounded-2xl overflow-hidden shadow-inner">
+                        <table className="w-full text-sm border-collapse">
+                          <thead className="bg-secondary/50 border-b border-border">
+                            <tr>
+                              <th className="text-left px-3 py-2 text-xs font-black text-muted-foreground uppercase">UC</th>
+                              <th className="text-left px-3 py-2 text-xs font-black text-muted-foreground uppercase">Unidade</th>
+                              <th className="text-center px-3 py-2 text-xs font-black text-muted-foreground uppercase w-28">kWp</th>
+                              <th className="text-center px-3 py-2 text-xs font-black text-muted-foreground uppercase w-24">Módulos</th>
+                              <th className="w-10"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border">
+                            {reSimRows.map((row, idx) => (
+                              <tr key={idx} className="bg-card hover:bg-secondary/10 transition-colors">
+                                <td className="p-2">
+                                  <Input 
+                                    value={formatUnidadeConsumidora(row.code)}
+                                    onChange={e => updateReSimRow(idx, 'code', formatUnidadeConsumidora(e.target.value))}
+                                    className="h-9 text-xs font-mono"
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <Input 
+                                    value={row.name}
+                                    onChange={e => updateReSimRow(idx, 'name', e.target.value)}
+                                    className="h-9 text-xs"
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <Input 
+                                    value={row.modules ? ((Number(row.modules) * (Number(reSimModulePower) || 0)) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0,00"}
+                                    readOnly
+                                    className="h-9 text-xs font-mono text-center bg-secondary/30"
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <Input 
+                                    type="number"
+                                    value={row.modules}
+                                    onChange={e => updateReSimRow(idx, 'modules', e.target.value ? Number(e.target.value) : "")}
+                                    className="h-9 text-xs font-mono text-center"
+                                  />
+                                </td>
+                                <td className="p-2 text-center">
+                                  <button onClick={() => setReSimRows(prev => prev.filter((_, i) => i !== idx))} disabled={reSimRows.length === 1}>
+                                    <Trash2 className="w-4 h-4 text-red-400 hover:text-red-600" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {reSimError && (
+                    <div className="bg-red-900/10 border border-red-900/50 text-red-500 text-sm font-bold p-4 rounded-2xl">
+                      {reSimError}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-border flex justify-between items-center bg-card flex-shrink-0">
+              {reSimMode !== 'choice' ? (
+                <button 
+                  onClick={() => setReSimMode('choice')}
+                  className="text-sm font-bold text-muted-foreground hover:text-foreground flex items-center gap-2 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Voltar
+                </button>
+              ) : <div></div>}
+
+              <div className="flex gap-3">
                 <Button variant="outline" onClick={() => { setReSimProject(null); setReSimModulePower(""); setReSimError(""); }} className="rounded-xl h-11 px-6">
                   Cancelar
                 </Button>
+                {reSimMode === 'manual' && (
+                  <Button 
+                    onClick={handleReSimManual} 
+                    disabled={reSimLoading}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl h-11 px-8 shadow-xl shadow-primary/20"
+                  >
+                    {reSimLoading ? "Salvando..." : "Salvar Alterações"}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
