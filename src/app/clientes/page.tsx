@@ -156,9 +156,11 @@ export default function Clientes() {
               <div key={client.id} className="bg-card rounded-2xl shadow-xl hover:shadow-black/50 transition-all border border-border flex flex-col h-full group">
                 <div className="p-6 flex-grow">
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-xl font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                      {client.name}
-                    </h3>
+                    <Link href={`/clientes/${client.id}`} className="block group/name">
+                      <h3 className="text-xl font-bold text-foreground line-clamp-1 group-hover/name:text-primary transition-colors cursor-pointer">
+                        {client.name}
+                      </h3>
+                    </Link>
                     <button onClick={() => deleteClient(client.id)} title="Apagar Cliente"
                       className="p-1.5 text-red-400 bg-red-950/30 hover:bg-red-900/50 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
                       <Trash2 className="w-4 h-4" />
