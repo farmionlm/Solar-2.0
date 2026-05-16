@@ -338,17 +338,16 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
       }
 
       // Recalcular geração estimada (kWh/mês) baseada no novo kWp total
-      const unitsForGen = nextState.units || projState.units || project?.units || [];
+      // Usamos o fator de eficiência ORIGINAL do projeto para que a nova geração reflita o aumento de capacidade
+      const originalUnit = project?.units?.[0];
       const currentTotalKwp = nextState.totalKwp ?? projState.totalKwp ?? project?.totalKwp ?? 0;
       
-      if (unitsForGen.length > 0 && currentTotalKwp > 0) {
-        const firstUnit = unitsForGen[0];
-        if (Number(firstUnit.requiredKwp) > 0) {
-          const factor = Number(firstUnit.monthlyCons) / Number(firstUnit.requiredKwp);
-          nextState.generationKwh = Math.round(currentTotalKwp * factor);
-        } else {
-          nextState.generationKwh = Math.round(currentTotalKwp * 109); // Fallback HSP 4.0
+      if (currentTotalKwp > 0) {
+        let factor = 109; // Fallback HSP 4.0
+        if (originalUnit && Number(originalUnit.requiredKwp) > 0) {
+          factor = Number(originalUnit.monthlyCons) / Number(originalUnit.requiredKwp);
         }
+        nextState.generationKwh = Math.round(currentTotalKwp * factor);
       }
 
       return {
@@ -378,16 +377,15 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
       const totalModules = currentUnits.reduce((acc, u) => acc + (Number(u.requiredModules) || 0), 0);
       const totalKwp = currentUnits.reduce((acc, u) => acc + (Number(u.requiredKwp) || 0), 0);
 
-      // Recalcular geração estimada do projeto
+      // Recalcular geração estimada do projeto usando fator original
       let newGenerationKwh = projState.generationKwh || project?.generationKwh || 0;
-      if (currentUnits.length > 0 && totalKwp > 0) {
-        const firstUnit = currentUnits[0];
-        if (Number(firstUnit.requiredKwp) > 0) {
-          const factor = Number(firstUnit.monthlyCons) / Number(firstUnit.requiredKwp);
-          newGenerationKwh = Math.round(totalKwp * factor);
-        } else {
-          newGenerationKwh = Math.round(totalKwp * 109);
+      if (totalKwp > 0) {
+        const originalUnit = project?.units?.[0];
+        let factor = 109;
+        if (originalUnit && Number(originalUnit.requiredKwp) > 0) {
+          factor = Number(originalUnit.monthlyCons) / Number(originalUnit.requiredKwp);
         }
+        newGenerationKwh = Math.round(totalKwp * factor);
       }
 
       return {
@@ -713,8 +711,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           <h3 className="font-bold text-foreground">{proj.name || "Projeto sem nome"}</h3>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                             <span className="flex items-center gap-1 font-medium"><Calendar className="w-3.5 h-3.5" /> {new Date(proj.createdAt).toLocaleDateString("pt-BR")}</span>
-                            <span className="flex items-center gap-1 font-bold text-primary"><Zap className="w-3.5 h-3.5" /> {proj.totalKwp.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kWp</span>
-                            <span className="flex items-center gap-1 font-bold text-primary-foreground/70"><LayoutGrid className="w-3.5 h-3.5" /> {proj.totalModules} módulos</span>
+                            <span className="flex items-center gap-1 font-bold text-primary"><Zap className="w-3.5 h-3.5" /> {Number(currentEquip.totalKwp).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kWp</span>
+                            <span className="flex items-center gap-1 font-bold text-primary-foreground/70"><LayoutGrid className="w-3.5 h-3.5" /> {currentEquip.totalModules} módulos</span>
                           </div>
                         </div>
                       </button>
