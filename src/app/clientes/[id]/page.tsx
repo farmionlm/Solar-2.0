@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { generateMemorialPDF } from "@/utils/generateMemorial";
+import { generateMemorialDocx } from "@/utils/generateMemorialDocx";
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 
 import { formatUnidadeConsumidora, formatCpfCnpj, formatPhone, formatCep } from "@/utils/formatters";
@@ -697,6 +698,25 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           }}
                           className="text-primary bg-primary/10 hover:bg-primary/20"
                           title="Gerar Memorial Descritivo (PDF)"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            try {
+                              const currentEquip = projectEquipments[proj.id] || {};
+                              const mergedProject = { ...proj, ...currentEquip };
+                              generateMemorialDocx(client, mergedProject);
+                            } catch (err) {
+                              console.error("Erro ao gerar DOCX:", err);
+                              alert("Ocorreu um erro ao gerar o Word. Verifique os dados.");
+                            }
+                          }}
+                          className="text-blue-400 bg-blue-950/30 hover:bg-blue-900/50"
+                          title="Gerar Memorial Descritivo (Word/DOCX)"
                         >
                           <FileText className="w-4 h-4" />
                         </Button>
