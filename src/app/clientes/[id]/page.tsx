@@ -383,10 +383,6 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         }
       };
     });
-  };enerationKwh
-        }
-      };
-    });
   };
 
   const handleInverterChange = (projId: string, inverterIndex: number, field: keyof Inverter, value: string | number) => {
