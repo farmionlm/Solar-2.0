@@ -97,9 +97,9 @@ export default function ConfiguracoesPage() {
         {/* Header */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div className="flex items-center gap-3">
-            <div className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg shadow-primary/20">
+            <Link href="/" title="Voltar ao Início" className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95">
               <Settings className="w-8 h-8" />
-            </div>
+            </Link>
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground">Configurações</h1>
               <p className="text-muted-foreground font-medium">Personalize a identidade da sua empresa</p>

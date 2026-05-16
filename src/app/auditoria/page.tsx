@@ -24,10 +24,10 @@ function AuditoriaContent() {
     <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div className="flex items-center gap-3 group">
-            <div className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg shadow-primary/20">
+          <div className="flex items-center gap-3">
+            <Link href="/" title="Voltar ao Início" className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95">
               <ShieldCheck className="w-8 h-8" />
-            </div>
+            </Link>
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground">Auditoria e Logs</h1>
               <p className="text-muted-foreground font-medium">Histórico de atividades da plataforma</p>

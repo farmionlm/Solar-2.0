@@ -136,17 +136,17 @@ export default function AdminPartnerTechniciansPage() {
     <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <Link href="/admin/parceiros" className="flex items-center gap-3 group">
-            <div className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg group-hover:scale-105 transition-all">
+          <div className="flex items-center gap-3">
+            <Link href="/" title="Voltar ao Início" className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg hover:scale-105 transition-transform active:scale-95">
               <Users className="w-8 h-8" />
-            </div>
+            </Link>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">
                 Técnicos do Parceiro
               </h1>
               <p className="text-muted-foreground font-medium">Gestão administrativa de funcionários B2B</p>
             </div>
-          </Link>
+          </div>
           <div className="flex gap-3">
             <Link href="/admin/parceiros" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
               <ArrowLeft className="w-5 h-5" />
