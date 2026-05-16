@@ -115,6 +115,9 @@ export async function DELETE(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
     if (!id) {
       return NextResponse.json({ error: 'ID não fornecido.' }, { status: 400 });
     }
