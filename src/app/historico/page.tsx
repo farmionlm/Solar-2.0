@@ -119,20 +119,20 @@ export default function Historico() {
     <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg group-hover:scale-105 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg">
               <HistoryIcon className="w-8 h-8" />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <div className="flex items-center gap-1 text-muted-foreground font-bold text-xs uppercase tracking-wider group-hover:text-primary transition-colors">
-                  <Home className="w-3 h-3" /> Início
-                </div>
+                <Link href="/" className="flex items-center gap-1 text-muted-foreground font-bold text-xs uppercase tracking-wider hover:text-primary transition-colors" title="Voltar ao Início">
+                  <Home className="w-3 h-3" />
+                </Link>
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">Histórico de Projetos</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground transition-colors">Histórico de Projetos</h1>
               <p className="text-muted-foreground font-medium">Seus dimensionamentos salvos</p>
             </div>
-          </Link>
+          </div>
           <div className="flex flex-wrap justify-center gap-2 md:gap-3">
             <Link href="/clientes" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-4 sm:px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
               <Users className="w-5 h-5" />

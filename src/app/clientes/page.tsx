@@ -74,20 +74,20 @@ export default function Clientes() {
     <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg shadow-primary/20 group-hover:scale-105 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg shadow-primary/20">
               <Users className="w-8 h-8" />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <div className="flex items-center gap-1 text-muted-foreground font-bold text-xs uppercase tracking-wider group-hover:text-primary transition-colors">
-                  <Home className="w-3 h-3" /> Início
-                </div>
+                <Link href="/" className="flex items-center gap-1 text-muted-foreground font-bold text-xs uppercase tracking-wider hover:text-primary transition-colors" title="Voltar ao Início">
+                  <Home className="w-3 h-3" />
+                </Link>
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">Clientes</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground transition-colors">Clientes</h1>
               <p className="text-muted-foreground font-medium">Gerencie seus clientes e equipamentos</p>
             </div>
-          </Link>
+          </div>
           <div className="flex flex-wrap justify-center gap-2 md:gap-3">
             <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg shadow-md active:scale-95 h-10 px-4 sm:px-5">
               <Users className="w-5 h-5 sm:mr-2" />
