@@ -51,6 +51,8 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
   // CEPs conhecidos de sedes de distribuidoras para ignorar
   const cepsDistribuidoras = [
     '29050-670', '29050670', // EDP ES (Vitória - Enseada do Suá)
+    '29050-310', '29050310', // EDP ES (Vitória - Eng. Fábio Ruschi 25)
+    '29050-900', '29050900',
     '20050-000', '20050000', // Light RJ
     '01000-000', // Enel SP
     '30190-000', // Cemig MG
@@ -71,7 +73,10 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
 
   const isDistributorData = (lineStr: string) => {
     const u = lineStr.toUpperCase();
-    return cnpjsDistribuidoras.some(c => u.includes(c)) ||
+    const digits = u.replace(/\D/g, '');
+    const isEdpCep = digits.includes('29050310') || digits.includes('29050670') || digits.startsWith('29050');
+    return isEdpCep ||
+           cnpjsDistribuidoras.some(c => u.includes(c)) ||
            cepsDistribuidoras.some(c => u.includes(c)) ||
            enderecosDistribuidoras.some(e => u.includes(e));
   };
@@ -161,7 +166,7 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
         const cepMatch = rawLinha.match(/(?:CEP)?\s*[:\s]*(\d{5}-\d{3}|\d{8})\b/i);
         if (cepMatch) {
           const rawCep = cepMatch[1].replace(/\D/g, '');
-          if (rawCep.length === 8 && !cepsDistribuidoras.includes(rawCep) && !cepsDistribuidoras.includes(cepMatch[1])) {
+          if (rawCep.length === 8 && !isDistributorData(rawLinha) && !rawCep.startsWith('29050')) {
             cep = rawCep.replace(/(\d{5})(\d{3})/, '$1-$2');
           }
         }
@@ -169,16 +174,32 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
 
       // c) Bairro, Cidade e UF no Bloco (ex: "INTERLAGOS / LINHARES - ES")
       if (!cidade || !bairro) {
-        const cidadeUfMatch = rawLinha.match(/(?:([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s]{2,30})\s*\/\s*)?([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{3,30})\s*-\s*([A-Z]{2})/i);
-        if (cidadeUfMatch) {
-          if (cidadeUfMatch[1] && !bairro) {
-            bairro = cidadeUfMatch[1].trim();
+        const bairroCidadeUfMatch = rawLinha.match(/\b([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s]{2,30})\s*\/\s*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{3,30})\s*-\s*([A-Z]{2})\b/i);
+        
+        if (bairroCidadeUfMatch) {
+          const bCand = bairroCidadeUfMatch[1].trim();
+          const cCand = bairroCidadeUfMatch[2].trim();
+          const uCand = bairroCidadeUfMatch[3].toUpperCase().trim();
+
+          const isForbiddenC = palavrasProibidas.some(p => cCand.toUpperCase().includes(p)) || isDistributorData(cCand);
+          if (!isForbiddenC) {
+            if (!bairro) bairro = bCand;
+            cidade = cCand;
+            uf = uCand;
           }
-          cidade = cidadeUfMatch[2].trim();
-          uf = cidadeUfMatch[3].toUpperCase().trim();
-        } else {
-          const cidLista = rawLinha.match(/(Vitória|Vila Velha|Serra|Cariacica|Guarapari|Linhares|São Mateus|Colatina|Cachoeiro de Itapemirim|Aracruz|Viana|Domingos Martins)\b/i);
-          if (cidLista && !cidade) cidade = cidLista[0];
+        }
+
+        if (!cidade) {
+          const cidadeUfMatch = rawLinha.match(/\b([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{3,30})\s*-\s*([A-Z]{2})\b/i);
+          if (cidadeUfMatch) {
+            const cCand = cidadeUfMatch[1].trim();
+            const uCand = cidadeUfMatch[2].toUpperCase().trim();
+            const isForbiddenC = palavrasProibidas.some(p => cCand.toUpperCase().includes(p)) || isDistributorData(cCand);
+            if (!isForbiddenC && cCand.length >= 3 && !cCand.includes('/')) {
+              cidade = cCand;
+              uf = uCand;
+            }
+          }
         }
 
         const bairroMatch = rawLinha.match(/(?:BAIRRO|B\.)\s*[:\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s]{3,30})/i);
