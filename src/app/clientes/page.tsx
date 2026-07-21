@@ -30,6 +30,7 @@ export default function Clientes() {
   });
 
   const handleApplyOcrData = (data: FaturaExtraida) => {
+    const cityDisplay = data.cidade ? (data.uf ? `${data.cidade} / ${data.uf}` : data.cidade) : "";
     setNewClient({
       name: data.clienteNome || "Novo Cliente Fatura",
       cpfCnpj: data.cpfCnpj ? formatCpfCnpj(data.cpfCnpj) : "",
@@ -37,8 +38,8 @@ export default function Clientes() {
       email: "",
       address: data.endereco || "",
       cep: data.cep ? formatCep(data.cep) : "",
-      neighborhood: "",
-      city: data.cidade || "",
+      neighborhood: data.bairro || "",
+      city: cityDisplay,
     });
     setShowModal(true);
   };

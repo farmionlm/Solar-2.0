@@ -71,12 +71,15 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const handleApplyOcrData = async (data: FaturaExtraida) => {
     setIsSaving(true);
     try {
+      const cityDisplay = data.cidade ? (data.uf ? `${data.cidade} / ${data.uf}` : data.cidade) : client?.city;
       const updateData: any = {
         id,
         cpfCnpj: data.cpfCnpj ? formatCpfCnpj(data.cpfCnpj) : client?.cpfCnpj,
         installationNumber: data.instalacao || client?.installationNumber,
         concessionaria: data.concessionaria || client?.concessionaria,
-        city: data.cidade || client?.city,
+        address: data.endereco || client?.address,
+        neighborhood: data.bairro || client?.neighborhood,
+        city: cityDisplay,
         cep: data.cep ? formatCep(data.cep) : client?.cep,
       };
       if (data.clienteNome && (!client?.name || client.name.startsWith("Cliente "))) {

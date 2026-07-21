@@ -9,7 +9,9 @@ export type FaturaExtraida = {
   instalacao?: string;
   concessionaria?: string;
   endereco?: string;
+  bairro?: string;
   cidade?: string;
+  uf?: string;
   cep?: string;
   tipoLigacao?: 'Monofásico' | 'Bifásico' | 'Trifásico';
   grupoTarifario?: string;
@@ -95,7 +97,9 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
   let clienteNome: string | undefined;
   let cpfCnpj: string | undefined;
   let endereco: string | undefined;
+  let bairro: string | undefined;
   let cidade: string | undefined;
+  let uf: string | undefined;
   let cep: string | undefined;
   let instalacao: string | undefined;
 
@@ -135,7 +139,7 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     const endIdx = Math.min(rawLinhas.length, clienteBlockIndex + 5);
     const blocoLinhas = rawLinhas.slice(startIdx, endIdx);
 
-    // Passagem 1: Extrair CPF, CEP, Cidade e Instalação do Bloco
+    // Passagem 1: Extrair CPF, CEP, Bairro, Cidade, UF e Instalação do Bloco
     for (const rawLinha of blocoLinhas) {
       if (isDistributorData(rawLinha)) continue;
 
@@ -163,14 +167,23 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
         }
       }
 
-      // c) Cidade no Bloco (ex: "INTERLAGOS / LINHARES - ES")
-      if (!cidade) {
-        const cidadeMatch = rawLinha.match(/\/\s*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{3,30})\s*-\s*([A-Z]{2})/i);
-        if (cidadeMatch) {
-          cidade = cidadeMatch[1].trim();
+      // c) Bairro, Cidade e UF no Bloco (ex: "INTERLAGOS / LINHARES - ES")
+      if (!cidade || !bairro) {
+        const cidadeUfMatch = rawLinha.match(/(?:([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s]{2,30})\s*\/\s*)?([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{3,30})\s*-\s*([A-Z]{2})/i);
+        if (cidadeUfMatch) {
+          if (cidadeUfMatch[1] && !bairro) {
+            bairro = cidadeUfMatch[1].trim();
+          }
+          cidade = cidadeUfMatch[2].trim();
+          uf = cidadeUfMatch[3].toUpperCase().trim();
         } else {
           const cidLista = rawLinha.match(/(Vitória|Vila Velha|Serra|Cariacica|Guarapari|Linhares|São Mateus|Colatina|Cachoeiro de Itapemirim|Aracruz|Viana|Domingos Martins)\b/i);
-          if (cidLista) cidade = cidLista[0];
+          if (cidLista && !cidade) cidade = cidLista[0];
+        }
+
+        const bairroMatch = rawLinha.match(/(?:BAIRRO|B\.)\s*[:\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s]{3,30})/i);
+        if (bairroMatch && !bairro) {
+          bairro = bairroMatch[1].trim();
         }
       }
 
@@ -184,10 +197,6 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     }
 
     // Passagem 2: Extrair Nome do Cliente e Endereço por Sequência do Bloco
-    // No PDF da EDP, as linhas do bloco do cliente vêm em sequência perfeita:
-    // Linha A: NOME DO CLIENTE (ex: "LUAN PARDIM MUNIZ")
-    // Linha B: ENDEREÇO (ex: "RUA MONTEIRO LOBATO 2137 CX 01")
-    // Linha C: BAIRRO / CIDADE - UF (ex: "INTERLAGOS / LINHARES - ES")
     for (let i = 0; i < blocoLinhas.length; i++) {
       if (isDistributorData(blocoLinhas[i])) continue;
 
@@ -222,7 +231,7 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     }
   }
 
-  // --- FALLBACKS GLOBAIS (Se algum campo não tiver sido extraído do bloco, garantindo que ignora a concessionária) ---
+  // --- FALLBACKS GLOBAIS ---
   if (!cpfCnpj) {
     const rotuloMatches = Array.from(cleanText.matchAll(/(?:CPF|CNPJ|CPF\/CNPJ|DOC(?:UMENTO)?)\s*(?:DO\s*CLIENTE|DO\s*TITULAR|DO\s*DESTINATÁRIO)?\s*[:\.\s\-]*\n?\s*([\d\.\/\-]{11,18})/gi));
     for (const match of rotuloMatches) {
@@ -388,7 +397,9 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     instalacao,
     concessionaria,
     endereco,
+    bairro,
     cidade,
+    uf,
     cep,
     tipoLigacao: tipoLigacao || 'Monofásico',
     grupoTarifario,

@@ -275,25 +275,60 @@ export function FaturaOcrModal({ isOpen, onClose, onApply }: FaturaOcrModalProps
                   />
                 </div>
 
-                <div className="bg-secondary/40 border border-border rounded-xl p-3 sm:col-span-2">
-                  <label className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px] mb-1">
-                    <MapPin className="w-3.5 h-3.5 text-primary" /> Endereço / Cidade / CEP
+                <div className="bg-secondary/40 border border-border rounded-xl p-3 sm:col-span-2 space-y-2">
+                  <label className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px]">
+                    <MapPin className="w-3.5 h-3.5 text-primary" /> Endereço Completo do Cliente
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <input
-                      type="text"
-                      value={extractedData.endereco || ''}
-                      onChange={(e) => setExtractedData({ ...extractedData, endereco: e.target.value })}
-                      placeholder="RUA MONTEIRO LOBATO..."
-                      className="sm:col-span-2 bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                    <input
-                      type="text"
-                      value={extractedData.cidade || ''}
-                      onChange={(e) => setExtractedData({ ...extractedData, cidade: e.target.value })}
-                      placeholder="LINHARES"
-                      className="bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                    <div className="sm:col-span-2">
+                      <span className="text-[10px] text-muted-foreground font-medium block mb-0.5">Logradouro / Nº</span>
+                      <input
+                        type="text"
+                        value={extractedData.endereco || ''}
+                        onChange={(e) => setExtractedData({ ...extractedData, endereco: e.target.value })}
+                        placeholder="RUA MONTEIRO LOBATO 2137 CX 01"
+                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground font-medium block mb-0.5">Bairro</span>
+                      <input
+                        type="text"
+                        value={extractedData.bairro || ''}
+                        onChange={(e) => setExtractedData({ ...extractedData, bairro: e.target.value })}
+                        placeholder="INTERLAGOS"
+                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground font-medium block mb-0.5">CEP</span>
+                      <input
+                        type="text"
+                        value={extractedData.cep || ''}
+                        onChange={(e) => setExtractedData({ ...extractedData, cep: e.target.value })}
+                        placeholder="29903-610"
+                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div className="sm:col-span-4">
+                      <span className="text-[10px] text-muted-foreground font-medium block mb-0.5">Cidade / UF</span>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={extractedData.cidade || ''}
+                          onChange={(e) => setExtractedData({ ...extractedData, cidade: e.target.value })}
+                          placeholder="LINHARES"
+                          className="flex-1 bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        <input
+                          type="text"
+                          value={extractedData.uf || ''}
+                          onChange={(e) => setExtractedData({ ...extractedData, uf: e.target.value })}
+                          placeholder="ES"
+                          className="w-16 bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary uppercase text-center"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
