@@ -173,6 +173,19 @@ export default function Clientes() {
                     {client.address && <p className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {client.address}</p>}
                   </div>
 
+                  {/* Badge de Procuração */}
+                  <div className="mt-3">
+                    {client.procuracaoUrl ? (
+                      <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                        <FileText className="w-3 h-3" /> Procuração OK
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                        ⚠️ Sem Procuração
+                      </span>
+                    )}
+                  </div>
+
                   {/* Partner badge — only shown in Clientes Gerais tab */}
                   {activeTab === 'GERAIS' && (() => {
                     const u = client.user;

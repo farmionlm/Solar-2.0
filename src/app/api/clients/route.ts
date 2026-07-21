@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, cpfCnpj, phone, email, address, neighborhood, city, installationNumber, cep } = body;
+    const { name, cpfCnpj, phone, email, address, neighborhood, city, installationNumber, cep, procuracaoUrl, procuracaoName } = body;
 
     if (!name || name.trim() === '') {
       return NextResponse.json({ error: 'Nome do cliente é obrigatório.' }, { status: 400 });
@@ -79,6 +79,9 @@ export async function POST(request: Request) {
         city: city?.trim() || null,
         installationNumber: installationNumber?.trim() || null,
         cep: cep?.trim() || null,
+        procuracaoUrl: procuracaoUrl || null,
+        procuracaoName: procuracaoName || null,
+        procuracaoUpdatedAt: procuracaoUrl ? new Date() : null,
         userId: session.user.id,
       }
     });
@@ -99,7 +102,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { id, name, cpfCnpj, phone, email, address, neighborhood, city, installationNumber, cep } = body;
+    const { id, name, cpfCnpj, phone, email, address, neighborhood, city, installationNumber, cep, procuracaoUrl, procuracaoName } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'ID do cliente é obrigatório.' }, { status: 400 });
@@ -128,19 +131,25 @@ export async function PUT(request: Request) {
       }
     }
 
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name.trim();
+    if (cpfCnpj !== undefined) updateData.cpfCnpj = cpfCnpj?.trim() || null;
+    if (phone !== undefined) updateData.phone = phone?.trim() || null;
+    if (email !== undefined) updateData.email = email?.trim() || null;
+    if (address !== undefined) updateData.address = address?.trim() || null;
+    if (neighborhood !== undefined) updateData.neighborhood = neighborhood?.trim() || null;
+    if (city !== undefined) updateData.city = city?.trim() || null;
+    if (installationNumber !== undefined) updateData.installationNumber = installationNumber?.trim() || null;
+    if (cep !== undefined) updateData.cep = cep?.trim() || null;
+    if (procuracaoUrl !== undefined) {
+      updateData.procuracaoUrl = procuracaoUrl || null;
+      updateData.procuracaoName = procuracaoName || null;
+      updateData.procuracaoUpdatedAt = procuracaoUrl ? new Date() : null;
+    }
+
     const client = await prisma.client.update({
       where: { id },
-      data: {
-        ...(name !== undefined && { name: name.trim() }),
-        ...(cpfCnpj !== undefined && { cpfCnpj: cpfCnpj?.trim() || null }),
-        ...(phone !== undefined && { phone: phone?.trim() || null }),
-        ...(email !== undefined && { email: email?.trim() || null }),
-        ...(address !== undefined && { address: address?.trim() || null }),
-        ...(neighborhood !== undefined && { neighborhood: neighborhood?.trim() || null }),
-        ...(city !== undefined && { city: city?.trim() || null }),
-        ...(installationNumber !== undefined && { installationNumber: installationNumber?.trim() || null }),
-        ...(cep !== undefined && { cep: cep?.trim() || null }),
-      }
+      data: updateData
     });
 
     return NextResponse.json(client);

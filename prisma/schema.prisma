@@ -65,6 +65,10 @@ model Client {
   installationNumber String?
   cep                String?
 
+  procuracaoUrl       String?
+  procuracaoName      String?
+  procuracaoUpdatedAt DateTime?
+
   userId             String?
   user               User?    @relation(fields: [userId], references: [id])
 

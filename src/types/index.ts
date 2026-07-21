@@ -18,6 +18,8 @@ export type ClientData = {
   city?: string;
   installationNumber?: string;
   cep?: string;
+  procuracaoUrl?: string | null;
+  procuracaoName?: string | null;
 };
 
 export type ClientListItem = {
@@ -31,6 +33,9 @@ export type ClientListItem = {
   city?: string | null;
   installationNumber?: string | null;
   cep?: string | null;
+  procuracaoUrl?: string | null;
+  procuracaoName?: string | null;
+  procuracaoUpdatedAt?: string | null;
   createdAt?: string;
   _count?: { projects: number };
   userId?: string | null;

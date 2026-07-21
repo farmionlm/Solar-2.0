@@ -732,6 +732,147 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
           )}
         </div>
 
+        {/* Card de Procuração do Cliente */}
+        <div className="bg-card rounded-2xl shadow-xl border border-border p-6 mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-border/60">
+            <div>
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-black text-foreground">Procuração do Cliente</h2>
+                {client.procuracaoUrl ? (
+                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    ✓ Procuração Anexada
+                  </span>
+                ) : (
+                  <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                    ⚠️ Sem Procuração Anexada
+                  </span>
+                )}
+              </div>
+              <p className="text-xs font-medium text-muted-foreground mt-1">
+                Anexe a procuração em PDF ou Imagem para acessar o documento de qualquer dispositivo ou local.
+              </p>
+            </div>
+
+            <div className="relative">
+              <input
+                type="file"
+                accept=".pdf, .png, .jpg, .jpeg, .docx"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 8 * 1024 * 1024) {
+                    alert("O arquivo da procuração deve ter no máximo 8MB.");
+                    return;
+                  }
+                  setIsSaving(true);
+                  const reader = new FileReader();
+                  reader.onload = async (event) => {
+                    try {
+                      const dataUrl = event.target?.result as string;
+                      const res = await fetch("/api/clients", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id, procuracaoUrl: dataUrl, procuracaoName: file.name }),
+                      });
+                      if (!res.ok) throw new Error("Erro ao salvar procuração");
+                      await mutate();
+                      setSaveMsg("Procuração atualizada com sucesso!");
+                      setTimeout(() => setSaveMsg(""), 3000);
+                    } catch {
+                      alert("Falha ao enviar o arquivo da procuração.");
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }}
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+              />
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-xl shadow-md h-10 px-4">
+                <Upload className="w-4 h-4 mr-1.5" />
+                {client.procuracaoUrl ? "Substituir Procuração" : "Anexar Procuração (.PDF)"}
+              </Button>
+            </div>
+          </div>
+
+          {client.procuracaoUrl ? (
+            <div className="bg-secondary/30 rounded-xl p-4 border border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground truncate max-w-md">
+                    {client.procuracaoName || "Procuracao_Cliente.pdf"}
+                  </p>
+                  {client.procuracaoUpdatedAt && (
+                    <p className="text-[11px] text-muted-foreground font-medium">
+                      Atualizado em: {new Date(client.procuracaoUpdatedAt).toLocaleDateString("pt-BR", { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                <button
+                  onClick={() => {
+                    const win = window.open();
+                    if (win && client.procuracaoUrl) {
+                      win.document.write(`<iframe src="${client.procuracaoUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                    }
+                  }}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-3.5 py-2 rounded-xl text-xs font-bold transition-all"
+                  title="Abrir procuração em nova aba"
+                >
+                  <FileText className="w-3.5 h-3.5" /> Visualizar Documento
+                </button>
+
+                <a
+                  href={client.procuracaoUrl}
+                  download={client.procuracaoName || `Procuracao_${client.name.replace(/\s+/g, '_')}.pdf`}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-card hover:bg-secondary text-foreground border border-border px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
+                  title="Baixar cópia da procuração"
+                >
+                  <Download className="w-3.5 h-3.5 text-primary" /> Baixar
+                </a>
+
+                <button
+                  onClick={async () => {
+                    if (!confirm("Remover o arquivo da procuração deste cliente?")) return;
+                    setIsSaving(true);
+                    try {
+                      const res = await fetch("/api/clients", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id, procuracaoUrl: null, procuracaoName: null }),
+                      });
+                      if (!res.ok) throw new Error("Erro ao apagar");
+                      await mutate();
+                      setSaveMsg("Procuração removida.");
+                      setTimeout(() => setSaveMsg(""), 3000);
+                    } catch {
+                      alert("Erro ao remover procuração.");
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
+                  className="p-2 text-red-400 bg-red-950/30 hover:bg-red-900/50 rounded-xl transition-colors border border-red-900/30"
+                  title="Excluir procuração"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 border-2 border-dashed border-border rounded-xl bg-secondary/10">
+              <FileText className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-sm font-bold text-foreground">Nenhuma procuração anexada</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Faça o upload do documento assinado em formato PDF ou Imagem.</p>
+            </div>
+          )}
+        </div>
+
         {/* Projetos */}
         <div className="bg-card rounded-2xl shadow-xl border border-border p-6">
           <div className="flex justify-between items-center mb-6">
