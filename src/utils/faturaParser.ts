@@ -46,6 +46,34 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     '02.429.980/0001-40', '02429980000140', // CPFL
   ];
 
+  // CEPs conhecidos de sedes de distribuidoras para ignorar
+  const cepsDistribuidoras = [
+    '29050-670', '29050670', // EDP ES (Vitória - Enseada do Suá)
+    '20050-000', '20050000', // Light RJ
+    '01000-000', // Enel SP
+    '30190-000', // Cemig MG
+  ];
+
+  // Trechos de endereços de sedes de distribuidoras para ignorar
+  const enderecosDistribuidoras = [
+    'FLORENTINO FALLER',
+    'ENSEADA DO SUÁ',
+    'ENSEADA DO SUA',
+    'FABIO RUSCHI',
+    'FÁBIO RUSCHI',
+    'MARECHAL FLORIANO',
+    'LAMEGO',
+    'EMÍLIO RIBAS',
+    'EMILIO RIBAS'
+  ];
+
+  const isDistributorData = (lineStr: string) => {
+    const u = lineStr.toUpperCase();
+    return cnpjsDistribuidoras.some(c => u.includes(c)) ||
+           cepsDistribuidoras.some(c => u.includes(c)) ||
+           enderecosDistribuidoras.some(e => u.includes(e));
+  };
+
   // 1. Identificar Concessionária
   let concessionaria = "EDP Espírito Santo";
   if (/LIGHT/i.test(cleanText)) {
@@ -85,10 +113,18 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
   // --- 2. EXTRAÇÃO CONTEXTUAL DO BLOCO DO CLIENTE (EDP/Light/Enel) ---
   const rawLinhas = cleanText.split('\n').map(l => l.trim()).filter(Boolean);
   
-  // Encontrar o índice pivô do bloco do cliente (linha contendo CPF, CEP ou CÓDIGO DO CLIENTE)
+  // Encontrar o índice pivô do bloco do cliente (ignorando cabeçalho da distribuidora)
   let clienteBlockIndex = -1;
   for (let i = 0; i < rawLinhas.length; i++) {
-    if (/(?:CPF|CPF\/CNPJ|DOC)\s*[:\s]*\d+/i.test(rawLinhas[i]) || /CEP\s*[:\s]*\d+/i.test(rawLinhas[i]) || /CÓDIGO\s*DO\s*CLIENTE/i.test(rawLinhas[i])) {
+    const l = rawLinhas[i];
+    if (isDistributorData(l)) continue; // Ignora o cabeçalho da EDP / distribuidora
+
+    if (
+      /(?:CPF|CPF\/CNPJ|DOC)\s*[:\s]*\d+/i.test(l) ||
+      /CEP\s*[:\s]*\d+/i.test(l) ||
+      /CÓDIGO\s*DO\s*CLIENTE/i.test(l) ||
+      /\/\s*[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{3,30}\s*-\s*[A-Z]{2}/i.test(l)
+    ) {
       clienteBlockIndex = i;
       break;
     }
@@ -96,11 +132,13 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
 
   if (clienteBlockIndex !== -1) {
     const startIdx = Math.max(0, clienteBlockIndex - 6);
-    const endIdx = Math.min(rawLinhas.length, clienteBlockIndex + 4);
+    const endIdx = Math.min(rawLinhas.length, clienteBlockIndex + 5);
     const blocoLinhas = rawLinhas.slice(startIdx, endIdx);
 
     // Passagem 1: Extrair CPF, CEP, Cidade e Instalação do Bloco
     for (const rawLinha of blocoLinhas) {
+      if (isDistributorData(rawLinha)) continue;
+
       // a) CPF do Cliente no Bloco (ex: "CPF: 14487106770")
       if (!cpfCnpj) {
         const cpfMatch = rawLinha.match(/(?:CPF|CNPJ|CPF\/CNPJ|DOC(?:UMENTO)?)\s*[:\.\s\-]*\s*([\d\.\/\-]{11,18})/i);
@@ -119,7 +157,7 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
         const cepMatch = rawLinha.match(/(?:CEP)?\s*[:\s]*(\d{5}-\d{3}|\d{8})\b/i);
         if (cepMatch) {
           const rawCep = cepMatch[1].replace(/\D/g, '');
-          if (rawCep.length === 8) {
+          if (rawCep.length === 8 && !cepsDistribuidoras.includes(rawCep) && !cepsDistribuidoras.includes(cepMatch[1])) {
             cep = rawCep.replace(/(\d{5})(\d{3})/, '$1-$2');
           }
         }
@@ -151,6 +189,8 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     // Linha B: ENDEREÇO (ex: "RUA MONTEIRO LOBATO 2137 CX 01")
     // Linha C: BAIRRO / CIDADE - UF (ex: "INTERLAGOS / LINHARES - ES")
     for (let i = 0; i < blocoLinhas.length; i++) {
+      if (isDistributorData(blocoLinhas[i])) continue;
+
       const lineClean = sanitizeLineRightColumn(blocoLinhas[i]);
       const lineUpper = lineClean.toUpperCase();
 
@@ -164,7 +204,7 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
           // O Endereço no modelo EDP é a linha IMEDIATAMENTE APÓS o Nome do Cliente!
           if (i + 1 < blocoLinhas.length) {
             const nextLineClean = sanitizeLineRightColumn(blocoLinhas[i + 1]);
-            if (nextLineClean && !nextLineClean.includes('CPF:') && !nextLineClean.includes('CEP:')) {
+            if (nextLineClean && !isDistributorData(nextLineClean) && !nextLineClean.includes('CPF:') && !nextLineClean.includes('CEP:')) {
               endereco = nextLineClean;
             }
           }
@@ -174,7 +214,7 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
       // Se ainda não capturou o endereço via linha seguinte do nome, busca por palavra-chave de logradouro (RUA, R., AVENUE, PRAÇA, etc.)
       if (!endereco) {
         const isStreetPrefix = /(?:RUA|R\.|AVENIDA|AV\.|ALAMEDA|PRAÇA|PRACA|ESTRADA|RODOVIA|SERVIDÃO|SERVIDAO|TRAVESSA|TV\.|SÍTIO|SITIO|FAZENDA|CONJUNTO|QUADRA|PARQUE)\s+/i.test(lineClean);
-        const isHeaderAddr = palavrasProibidas.some(p => lineUpper.includes(p));
+        const isHeaderAddr = palavrasProibidas.some(p => lineUpper.includes(p)) || isDistributorData(lineClean);
         if (isStreetPrefix && !isHeaderAddr) {
           endereco = lineClean;
         }
@@ -182,10 +222,11 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     }
   }
 
-  // --- FALLBACKS GLOBAIS (Se algum campo não tiver sido extraído do bloco) ---
+  // --- FALLBACKS GLOBAIS (Se algum campo não tiver sido extraído do bloco, garantindo que ignora a concessionária) ---
   if (!cpfCnpj) {
     const rotuloMatches = Array.from(cleanText.matchAll(/(?:CPF|CNPJ|CPF\/CNPJ|DOC(?:UMENTO)?)\s*(?:DO\s*CLIENTE|DO\s*TITULAR|DO\s*DESTINATÁRIO)?\s*[:\.\s\-]*\n?\s*([\d\.\/\-]{11,18})/gi));
     for (const match of rotuloMatches) {
+      if (isDistributorData(match[0])) continue;
       const rawDigits = match[1].replace(/\D/g, '');
       if (rawDigits.length === 11) {
         cpfCnpj = rawDigits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
@@ -207,7 +248,7 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     let matchNome: RegExpExecArray | null;
     while ((matchNome = nomeLabelRegex.exec(cleanText)) !== null) {
       const candidato = matchNome[1].trim().split('\n')[0].trim();
-      const ehProibido = palavrasProibidas.some(p => candidato.toUpperCase().includes(p));
+      const ehProibido = palavrasProibidas.some(p => candidato.toUpperCase().includes(p)) || isDistributorData(candidato);
       if (!ehProibido && candidato.length >= 5 && candidato.includes(' ')) {
         clienteNome = candidato;
         break;
@@ -216,9 +257,15 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
   }
 
   if (!endereco) {
-    const enderecoMatch = cleanText.match(/(?:RUA|R\.|AVENIDA|AV\.|ALAMEDA|PRAÇA|PRACA|ESTRADA|RODOVIA|SERVIDÃO|SERVIDAO|TRAVESSA|TV\.)\s+[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s,\.\-\/]{5,80}/i);
-    if (enderecoMatch && !palavrasProibidas.some(p => enderecoMatch[0].toUpperCase().includes(p))) {
-      endereco = enderecoMatch[0].trim().split('\n')[0];
+    const linhas = cleanText.split('\n').map(l => l.trim()).filter(Boolean);
+    for (const l of linhas) {
+      if (isDistributorData(l)) continue;
+      const lClean = sanitizeLineRightColumn(l);
+      const isStreetPrefix = /(?:RUA|R\.|AVENIDA|AV\.|ALAMEDA|PRAÇA|PRACA|ESTRADA|RODOVIA|SERVIDÃO|SERVIDAO|TRAVESSA|TV\.|SÍTIO|SITIO|FAZENDA|CONJUNTO|QUADRA|PARQUE)\s+/i.test(lClean);
+      if (isStreetPrefix && !palavrasProibidas.some(p => lClean.toUpperCase().includes(p))) {
+        endereco = lClean;
+        break;
+      }
     }
   }
 
@@ -228,11 +275,12 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
   }
 
   if (!cep) {
-    const cepMatch = cleanText.match(/(?:CEP)?\s*[:\s]*(\d{5}-\d{3}|\d{8})\b/i);
-    if (cepMatch) {
-      const rawCep = cepMatch[1].replace(/\D/g, '');
-      if (rawCep.length === 8) {
+    const cepMatches = Array.from(cleanText.matchAll(/(?:CEP)?\s*[:\s]*(\d{5}-\d{3}|\d{8})\b/gi));
+    for (const cepM of cepMatches) {
+      const rawCep = cepM[1].replace(/\D/g, '');
+      if (rawCep.length === 8 && !cepsDistribuidoras.includes(rawCep) && !cepsDistribuidoras.includes(cepM[1])) {
         cep = rawCep.replace(/(\d{5})(\d{3})/, '$1-$2');
+        break;
       }
     }
   }
