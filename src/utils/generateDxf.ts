@@ -1,6 +1,6 @@
 import { ClientListItem, Project } from "@/types";
 
-export type DxfTemplateType = "unifilar" | "projeto_completo" | "institucional";
+export type DxfTemplateType = "unifilar" | "unifilar_3strings" | "projeto_completo" | "institucional";
 export type PatternType = "MONOFASICO" | "BIFASICO" | "TRIFASICO";
 
 export interface ElectricalSizingResult {
@@ -77,9 +77,15 @@ export function calculateMpptDistribution(
 export const DXF_TEMPLATES = [
   {
     id: "unifilar" as DxfTemplateType,
-    title: "Diagrama Unifilar Padrão",
-    description: "Modelo ideal para entradas de microgeração residencial e comercial.",
+    title: "Diagrama Unifilar Padrão (2 Entradas CC)",
+    description: "Modelo para inversores com 2 ramais de entrada CC (ex: 1 por MPPT).",
     filename: "unifilar.dxf",
+  },
+  {
+    id: "unifilar_3strings" as DxfTemplateType,
+    title: "Diagrama Unifilar 3 Entradas CC (ex: Solis S6 / 3 Strings)",
+    description: "Modelo com 3 ramais CC (MPPT 1 com 2 entradas paralelas + MPPT 2 com 1 entrada).",
+    filename: "unifilar_3strings.dxf",
   },
   {
     id: "projeto_completo" as DxfTemplateType,
@@ -96,8 +102,35 @@ export const DXF_TEMPLATES = [
 ];
 
 /**
+ * Formata o modelo do módulo de forma limpa e concisa para caber no carimbo CAD sem sobrepor o ramo vizinho.
+ * Exemplo: "HMB132T12R-620CB- BIFACIAL N-TYPE - 620WP" -> "HMB132T12R-620CB 620W"
+ */
+function formatCleanModuleModel(rawModel: string): string {
+  if (!rawModel) return "MÓDULO FOTOVOLTAICO";
+
+  let clean = rawModel.toUpperCase().trim();
+
+  // Simplificar descrições prolixas mantendo o modelo principal e potência
+  clean = clean.replace(/-\s*BIFACIAL\s*N-TYPE\s*-/gi, "");
+  clean = clean.replace(/BIFACIAL\s*N-TYPE/gi, "");
+  clean = clean.replace(/\s+/g, " ").trim();
+
+  if (clean.length > 24) {
+    // Tentar extrair o código do modelo e a potência (ex: HMB132T12R ... 620WP)
+    const powerMatch = clean.match(/(\d{3}\s*WP|\d{3}\s*W)/i);
+    const codeMatch = clean.split(/[\s-]/)[0];
+    if (codeMatch && powerMatch) {
+      return `${codeMatch} ${powerMatch[1]}`;
+    }
+    return clean.substring(0, 24);
+  }
+
+  return clean;
+}
+
+/**
  * Parser DXF estruturado por grupos (Grupo 1 e 3) que preserva 100% da integridade do arquivo para o AutoCAD.
- * Suporta diagramas de 2 e 3 Entradas/Strings (MPPT 1 com 2 ramais + MPPT 2 com 1 ramal) sem cortar modelos de módulos.
+ * Suporta diagramas de 2 e 3 Entradas/Strings (MPPT 1 com 2 ramais + MPPT 2 com 1 ramal) sem sobrepor textos.
  */
 export async function generateDxfProject(
   client: ClientListItem,
@@ -123,9 +156,9 @@ export async function generateDxfProject(
   const layoutStr = customStringLayout || project.inverters?.[0]?.stringLayout;
   const mpptDistribution = calculateMpptDistribution(totalModulesNum, numMppts, layoutStr);
 
-  // Seleção inteligente do gabarito CAD (Se houver 3 entradas/strings, carregar o gabarito unifilar_3strings.dxf)
+  // Seleção inteligente do gabarito CAD (Se o usuário escolher unifilar_3strings ou se houver 3 entradas)
   let templateFilename = selectedTemplate.filename;
-  if (templateType === "unifilar" && mpptDistribution.length >= 3) {
+  if (templateType === "unifilar_3strings" || (templateType === "unifilar" && mpptDistribution.length >= 3)) {
     templateFilename = "unifilar_3strings.dxf";
   }
   const templateUrl = `/templates/dxf/${templateFilename}`;
@@ -149,9 +182,9 @@ export async function generateDxfProject(
     const mppt2CountStr = mppt2Count > 0 ? String(mppt2Count).padStart(2, "0") : "  ";
     const mppt3CountStr = mppt3Count > 0 ? String(mppt3Count).padStart(2, "0") : "  ";
 
-    // 4. Dados dos Equipamentos (Nome completo sem truncamento)
+    // 4. Dados dos Equipamentos (Formatação concisa para caber no carimbo sem sobrepor)
     const rawModuleModel = project.moduleModel || "Módulo Fotovoltaico";
-    const fullModuleModel = rawModuleModel.toUpperCase().trim();
+    const cleanModuleModel = formatCleanModuleModel(rawModuleModel);
 
     const moduleManufacturer = (project.moduleManufacturer || "SOLAR").toUpperCase().trim();
     
@@ -237,9 +270,9 @@ export async function generateDxfProject(
             updated = true;
           }
 
-          // E. Marca e Modelo Completo de Módulos (Sem Truncar)
+          // E. Marca e Modelo Completo de Módulos (Formatado sem sobreposição)
           if (!updated && /HMB132T12R|HiKu6 CS6W-550MS|CS6W/i.test(textVal)) {
-            textVal = fullModuleModel;
+            textVal = cleanModuleModel;
             updated = true;
           }
 
