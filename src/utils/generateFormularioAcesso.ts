@@ -164,6 +164,15 @@ export const generateFormularioAcessoPDF = (client: ClientDetail, project: Proje
   doc.setLineWidth(0.5);
   doc.setDrawColor(15, 23, 42);
 
+  // Se possuir assinatura eletrônica coletada, desenha a imagem sobre a linha
+  if (client.signatureUrl) {
+    try {
+      doc.addImage(client.signatureUrl, "PNG", 30, y - 16, 50, 14);
+    } catch (sigErr) {
+      console.warn("Erro ao renderizar imagem da assinatura digital no PDF:", sigErr);
+    }
+  }
+
   // Assinatura do Cliente
   doc.line(20, y, 90, y);
   doc.setFont("helvetica", "bold");

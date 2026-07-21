@@ -304,6 +304,15 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   doc.text(dateString, 196, yPos, { align: "right" });
   yPos += 30;
 
+  // Se tiver assinatura eletrônica do cliente
+  if (client.signatureUrl) {
+    try {
+      doc.addImage(client.signatureUrl, "PNG", 80, yPos - 16, 50, 14);
+    } catch (sigErr) {
+      console.warn("Erro ao renderizar assinatura no PDF:", sigErr);
+    }
+  }
+
   doc.text("________________________________________________", 105, yPos, { align: "center" });
   yPos += 6;
   doc.text(project.professionalName || "Responsável Técnico Não Informado", 105, yPos, { align: "center" });
