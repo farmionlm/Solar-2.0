@@ -102,7 +102,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { id, name, cpfCnpj, phone, email, address, neighborhood, city, installationNumber, cep, procuracaoUrl, procuracaoName } = body;
+    const { id, name, cpfCnpj, phone, email, address, neighborhood, city, installationNumber, cep, procuracaoUrl, procuracaoName, concessionaria, protocolDate } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'ID do cliente é obrigatório.' }, { status: 400 });
@@ -145,6 +145,24 @@ export async function PUT(request: Request) {
       updateData.procuracaoUrl = procuracaoUrl || null;
       updateData.procuracaoName = procuracaoName || null;
       updateData.procuracaoUpdatedAt = procuracaoUrl ? new Date() : null;
+    }
+    if (concessionaria !== undefined) updateData.concessionaria = concessionaria?.trim() || null;
+    if (protocolDate !== undefined) {
+      const parsedDate = protocolDate ? new Date(protocolDate) : null;
+      updateData.protocolDate = parsedDate;
+      // Calcula automaticamente slaDueDate como 15 dias úteis após o protocolo
+      if (parsedDate) {
+        const due = new Date(parsedDate);
+        let businessDaysAdded = 0;
+        while (businessDaysAdded < 15) {
+          due.setDate(due.getDate() + 1);
+          const day = due.getDay();
+          if (day !== 0 && day !== 6) businessDaysAdded++;
+        }
+        updateData.slaDueDate = due;
+      } else {
+        updateData.slaDueDate = null;
+      }
     }
 
     const client = await prisma.client.update({

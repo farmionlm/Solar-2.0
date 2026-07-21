@@ -13,6 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { generateMemorialPDF } from "@/utils/generateMemorial";
 import { generateMemorialDocx } from "@/utils/generateMemorialDocx";
+import { generateFormularioAcessoPDF } from "@/utils/generateFormularioAcesso";
+import { generateFormularioAcessoDocx } from "@/utils/generateFormularioAcessoDocx";
+import { SlaCountdownBadge } from "@/components/SlaCountdownBadge";
 
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 
@@ -876,6 +879,100 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
           )}
         </div>
 
+        {/* Card de SLA de Homologação junto à Concessionária */}
+        <div className="bg-card rounded-2xl shadow-xl border border-border p-6 mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 pb-4 border-b border-border/60">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-foreground">SLA — Parecer da Concessionária</h2>
+                <p className="text-xs text-muted-foreground">Acompanhamento do prazo regulatório ANEEL (15 dias úteis)</p>
+              </div>
+            </div>
+            <SlaCountdownBadge protocolDate={client.protocolDate} targetDays={15} />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                Data do Protocolo (Envio à Concessionária)
+              </label>
+              <Input
+                type="date"
+                defaultValue={client.protocolDate ? new Date(client.protocolDate).toISOString().split("T")[0] : ""}
+                onBlur={async (e) => {
+                  const dateValue = e.target.value;
+                  if (!dateValue) return;
+                  setIsSaving(true);
+                  try {
+                    const res = await fetch("/api/clients", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ id, protocolDate: new Date(dateValue).toISOString() }),
+                    });
+                    if (!res.ok) throw new Error();
+                    await mutate();
+                    setSaveMsg("Data de protocolo salva com sucesso!");
+                    setTimeout(() => setSaveMsg(""), 3000);
+                  } catch {
+                    alert("Erro ao salvar a data de protocolo.");
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }}
+                className="h-10 text-sm font-mono"
+              />
+              {client.protocolDate && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Protocolado em: {new Date(client.protocolDate).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                Concessionária
+              </label>
+              <Input
+                type="text"
+                defaultValue={client.concessionaria || ""}
+                placeholder="Ex: EDP Espírito Santo"
+                onBlur={async (e) => {
+                  const value = e.target.value.trim();
+                  if (!value) return;
+                  setIsSaving(true);
+                  try {
+                    const res = await fetch("/api/clients", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ id, concessionaria: value }),
+                    });
+                    if (!res.ok) throw new Error();
+                    await mutate();
+                    setSaveMsg("Concessionária salva!");
+                    setTimeout(() => setSaveMsg(""), 3000);
+                  } catch {
+                    alert("Erro ao salvar a concessionária.");
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }}
+                className="h-10 text-sm"
+              />
+            </div>
+          </div>
+
+          {!client.protocolDate && (
+            <div className="mt-4 bg-secondary/20 border border-dashed border-border rounded-xl p-4 text-center">
+              <p className="text-xs text-muted-foreground">
+                Informe a data em que o projeto foi enviado à concessionária para ativar a contagem regressiva do SLA.
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Projetos */}
         <div className="bg-card rounded-2xl shadow-xl border border-border p-6">
           <div className="flex justify-between items-center mb-6">
@@ -961,6 +1058,44 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           title="Exportar Planilha Excel"
                         >
                           <Download className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            try {
+                              const currentEquip = projectEquipments[proj.id] || {};
+                              const mergedProject = { ...proj, ...currentEquip };
+                              generateFormularioAcessoPDF(client, mergedProject);
+                            } catch (err) {
+                              console.error("Erro ao gerar Formulário de Acesso PDF:", err);
+                              alert("Ocorreu um erro ao gerar o Formulário em PDF.");
+                            }
+                          }}
+                          className="text-amber-400 bg-amber-950/30 hover:bg-amber-900/50 border border-amber-500/20"
+                          title="Gerar Formulário de Acesso ANEEL / EDP (PDF)"
+                        >
+                          <Zap className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            try {
+                              const currentEquip = projectEquipments[proj.id] || {};
+                              const mergedProject = { ...proj, ...currentEquip };
+                              generateFormularioAcessoDocx(client, mergedProject);
+                            } catch (err) {
+                              console.error("Erro ao gerar Formulário de Acesso DOCX:", err);
+                              alert("Ocorreu um erro ao gerar o Formulário em Word.");
+                            }
+                          }}
+                          className="text-purple-400 bg-purple-950/30 hover:bg-purple-900/50 border border-purple-500/20"
+                          title="Gerar Formulário de Acesso ANEEL / EDP (Word/DOCX)"
+                        >
+                          <FileText className="w-4 h-4" />
                         </Button>
 
                         <Button

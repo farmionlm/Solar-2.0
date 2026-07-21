@@ -64,10 +64,15 @@ model Client {
   city               String?
   installationNumber String?
   cep                String?
+  concessionaria     String?
 
   procuracaoUrl       String?
   procuracaoName      String?
   procuracaoUpdatedAt DateTime?
+
+  // SLA de Homologação junto à Concessionária (ANEEL 15 dias úteis)
+  protocolDate        DateTime? // Data de protocolo junto à concessionária
+  slaDueDate          DateTime? // Data limite calculada (15 dias úteis)
 
   userId             String?
   user               User?    @relation(fields: [userId], references: [id])
