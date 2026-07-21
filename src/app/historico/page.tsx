@@ -116,30 +116,24 @@ export default function Historico() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div className="flex items-center gap-3">
-            <Link href="/" title="Voltar ao Início" className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg hover:scale-105 transition-transform active:scale-95">
-              <HistoryIcon className="w-8 h-8" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Histórico de Projetos</h1>
-              <p className="text-muted-foreground font-medium">Seus dimensionamentos salvos</p>
-            </div>
+    <div className="p-4 md:p-8 max-w-6xl mx-auto">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold text-primary mb-1">
+            <HistoryIcon className="w-4 h-4" /> Histórico de Simulações
           </div>
-          <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-            <Link href="/clientes" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-4 sm:px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
-              <Users className="w-5 h-5" />
-              <span className="hidden sm:inline">Clientes</span>
-            </Link>
-            <Link href="/" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-4 sm:px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
-              <ArrowLeft className="w-5 h-5" />
-              <span className="hidden sm:inline">Nova Simulação</span>
-            </Link>
-            <UserMenu />
-          </div>
-        </header>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">Projetos Salvos</h1>
+          <p className="text-sm text-muted-foreground font-medium mt-0.5">Consulte todos os seus dimensionamentos fotovoltaicos salvos</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          <Link href="/simulador" className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md shadow-primary/20">
+            <Sun className="w-4 h-4" /> Nova Simulação
+          </Link>
+          <Link href="/clientes" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 text-foreground px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm">
+            <Users className="w-4 h-4 text-primary" /> Clientes
+          </Link>
+        </div>
+      </header>
 
         {swrError && <div className="bg-red-900/20 text-red-400 p-4 rounded-xl mb-6 border border-red-900/50 font-medium">{swrError?.message}</div>}
 

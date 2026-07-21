@@ -127,37 +127,19 @@ export default function PartnerTechniciansPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div className="flex items-center gap-3">
-            <Link href="/" title="Voltar ao Início" className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg hover:scale-105 transition-transform active:scale-95">
-              <Users className="w-8 h-8" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                Meus Técnicos
-              </h1>
-              <p className="text-muted-foreground font-medium">Gerencie o acesso da sua equipe</p>
-            </div>
+    <div className="p-4 md:p-8 max-w-6xl mx-auto">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold text-primary mb-1">
+            <Users className="w-4 h-4" /> Gestão de Equipe & Acessos
           </div>
-          <div className="flex gap-3">
-            <Link href="/" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
-              <ArrowLeft className="w-5 h-5" />
-              <span className="hidden sm:inline">Voltar</span>
-            </Link>
-            <UserMenu />
-          </div>
-        </header>
-
-        <div className="bg-card border border-border rounded-xl shadow-lg p-6 mb-8 flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-bold">Equipe Técnica</h2>
-            <p className="text-muted-foreground text-sm">Contas de acesso para os técnicos da sua empresa realizarem dimensionamentos.</p>
-          </div>
-          <Button onClick={() => { setIsCreating(true); setError(''); }} className="bg-primary text-primary-foreground">
-            <Plus className="w-4 h-4 mr-2" /> Novo Técnico
-          </Button>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">Meus Técnicos</h1>
+          <p className="text-sm text-muted-foreground font-medium mt-0.5">Gerencie os acessos e permissões dos técnicos da sua empresa</p>
         </div>
+        <Button onClick={() => { setIsCreating(true); setError(''); }} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md shadow-primary/20 active:scale-95 h-11 px-5 font-bold text-xs">
+          <Plus className="w-4 h-4 mr-2" /> Novo Técnico
+        </Button>
+      </header>
 
         {error && !isCreating && !editingUser && !deletingUser && (
           <div className="bg-red-900/20 text-red-400 p-4 rounded-xl mb-6 border border-red-900/50 font-medium text-center">

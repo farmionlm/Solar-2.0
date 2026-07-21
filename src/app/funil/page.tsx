@@ -268,23 +268,16 @@ export default function KanbanPage() {
   const activeProject = activeId ? Object.values(items).flat().find(p => p.id === activeId) : null;
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8 flex flex-col">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 shrink-0">
-        <div className="flex items-center gap-3 group">
-          <Link href="/" title="Voltar ao Início" className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95">
-            <LayoutDashboard className="w-8 h-8" />
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Funil de Vendas</h1>
-            <p className="text-muted-foreground font-medium">Acompanhe e organize seus negócios (CRM)</p>
-          </div>
+    <div className="p-4 md:p-8 flex flex-col h-full">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 shrink-0">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">Funil de Vendas</h1>
+          <p className="text-sm text-muted-foreground font-medium mt-0.5">Acompanhe e organize o pipeline de negócios (CRM)</p>
         </div>
-        <div className="flex gap-3">
-          <Link href="/" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
-            <ArrowLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">Voltar</span>
+        <div className="flex gap-2">
+          <Link href="/simulador" className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md shadow-primary/20">
+            <Sun className="w-4 h-4" /> Nova Simulação
           </Link>
-          <UserMenu />
         </div>
       </header>
 

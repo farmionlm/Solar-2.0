@@ -4,7 +4,6 @@ import React, { Suspense } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { Sun, Users, Activity, BarChart3, PlusCircle, ArrowRight } from 'lucide-react';
-import { UserMenu } from '@/components/UserMenu';
 import { Button } from '@/components/ui/button';
 import {
   BarChart,
@@ -28,152 +27,151 @@ function DashboardContent() {
   const { data: metrics, error, isLoading } = useSWR('/api/analytics', fetcher);
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div className="flex items-center gap-3 group">
-            <div className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg shadow-primary/20">
-              <Activity className="w-8 h-8" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Painel de Controle</h1>
-              <p className="text-muted-foreground font-medium">Visão Geral de Vendas e Engenharia</p>
-            </div>
+    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      {/* Cabeçalho do Dashboard */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold text-primary mb-1">
+            <Activity className="w-4 h-4" /> Visão Geral de Vendas & Engenharia
           </div>
-          <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-            <Link href="/simulador">
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg shadow-md active:scale-95 h-10 px-4 sm:px-5">
-                <PlusCircle className="w-5 h-5 sm:mr-2" />
-                <span className="hidden sm:inline">Nova Simulação</span>
-              </Button>
-            </Link>
-            <Link href="/clientes">
-              <Button variant="outline" className="border-border bg-card hover:bg-secondary rounded-lg h-10 px-4 sm:px-5">
-                <Users className="w-5 h-5 sm:mr-2" />
-                <span className="hidden sm:inline">Clientes</span>
-              </Button>
-            </Link>
-            <UserMenu />
-          </div>
-        </header>
+          <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
+            Painel de Controle
+          </h1>
+          <p className="text-sm font-medium text-muted-foreground mt-1">
+            Acompanhe o desempenho de simulações, potência orçada e distribuição do funil CRM.
+          </p>
+        </div>
 
-        {isLoading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
-        ) : error ? (
-          <div className="bg-red-900/20 text-red-400 p-8 rounded-2xl text-center font-medium border border-red-900/50">
-            Ocorreu um erro ao carregar o dashboard.
-          </div>
-        ) : !metrics ? null : (
-          <>
-            {/* Cards de KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              <Link href="/funil" className="bg-card border border-border rounded-2xl p-6 shadow-xl relative overflow-hidden group hover:border-primary/50 hover:shadow-primary/10 transition-all cursor-pointer">
-                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <BarChart3 className="w-20 h-20 text-primary" />
-                </div>
-                <h3 className="text-muted-foreground font-bold text-sm uppercase tracking-wider mb-2">Total de Projetos</h3>
-                <div className="text-5xl font-black text-foreground mb-2">{metrics.totalProjects || 0}</div>
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <span className="text-emerald-500 font-bold group-hover:text-primary transition-colors">→ Ver todos no Funil</span>
-                </p>
-              </Link>
-
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Sun className="w-20 h-20 text-yellow-500" />
-                </div>
-                <h3 className="text-muted-foreground font-bold text-sm uppercase tracking-wider mb-2">Potência Total Orçada</h3>
-                <div className="text-5xl font-black text-foreground mb-2 flex items-baseline gap-2">
-                  {metrics.totalKwp} <span className="text-2xl text-muted-foreground">kWp</span>
-                </div>
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  Potência somada de todas as simulações
-                </p>
-              </div>
-
-              <div className="bg-gradient-to-br from-primary to-primary/80 border border-primary/50 rounded-2xl p-6 shadow-xl shadow-primary/20 text-primary-foreground flex flex-col justify-between">
-                <div>
-                  <h3 className="font-bold text-sm uppercase tracking-wider mb-2 opacity-90">Acesso Rápido</h3>
-                  <p className="text-sm opacity-80 mb-4">Inicie um novo orçamento ou acompanhe suas negociações.</p>
-                </div>
-                <div className="flex gap-2">
-                  <Link href="/simulador" className="flex-1 bg-white/20 hover:bg-white/30 text-white font-bold py-2 px-4 rounded-lg text-center transition-colors text-sm">
-                    Simular
-                  </Link>
-                  <Link href="/funil" className="flex-1 bg-black/20 hover:bg-black/30 text-white font-bold py-2 px-4 rounded-lg text-center flex items-center justify-center gap-1 transition-colors text-sm">
-                    Ver Funil <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Gráficos */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Gráfico de Evolução Mensal */}
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-xl">
-                <h3 className="text-lg font-bold mb-6 text-foreground">Evolução de Projetos (Últimos 6 Meses)</h3>
-                <div className="h-[300px] w-full">
-                  {metrics.monthlyData?.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={metrics.monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
-                        <XAxis dataKey="name" stroke="#888" fontSize={12} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#888" fontSize={12} tickLine={false} axisLine={false} />
-                        <Tooltip 
-                          cursor={{fill: '#222'}} 
-                          contentStyle={{backgroundColor: '#111', borderColor: '#333', borderRadius: '8px'}}
-                        />
-                        <Bar dataKey="projetos" name="Qtd. Projetos" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">Sem dados suficientes.</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Gráfico de Status */}
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-xl">
-                <h3 className="text-lg font-bold mb-6 text-foreground">Distribuição por Status</h3>
-                <div className="h-[300px] w-full">
-                  {metrics.statusData?.some((d: any) => d.value > 0) ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={metrics.statusData.filter((d: any) => d.value > 0)}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          {metrics.statusData.map((entry: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip contentStyle={{backgroundColor: '#111', borderColor: '#333', borderRadius: '8px'}} />
-                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">Nenhum projeto registrado.</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          <Link href="/simulador">
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md shadow-primary/20 active:scale-95 h-11 px-5 font-bold text-xs">
+              <PlusCircle className="w-4 h-4 mr-2" /> Nova Simulação
+            </Button>
+          </Link>
+          <Link href="/clientes">
+            <Button variant="outline" className="border-border bg-card hover:bg-secondary rounded-xl h-11 px-5 font-bold text-xs">
+              <Users className="w-4 h-4 mr-2" /> Meus Clientes
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      ) : error ? (
+        <div className="bg-red-900/20 text-red-400 p-8 rounded-2xl text-center font-medium border border-red-900/50">
+          Ocorreu um erro ao carregar os dados do painel de controle.
+        </div>
+      ) : !metrics ? null : (
+        <>
+          {/* Cards de KPIs Principais */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <Link href="/funil" className="bg-card border border-border rounded-2xl p-6 shadow-xl relative overflow-hidden group hover:border-primary/50 hover:shadow-primary/10 transition-all cursor-pointer">
+              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                <BarChart3 className="w-20 h-20 text-primary" />
+              </div>
+              <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-2">Total de Projetos</h3>
+              <div className="text-4xl md:text-5xl font-black text-foreground mb-2">{metrics.totalProjects || 0}</div>
+              <p className="text-xs text-muted-foreground flex items-center gap-1 font-semibold">
+                <span className="text-primary group-hover:underline">Acompanhar no Funil CRM →</span>
+              </p>
+            </Link>
+
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Sun className="w-20 h-20 text-yellow-500" />
+              </div>
+              <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-2">Potência Total Orçada</h3>
+              <div className="text-4xl md:text-5xl font-black text-foreground mb-2 flex items-baseline gap-2">
+                {metrics.totalKwp} <span className="text-xl text-muted-foreground font-bold">kWp</span>
+              </div>
+              <p className="text-xs text-muted-foreground font-medium">
+                Potência somada de todas as simulações
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-primary to-primary/80 border border-primary/50 rounded-2xl p-6 shadow-xl shadow-primary/20 text-primary-foreground flex flex-col justify-between">
+              <div>
+                <h3 className="font-black text-xs uppercase tracking-wider mb-1 opacity-90">Acesso Rápido</h3>
+                <p className="text-xs opacity-90 mb-4 font-medium">Inicie um novo orçamento ou acompanhe suas negociações.</p>
+              </div>
+              <div className="flex gap-2">
+                <Link href="/simulador" className="flex-1 bg-white/20 hover:bg-white/30 text-white font-bold py-2.5 px-4 rounded-xl text-center transition-colors text-xs">
+                  Nova Simulação
+                </Link>
+                <Link href="/funil" className="flex-1 bg-black/20 hover:bg-black/30 text-white font-bold py-2.5 px-4 rounded-xl text-center flex items-center justify-center gap-1 transition-colors text-xs">
+                  Ver Funil <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Gráficos do Dashboard */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Evolução Mensal */}
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-xl">
+              <h3 className="text-base font-black mb-6 text-foreground">Evolução de Projetos (Últimos 6 Meses)</h3>
+              <div className="h-[280px] w-full">
+                {metrics.monthlyData?.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={metrics.monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                      <XAxis dataKey="name" stroke="#888" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#888" fontSize={12} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        cursor={{fill: 'rgba(255,255,255,0.05)'}} 
+                        contentStyle={{backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '12px', fontSize: '12px'}}
+                      />
+                      <Bar dataKey="projetos" name="Qtd. Projetos" fill="var(--primary)" radius={[6, 6, 0, 0]} barSize={36} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm font-medium">Sem dados suficientes.</div>
+                )}
+              </div>
+            </div>
+
+            {/* Distribuição de Status */}
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-xl">
+              <h3 className="text-base font-black mb-6 text-foreground">Distribuição de Projetos por Status</h3>
+              <div className="h-[280px] w-full">
+                {metrics.statusData?.some((d: any) => d.value > 0) ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={metrics.statusData.filter((d: any) => d.value > 0)}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={95}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {metrics.statusData.map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '12px', fontSize: '12px'}} />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm font-medium">Nenhum projeto registrado.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 export default function Dashboard() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center text-foreground font-medium">Carregando...</div>}>
+    <Suspense fallback={<div className="p-12 text-center text-foreground font-medium">Carregando painel de controle...</div>}>
       <DashboardContent />
     </Suspense>
   );

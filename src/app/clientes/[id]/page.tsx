@@ -633,32 +633,28 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
-          <div className="w-full lg:w-auto">
-            <div className="flex items-center gap-4 mb-3">
-              <Link href="/" title="Voltar ao Início" className="text-muted-foreground hover:text-primary transition-colors">
-                <Home className="w-5 h-5" />
-              </Link>
-              <Link href="/clientes" className="flex items-center gap-1 text-primary font-bold hover:underline text-sm">
-                <ArrowLeft className="w-4 h-4" /> Voltar para Clientes
-              </Link>
-            </div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-foreground break-words">{client.name}</h1>
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
+        <div className="w-full lg:w-auto">
+          <div className="flex items-center gap-2 mb-2">
+            <Link href="/clientes" className="flex items-center gap-1 text-primary font-bold hover:underline text-xs">
+              <ArrowLeft className="w-3.5 h-3.5" /> Voltar para Clientes
+            </Link>
           </div>
-          <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-3">
-            <button
-              onClick={() => { setShowNewProjectModal(true); setNewProjectMode('choice'); }}
-              className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-4 rounded-2xl font-black transition-all shadow-xl shadow-primary/20 active:scale-95 h-14 sm:h-12 flex-1 sm:flex-none text-base">
-              <Zap className="w-5 h-5" /> Novo Projeto
-            </button>
-            <Button onClick={exportClientExcel}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-xl shadow-black/50 active:scale-95 h-14 sm:h-12 px-6 text-base font-bold flex-1 sm:flex-none">
-              <Download className="w-5 h-5 mr-2" /> Planilha Geral
-            </Button>
-          </div>
-        </header>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-foreground break-words">{client.name}</h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <button
+            onClick={() => { setShowNewProjectModal(true); setNewProjectMode('choice'); }}
+            className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 rounded-xl font-bold transition-all shadow-md shadow-primary/20 active:scale-95 text-xs">
+            <Zap className="w-4 h-4" /> Novo Projeto
+          </button>
+          <Button onClick={exportClientExcel}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md active:scale-95 px-5 h-11 text-xs font-bold">
+            <Download className="w-4 h-4 mr-1.5" /> Planilha Geral
+          </Button>
+        </div>
+      </header>
 
         {/* Dados do cliente */}
         <div className="bg-card rounded-2xl shadow-xl border border-border p-6 mb-6">

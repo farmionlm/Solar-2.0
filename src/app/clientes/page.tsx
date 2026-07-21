@@ -71,30 +71,24 @@ export default function Clientes() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div className="flex items-center gap-3">
-            <Link href="/" title="Voltar ao Início" className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-all active:scale-95">
-              <Users className="w-8 h-8" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Clientes</h1>
-              <p className="text-muted-foreground font-medium">Gerencie seus clientes e equipamentos</p>
-            </div>
+    <div className="p-4 md:p-8 max-w-6xl mx-auto">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold text-primary mb-1">
+            <Users className="w-4 h-4" /> Cadastro de Clientes & Equipamentos
           </div>
-          <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-            <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg shadow-md active:scale-95 h-10 px-4 sm:px-5">
-              <Users className="w-5 h-5 sm:mr-2" />
-              <span className="hidden sm:inline">Novo Cliente</span>
-            </Button>
-            <Link href="/simulador" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-4 sm:px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
-              <Sun className="w-5 h-5" />
-              <span className="hidden sm:inline">Nova Simulação</span>
-            </Link>
-            <UserMenu />
-          </div>
-        </header>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">Clientes</h1>
+          <p className="text-sm text-muted-foreground font-medium mt-0.5">Gerencie sua base de clientes, equipamentos e histórico de projetos</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md shadow-primary/20 active:scale-95 h-11 px-5 font-bold text-xs">
+            <Users className="w-4 h-4 mr-2" /> Novo Cliente
+          </Button>
+          <Link href="/simulador" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 text-foreground px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm">
+            <Sun className="w-4 h-4 text-primary" /> Nova Simulação
+          </Link>
+        </div>
+      </header>
 
         {/* Barra de busca e Abas */}
         <div className="mb-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">

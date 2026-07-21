@@ -4,19 +4,22 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import Link from "next/link";
-import { Sun, Upload, Save, Download, Users, ArrowLeft } from "lucide-react";
+import { Sun, Upload, Save, Download, Users, ArrowLeft, RefreshCw, CheckCircle2, Zap } from "lucide-react";
 import { ProcessedUnit, ClientData, ClientListItem } from "@/types";
 import { ResultCards } from "@/components/ResultCards";
 import { SimulationTable } from "@/components/SimulationTable";
 import { ClientLinkingForm } from "@/components/ClientLinkingForm";
-import { UserMenu } from "@/components/UserMenu";
 import { ExcelParserService } from "@/services/ExcelParserService";
 import { HSP_BY_UF, DEFAULT_HSP } from "@/utils/solarIrradiation";
 import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { StepCard } from "@/components/ui/StepCard";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { ProjectContextBanner } from "@/components/ui/ProjectContextBanner";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 function SimulatorContent() {
   const searchParams = useSearchParams();
@@ -29,6 +32,7 @@ function SimulatorContent() {
   const [selectedInverterId, setSelectedInverterId] = useState<string>("");
   const [modulePower, setModulePower] = useState<number | "">("");
   const [projectName, setProjectName] = useState<string>("");
+  const [connectionType, setConnectionType] = useState<string>("Bifásico");
   
   const [cep, setCep] = useState("");
   const [uf, setUf] = useState("");
@@ -96,7 +100,6 @@ function SimulatorContent() {
     let value = e.target.value.replace(/\D/g, "");
     if (value.length > 8) value = value.substring(0, 8);
     
-    // Formata o CEP (XXXXX-XXX)
     const formattedCep = value.replace(/^(\d{5})(\d)/, "$1-$2");
     setCep(formattedCep);
 
@@ -129,8 +132,8 @@ function SimulatorContent() {
     setSuccessMsg("");
     setSaved(false);
     
-    if (!modulePower || modulePower <= 0) {
-      setError("Por favor, insira uma potência válida para o módulo.");
+    if (!modulePower || Number(modulePower) <= 0) {
+      setError("Por favor, selecione ou insira a potência do módulo primeiro.");
       return;
     }
 
@@ -146,7 +149,7 @@ function SimulatorContent() {
         const jsonData = ExcelParserService.parseBuffer(event.target.result as ArrayBuffer);
         setRawExcelData(jsonData);
       } catch (err: any) {
-        setError(err.message || "Erro ao ler o arquivo. Certifique-se de que é um Excel ou CSV válido e contém os dados necessários.");
+        setError(err.message || "Erro ao ler o arquivo. Certifique-se de que é um Excel ou CSV válido.");
       } finally {
         setIsProcessing(false);
       }
@@ -211,190 +214,236 @@ function SimulatorContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div className="flex items-center gap-3">
-            <Link href="/" title="Voltar ao Início" className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95">
-              <Sun className="w-8 h-8" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">SolarCalc Pro</h1>
-              <p className="text-muted-foreground font-medium">Dimensionamento Fotovoltaico Inteligente</p>
-            </div>
+    <div className="p-4 md:p-8 max-w-6xl mx-auto">
+      {/* Cabeçalho da Página */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold text-primary mb-1">
+            <Sun className="w-4 h-4" /> Automação de Memorial & Conformidade
           </div>
-          <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-            <Link href="/" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-4 sm:px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
-              <ArrowLeft className="w-5 h-5" />
-              <span className="hidden sm:inline">Voltar</span>
-            </Link>
-            <UserMenu />
-          </div>
-        </header>
-
-        <div className="bg-card rounded-2xl shadow-xl shadow-black/40 border border-border overflow-hidden mb-8">
-          <div className="p-6 md:p-8 bg-gradient-to-br from-secondary/50 to-card/50 border-b border-border">
-            <h2 className="text-xl font-bold mb-6 text-foreground flex items-center gap-2">
-              Nova Simulação
-            </h2>
-            
-            {error && <div className="bg-red-900/20 text-red-400 p-4 rounded-xl mb-6 border border-red-900/50 font-medium">{error}</div>}
-            {successMsg && <div className="bg-emerald-900/20 text-emerald-400 p-4 rounded-xl mb-6 border border-emerald-900/50 font-medium">{successMsg}</div>}
-            
-            {uf && (
-              <div className="bg-primary/10 text-primary p-3 rounded-xl mb-6 border border-primary/20 flex items-center gap-2 text-sm font-bold">
-                📍 Região detectada: {uf}. Irradiação estimada ajustada para {irradiation} HSP.
-              </div>
-            )}
-
-            {preSelectedClient && (
-              <div className="bg-primary/10 text-primary p-4 rounded-xl mb-6 border border-primary/20 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  <span className="font-medium">Vinculando este projeto ao cliente: <strong>{preSelectedClient.name}</strong></span>
-                </div>
-                <Link href={`/clientes/${preSelectedClient.id}`} className="text-sm font-bold hover:underline flex items-center gap-1">
-                  <ArrowLeft className="w-3.5 h-3.5" /> Voltar ao Cliente
-                </Link>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Nome do Projeto</label>
-                <Input 
-                  type="text" 
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="Ex: Escolas Municipais"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Módulo Fotovoltaico</label>
-                <select 
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                  value={selectedModuleId}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    setSelectedModuleId(id);
-                    const mod = dbModules?.find((m: any) => m.id === id);
-                    if (mod) {
-                      setModulePower(mod.powerW);
-                      if (error) setError("");
-                    } else {
-                      setModulePower("");
-                    }
-                  }}
-                >
-                  <option value="">Selecione o módulo...</option>
-                  {dbModules?.map((m: any) => (
-                    <option key={m.id} value={m.id}>{m.manufacturer} {m.model} ({m.powerW}W)</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Inversor Predominante</label>
-                <select 
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                  value={selectedInverterId}
-                  onChange={(e) => setSelectedInverterId(e.target.value)}
-                >
-                  <option value="">Selecione (Opcional)</option>
-                  {dbInverters?.map((i: any) => (
-                    <option key={i.id} value={i.id}>{i.manufacturer} {i.model} ({i.powerW}W)</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">CEP da Instalação</label>
-                <div className="relative">
-                  <Input 
-                    type="text" 
-                    value={cep}
-                    onChange={handleCepChange}
-                    placeholder="Ex: 00000-000"
-                    maxLength={9}
-                  />
-                  {isFetchingCep && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Irradiação (HSP)</label>
-                <Input 
-                  type="number" 
-                  step="0.1"
-                  value={irradiation}
-                  onChange={(e) => setIrradiation(Number(e.target.value) || DEFAULT_HSP)}
-                  className="font-mono text-primary font-bold"
-                />
-              </div>
-              <div className="md:col-span-2 lg:col-span-2">
-                <label className="block text-sm font-semibold text-muted-foreground mb-2">Planilha de Consumo (.xlsx)</label>
-                <div className="relative">
-                  <input 
-                    type="file" 
-                    accept=".xlsx, .xls, .csv"
-                    onChange={processFile}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  <div className="w-full p-3 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-medium flex items-center justify-center gap-2 transition-all">
-                    {isProcessing ? "Processando..." : <><Upload className="w-5 h-5" /> Selecionar Arquivo</>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {results && (
-            <div className="p-6 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <ResultCards 
-                modulePower={modulePower} 
-                totalKwp={results.totalKwp} 
-                totalModules={results.totalModules} 
-              />
-
-              <ClientLinkingForm 
-                showClientForm={showClientForm}
-                setShowClientForm={setShowClientForm}
-                preSelectedClient={preSelectedClient}
-                setPreSelectedClient={setPreSelectedClient}
-                clientLinkMode={clientLinkMode}
-                setClientLinkMode={setClientLinkMode}
-                clientSearchTerm={clientSearchTerm}
-                setClientSearchTerm={setClientSearchTerm}
-                allClients={allClients}
-                clientData={clientData}
-                setClientData={setClientData}
-              />
-
-              <div className="flex flex-wrap gap-4 mb-6">
-                <Button onClick={exportToExcel}
-                  className="bg-card hover:bg-secondary text-primary border border-primary/30 rounded-xl shadow-md h-12 px-6 active:scale-95 text-base">
-                  <Download className="w-5 h-5 mr-2" /> Exportar Planilha
-                </Button>
-                <Button onClick={saveToDatabase} disabled={isSaving || saved}
-                  className={`rounded-xl shadow-md h-12 px-6 active:scale-95 text-base ${
-                    saved ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20'
-                  }`}>
-                  <Save className="w-5 h-5 mr-2" />
-                  {isSaving ? "Salvando..." : saved ? "Projeto Salvo!" : "Salvar no Histórico"}
-                </Button>
-              </div>
-
-              <SimulationTable units={results.units} />
-            </div>
-          )}
+          <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
+            Dimensionamento Fotovoltaico
+          </h1>
+          <p className="text-sm font-medium text-muted-foreground mt-1">
+            Selecione o módulo, informe a região e valide os pontos de consumo diretamente aqui.
+          </p>
         </div>
+
+        {preSelectedClient && (
+          <Link
+            href={`/clientes/${preSelectedClient.id}`}
+            className="flex items-center gap-2 bg-secondary border border-border hover:border-primary/50 text-foreground px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4 text-primary" /> Voltar para Ficha do Cliente
+          </Link>
+        )}
       </div>
+
+      {/* Banner de Contexto de Projeto Selecionado */}
+      <ProjectContextBanner
+        projectName={projectName || (preSelectedClient ? `Projeto — ${preSelectedClient.name}` : undefined)}
+        clientName={preSelectedClient?.name}
+        kwpTotal={results?.totalKwp}
+        statusText="Nova Simulação em Andamento"
+        clientId={preSelectedClient?.id}
+      />
+
+      {error && <div className="bg-red-900/20 text-red-400 p-4 rounded-xl mb-6 border border-red-900/50 font-medium">{error}</div>}
+      {successMsg && <div className="bg-emerald-900/20 text-emerald-400 p-4 rounded-xl mb-6 border border-emerald-900/50 font-medium">{successMsg}</div>}
+
+      {/* ETAPA 1: DADOS DO PROJETO & LOCALIZAÇÃO */}
+      <StepCard
+        stepNumber={1}
+        title="DADOS DO PROJETO & REGIONALIZAÇÃO"
+        subtitle="Informe o nome de referência e a localização para cálculo exato das Horas de Sol Pleno (HSP)."
+        statusBadge={
+          uf ? (
+            <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/20">
+              HSP Detectado ({uf}: {irradiation} HSP)
+            </span>
+          ) : undefined
+        }
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">Nome de Identificação do Projeto</label>
+            <Input 
+              type="text" 
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              placeholder="Ex: Instalação Matriz / Escolas"
+              className="h-11 text-sm bg-card border-border"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">CEP do Local de Instalação</label>
+            <div className="relative">
+              <Input 
+                type="text" 
+                value={cep}
+                onChange={handleCepChange}
+                placeholder="00000-000"
+                maxLength={9}
+                className="h-11 text-sm bg-card border-border"
+              />
+              {isFetchingCep && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">Irradiação Solar (HSP)</label>
+            <Input 
+              type="number" 
+              step="0.1"
+              value={irradiation}
+              onChange={(e) => setIrradiation(Number(e.target.value) || DEFAULT_HSP)}
+              className="h-11 text-sm font-mono text-primary font-bold bg-card border-border"
+            />
+          </div>
+        </div>
+      </StepCard>
+
+      {/* ETAPA 2: EQUIPAMENTOS & CONEXÃO DA REDE */}
+      <StepCard
+        stepNumber={2}
+        title="EQUIPAMENTOS & DIMENSIONAMENTO TÉCNICO"
+        subtitle="Confira os módulos, inversores e o padrão de ligação da rede elétrica da distribuidora."
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">Módulo Fotovoltaico *</label>
+            <select 
+              className="flex h-11 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              value={selectedModuleId}
+              onChange={(e) => {
+                const id = e.target.value;
+                setSelectedModuleId(id);
+                const mod = dbModules?.find((m: any) => m.id === id);
+                if (mod) {
+                  setModulePower(mod.powerW);
+                  if (error) setError("");
+                } else {
+                  setModulePower("");
+                }
+              }}
+            >
+              <option value="">Selecione o módulo...</option>
+              {dbModules?.map((m: any) => (
+                <option key={m.id} value={m.id}>{m.manufacturer} {m.model} ({m.powerW}W)</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">Inversor Predominante</label>
+            <select 
+              className="flex h-11 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              value={selectedInverterId}
+              onChange={(e) => setSelectedInverterId(e.target.value)}
+            >
+              <option value="">Selecione (Opcional)</option>
+              {dbInverters?.map((i: any) => (
+                <option key={i.id} value={i.id}>{i.manufacturer} {i.model} ({i.powerW}W)</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">Ligação da Saída (Rede)</label>
+            <SegmentedControl
+              options={[
+                { value: "Monofásico", label: "Monofásico" },
+                { value: "Bifásico", label: "Bifásico" },
+                { value: "Trifásico", label: "Trifásico" },
+              ]}
+              value={connectionType}
+              onChange={setConnectionType}
+              className="w-full justify-between"
+            />
+          </div>
+        </div>
+      </StepCard>
+
+      {/* ETAPA 3: PLANILHA DE CONSUMO & RESULTADOS */}
+      <StepCard
+        stepNumber={3}
+        title="PLANILHA DE CONSUMO & MEMORIAL"
+        subtitle="Carregue a planilha (.xlsx ou .csv) contendo as unidades consumidoras para gerar o relatório final."
+        actionButton={
+          results && (
+            <Button
+              onClick={saveToDatabase}
+              disabled={isSaving || saved}
+              className={`rounded-xl shadow-md h-10 px-5 text-xs font-bold active:scale-95 ${
+                saved ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20'
+              }`}
+            >
+              <Save className="w-4 h-4 mr-1.5" />
+              {isSaving ? "Salvando..." : saved ? "Projeto Salvo!" : "Salvar no Histórico"}
+            </Button>
+          )
+        }
+      >
+        <div className="mb-6">
+          <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">Arquivo de Consumo das Unidades (.xlsx)</label>
+          <div className="relative">
+            <input 
+              type="file" 
+              accept=".xlsx, .xls, .csv"
+              onChange={processFile}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            />
+            <div className="w-full p-4 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-bold flex flex-col items-center justify-center gap-2 transition-all">
+              <Upload className="w-6 h-6" />
+              <span>{isProcessing ? "Processando planilha..." : "Clique ou arraste o arquivo Excel/CSV de consumo aqui"}</span>
+              <span className="text-[11px] font-medium text-muted-foreground">Suporta tabelas com colunas Cód. Instalação, Nome e Consumo em kWh</span>
+            </div>
+          </div>
+        </div>
+
+        {results && (
+          <div className="animate-in fade-in duration-500 pt-4 border-t border-border/60">
+            <ResultCards 
+              modulePower={modulePower} 
+              totalKwp={results.totalKwp} 
+              totalModules={results.totalModules} 
+            />
+
+            <ClientLinkingForm 
+              showClientForm={showClientForm}
+              setShowClientForm={setShowClientForm}
+              preSelectedClient={preSelectedClient}
+              setPreSelectedClient={setPreSelectedClient}
+              clientLinkMode={clientLinkMode}
+              setClientLinkMode={setClientLinkMode}
+              clientSearchTerm={clientSearchTerm}
+              setClientSearchTerm={setClientSearchTerm}
+              allClients={allClients}
+              clientData={clientData}
+              setClientData={setClientData}
+            />
+
+            <div className="flex flex-wrap gap-3 my-6">
+              <Button onClick={exportToExcel}
+                className="bg-card hover:bg-secondary text-primary border border-primary/30 rounded-xl shadow-sm h-11 px-5 text-xs font-bold active:scale-95">
+                <Download className="w-4 h-4 mr-2" /> Exportar Planilha Excel
+              </Button>
+            </div>
+
+            <SimulationTable units={results.units} />
+          </div>
+        )}
+      </StepCard>
     </div>
   );
 }
 
 export default function Simulador() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center text-foreground font-medium">Carregando...</div>}>
+    <Suspense fallback={<div className="p-12 text-center text-foreground font-medium">Carregando formulário...</div>}>
       <SimulatorContent />
     </Suspense>
   );

@@ -21,26 +21,16 @@ function AuditoriaContent() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div className="flex items-center gap-3">
-            <Link href="/" title="Voltar ao Início" className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95">
-              <ShieldCheck className="w-8 h-8" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Auditoria e Logs</h1>
-              <p className="text-muted-foreground font-medium">Histórico de atividades da plataforma</p>
-            </div>
+    <div className="p-4 md:p-8 max-w-6xl mx-auto">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold text-primary mb-1">
+            <ShieldCheck className="w-4 h-4" /> Auditoria & Registros de Segurança
           </div>
-          <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-            <Link href="/" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground px-4 sm:px-5 py-2.5 rounded-lg font-semibold transition-all shadow-sm">
-              <ArrowLeft className="w-5 h-5" />
-              <span className="hidden sm:inline">Voltar ao Dashboard</span>
-            </Link>
-            <UserMenu />
-          </div>
-        </header>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">Logs de Auditoria</h1>
+          <p className="text-sm text-muted-foreground font-medium mt-0.5">Histórico completo de alterações de status e ações executadas no sistema</p>
+        </div>
+      </header>
 
         <div className="bg-card rounded-2xl shadow-xl border border-border overflow-hidden">
           <div className="p-6 border-b border-border bg-secondary/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
