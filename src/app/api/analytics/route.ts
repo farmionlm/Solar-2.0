@@ -44,13 +44,18 @@ export async function GET() {
       where: projectWhereClause
     });
 
-    // 2. Total kWp
+    // 2. Total kWp, Faturamento e Status
     const projects = await prisma.project.findMany({
       where: projectWhereClause,
-      select: { totalKwp: true, createdAt: true, status: true }
+      select: { totalKwp: true, estimatedCost: true, createdAt: true, status: true }
     });
 
     const totalKwp = projects.reduce((acc, curr) => acc + (curr.totalKwp || 0), 0);
+    const totalEstimatedRevenue = projects.reduce((acc, curr) => acc + (curr.estimatedCost || ((curr.totalKwp || 0) * 3800)), 0);
+
+    const closedCount = projects.filter(p => p.status === 'CLOSED' || p.status === 'INSTALLATION' || p.status === 'COMPLETED').length;
+    const conversionRatePercent = totalProjects > 0 ? Math.round((closedCount / totalProjects) * 100) : 0;
+    const averageTicket = totalProjects > 0 ? Math.round(totalEstimatedRevenue / totalProjects) : 0;
 
     // 3. Status Distribution
     const statusCounts = projects.reduce((acc: Record<string, number>, curr) => {
@@ -64,6 +69,7 @@ export async function GET() {
       { name: 'Fechado', value: statusCounts.CLOSED || 0 },
       { name: 'Instalação', value: statusCounts.INSTALLATION || 0 },
       { name: 'Concluído', value: statusCounts.COMPLETED || 0 },
+      { name: 'Perdido', value: statusCounts.CANCELED || 0 },
     ];
 
     // 4. Monthly Evolution (Last 6 months)
@@ -83,6 +89,9 @@ export async function GET() {
     return NextResponse.json({
       totalProjects,
       totalKwp: Number(totalKwp.toFixed(2)),
+      totalEstimatedRevenue: Math.round(totalEstimatedRevenue),
+      conversionRatePercent,
+      averageTicket,
       statusData,
       monthlyData
     });

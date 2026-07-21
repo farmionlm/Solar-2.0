@@ -66,45 +66,46 @@ function DashboardContent() {
         </div>
       ) : !metrics ? null : (
         <>
-          {/* Cards de KPIs Principais */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <Link href="/funil" className="bg-card border border-border rounded-2xl p-6 shadow-xl relative overflow-hidden group hover:border-primary/50 hover:shadow-primary/10 transition-all cursor-pointer">
-              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                <BarChart3 className="w-20 h-20 text-primary" />
+          {/* Cards de KPIs Principais de Vendas & Engenharia */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group">
+              <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-1">Faturamento Orçado</h3>
+              <div className="text-2xl md:text-3xl font-black text-emerald-400 mb-1">
+                {(metrics.totalEstimatedRevenue || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
               </div>
-              <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-2">Total de Projetos</h3>
-              <div className="text-4xl md:text-5xl font-black text-foreground mb-2">{metrics.totalProjects || 0}</div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 font-semibold">
-                <span className="text-primary group-hover:underline">Acompanhar no Funil CRM →</span>
-              </p>
-            </Link>
-
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Sun className="w-20 h-20 text-yellow-500" />
-              </div>
-              <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-2">Potência Total Orçada</h3>
-              <div className="text-4xl md:text-5xl font-black text-foreground mb-2 flex items-baseline gap-2">
-                {metrics.totalKwp} <span className="text-xl text-muted-foreground font-bold">kWp</span>
-              </div>
-              <p className="text-xs text-muted-foreground font-medium">
-                Potência somada de todas as simulações
+              <p className="text-[11px] text-muted-foreground font-medium">
+                Valor total de projetos em orçamento
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-primary to-primary/80 border border-primary/50 rounded-2xl p-6 shadow-xl shadow-primary/20 text-primary-foreground flex flex-col justify-between">
-              <div>
-                <h3 className="font-black text-xs uppercase tracking-wider mb-1 opacity-90">Acesso Rápido</h3>
-                <p className="text-xs opacity-90 mb-4 font-medium">Inicie um novo orçamento ou acompanhe suas negociações.</p>
+            <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group">
+              <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-1">Potência Total Orçada</h3>
+              <div className="text-2xl md:text-3xl font-black text-foreground mb-1 flex items-baseline gap-1">
+                {metrics.totalKwp} <span className="text-sm text-muted-foreground font-bold">kWp</span>
               </div>
-              <div className="flex gap-2">
-                <Link href="/simulador" className="flex-1 bg-white/20 hover:bg-white/30 text-white font-bold py-2.5 px-4 rounded-xl text-center transition-colors text-xs">
-                  Nova Simulação
-                </Link>
-                <Link href="/funil" className="flex-1 bg-black/20 hover:bg-black/30 text-white font-bold py-2.5 px-4 rounded-xl text-center flex items-center justify-center gap-1 transition-colors text-xs">
-                  Ver Funil <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+              <p className="text-[11px] text-muted-foreground font-medium">
+                Em {metrics.totalProjects || 0} simulação(ões) ativas
+              </p>
+            </div>
+
+            <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group">
+              <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-1">Taxa de Conversão</h3>
+              <div className="text-2xl md:text-3xl font-black text-primary mb-1">
+                {metrics.conversionRatePercent || 0}%
               </div>
+              <p className="text-[11px] text-muted-foreground font-medium">
+                Projetos fechados / instalados
+              </p>
+            </div>
+
+            <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group">
+              <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-1">Ticket Médio</h3>
+              <div className="text-2xl md:text-3xl font-black text-foreground mb-1">
+                {(metrics.averageTicket || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+              </div>
+              <p className="text-[11px] text-muted-foreground font-medium">
+                Média estimada por projeto
+              </p>
             </div>
           </div>
 

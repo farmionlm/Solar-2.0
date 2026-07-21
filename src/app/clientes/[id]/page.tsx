@@ -5,7 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { fetcher } from "@/utils/fetcher";
 import * as XLSX from "xlsx";
-import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X, Trash2, RefreshCw, Upload, Eye, PenTool } from "lucide-react";
+import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X, Trash2, RefreshCw, Upload, Eye, PenTool, MessageSquare, Sparkles } from "lucide-react";
 
 import { Project, ClientDetail, Inverter } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,8 @@ import { SlaCountdownBadge } from "@/components/SlaCountdownBadge";
 import { SignatureCanvasModal } from "@/components/SignatureCanvasModal";
 import { FaturaOcrModal } from "@/components/FaturaOcrModal";
 import { FaturaExtraida } from "@/utils/faturaParser";
-import { Sparkles } from "lucide-react";
-
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
+import { generateProposalWhatsAppMessage, openWhatsAppChat } from "@/utils/whatsappHelper";
 
 import { formatUnidadeConsumidora, formatCpfCnpj, formatPhone, formatCep } from "@/utils/formatters";
 
@@ -695,6 +694,20 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
           <button
+            onClick={() => {
+              const mainProj = client.projects?.[0];
+              const msg = generateProposalWhatsAppMessage({
+                clientName: client.name,
+                totalKwp: mainProj?.totalKwp || 0,
+                monthlySavings: Math.round((mainProj?.totalKwp || 0) * 4.0 * 30 * 0.85 * 0.95),
+                proposalUrl: mainProj ? `${window.location.origin}/proposta/${mainProj.id}` : undefined
+              });
+              openWhatsAppChat({ phone: client.phone || undefined, message: msg });
+            }}
+            className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-md active:scale-95 text-xs">
+            <MessageSquare className="w-4 h-4" /> Enviar WhatsApp
+          </button>
+          <button
             onClick={() => setIsOcrModalOpen(true)}
             className="flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md active:scale-95 text-xs">
             <Sparkles className="w-4 h-4" /> Importar Fatura (OCR)
@@ -705,8 +718,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
             <Zap className="w-4 h-4" /> Novo Projeto
           </button>
           <Button onClick={exportClientExcel}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md active:scale-95 px-5 h-11 text-xs font-bold">
-            <Download className="w-4 h-4 mr-1.5" /> Planilha Geral
+            className="bg-secondary text-foreground hover:bg-secondary/80 rounded-xl shadow-md active:scale-95 px-4 h-11 text-xs font-bold border border-border">
+            <Download className="w-4 h-4 mr-1.5" /> Planilha
           </Button>
         </div>
       </header>

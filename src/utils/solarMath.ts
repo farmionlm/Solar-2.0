@@ -27,6 +27,53 @@ export function getFioBTaxPercentage(yearOffset: number): number {
   return 1.00; // 2029 em diante
 }
 
+export type OversizingStatus = {
+  ratioPercent: number;
+  status: 'SUBDIMENSIONADO' | 'IDEAL' | 'OVERLOAD_RISK';
+  label: string;
+  badgeColor: string;
+};
+
+/**
+ * Valida a relação de Oversizing CC/CA (Painéis vs Inversor)
+ */
+export function calculateOversizingRatio(totalKwpCC: number, inverterOutputPowerKwCA: number): OversizingStatus {
+  if (!totalKwpCC || !inverterOutputPowerKwCA || inverterOutputPowerKwCA <= 0) {
+    return {
+      ratioPercent: 100,
+      status: 'IDEAL',
+      label: '100% (Ajustado)',
+      badgeColor: 'bg-secondary text-muted-foreground'
+    };
+  }
+
+  const ratio = (totalKwpCC / inverterOutputPowerKwCA) * 100;
+  const ratioPercent = Math.round(ratio);
+
+  if (ratioPercent < 110) {
+    return {
+      ratioPercent,
+      status: 'SUBDIMENSIONADO',
+      label: `${ratioPercent}% — Subdimensionado (Potência CC baixa)`,
+      badgeColor: 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+    };
+  }
+  if (ratioPercent <= 150) {
+    return {
+      ratioPercent,
+      status: 'IDEAL',
+      label: `${ratioPercent}% — Relação CC/CA Ideal (Excelente dimensionamento)`,
+      badgeColor: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+    };
+  }
+  return {
+    ratioPercent,
+    status: 'OVERLOAD_RISK',
+    label: `${ratioPercent}% — Alerta: Risco de Clipping / Sobrecarga no Inversor (> 150%)`,
+    badgeColor: 'bg-red-500/10 text-red-400 border border-red-500/30'
+  };
+}
+
 /**
  * Calcula os dados de dimensionamento para uma única unidade consumidora.
  * Suporta o parâmetro ajustável de perdas globais (%) por sombreamento e orientação.
