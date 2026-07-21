@@ -96,8 +96,8 @@ export const DXF_TEMPLATES = [
 ];
 
 /**
- * Parser DXF estruturado por grupos (Grupo 1 e 3) com prevenção de sobreposição de textos
- * e distribuição dinâmica por MPPT.
+ * Parser DXF estruturado por grupos (Grupo 1 e 3) que preserva 100% da integridade do arquivo para o AutoCAD.
+ * Preenche sem cortar o modelo completo do módulo e distribui as strings por MPPT sem sobreposição.
  */
 export async function generateDxfProject(
   client: ClientListItem,
@@ -135,19 +135,15 @@ export async function generateDxfProject(
     const layoutStr = customStringLayout || project.inverters?.[0]?.stringLayout;
     const mpptDistribution = calculateMpptDistribution(totalModulesNum, numMppts, layoutStr);
 
-    const mppt1Count = mpptDistribution[0] || totalModulesNum;
-    const mppt2Count = numMppts >= 2 ? mpptDistribution[1] || 0 : 0;
-    const mppt3Count = numMppts >= 3 ? mpptDistribution[2] || 0 : 0;
-    const mppt4Count = numMppts >= 4 ? mpptDistribution[3] || 0 : 0;
+    const mppt1Count = mpptDistribution[0] || Math.ceil(totalModulesNum / 2);
+    const mppt2Count = mpptDistribution.length > 1 ? mpptDistribution[1] : Math.floor(totalModulesNum / 2);
 
     const mppt1CountStr = String(mppt1Count).padStart(2, "0");
-    const mppt2CountStr = mppt2Count > 0 ? String(mppt2Count).padStart(2, "0") : "  ";
+    const mppt2CountStr = numMppts >= 2 && mppt2Count > 0 ? String(mppt2Count).padStart(2, "0") : "  ";
 
-    // 4. Dados dos Equipamentos (Formatação concisa sem sobreposição no CAD)
+    // 4. Dados dos Equipamentos (Nome completo sem truncamento)
     const rawModuleModel = project.moduleModel || "Módulo Fotovoltaico";
-    const cleanModuleModel = (
-      rawModuleModel.length > 28 ? rawModuleModel.substring(0, 28) : rawModuleModel
-    ).toUpperCase();
+    const fullModuleModel = rawModuleModel.toUpperCase().trim();
 
     const moduleManufacturer = (project.moduleManufacturer || "SOLAR").toUpperCase();
     
@@ -157,13 +153,11 @@ export async function generateDxfProject(
       "GROWATT"
     ).toUpperCase();
 
-    const rawInverterModel = project.inverterModel || project.inverters?.[0]?.model || "INVERSOR SOLAR";
     const inverterModel = (
-      rawInverterModel.length > 25 ? rawInverterModel.substring(0, 25) : rawInverterModel
-    ).toUpperCase();
-
-    const inverterPower = project.inverterOutputPower || project.inverters?.[0]?.outputPower || 5000;
-    const inverterQty = project.inverters?.length || 1;
+      project.inverterModel ||
+      project.inverters?.[0]?.model ||
+      "INVERSOR SOLAR"
+    ).toUpperCase().trim();
 
     // 5. Dados do Cliente e Responsável Técnico
     const clientName = (client.name || "CLIENTE NÃO INFORMADO").toUpperCase();
@@ -186,7 +180,7 @@ export async function generateDxfProject(
     const lineEnding = rawDxfText.includes("\r\n") ? "\r\n" : "\n";
     const lines = rawDxfText.split(/\r?\n/);
 
-    // 7. Processamento em passagem única para prevenir sobreposição de substituições
+    // 7. Processamento em passagem única com regex seguro
     for (let i = 0; i < lines.length - 1; i++) {
       const code = lines[i].trim();
       
@@ -224,20 +218,20 @@ export async function generateDxfProject(
             updated = true;
           }
 
-          // D. Marca e Modelo de Inversores
-          if (!updated && /CSI-5K-S2203A-E/i.test(textVal)) {
+          // D. Marca e Modelo do Inversor (Ex: Solis S6-GR1P7.5K2)
+          if (!updated && /CSI-5K-S2203A-E|S6-GR1P7|MIN 5000TL/i.test(textVal)) {
             textVal = inverterModel;
             updated = true;
           }
 
-          if (!updated && /CANADIANSOLAR|CANADIAN/i.test(textVal)) {
+          if (!updated && /CANADIANSOLAR|CANADIAN|SOLIS|GROWATT/i.test(textVal)) {
             textVal = inverterManufacturer;
             updated = true;
           }
 
-          // E. Marca e Modelo de Módulos (Formatação Concisa Sem Sobreposição)
+          // E. Marca e Modelo Completo de Módulos (Sem Truncar)
           if (!updated && /HMB132T12R/i.test(textVal)) {
-            textVal = cleanModuleModel;
+            textVal = fullModuleModel;
             updated = true;
           }
 
@@ -246,13 +240,14 @@ export async function generateDxfProject(
             updated = true;
           }
 
-          // F. Distribuição MÓDULOS por MPPT no Fluxograma (Gerador P1 vs P2)
-          if (!updated && /\b06\b/.test(textVal) && i > 8250 && i < 19500) {
-            textVal = textVal.replace(/\b06\b/, mppt1CountStr);
+          // F. Quantidades reais de módulos por String/MPPT no Fluxograma (Gerador P1 e P2)
+          if (!updated && (/\b06\b/.test(textVal) || /\b11\b/.test(textVal)) && i > 8200 && i < 19500) {
+            textVal = textVal.replace(/\b(06|11)\b/, mppt1CountStr);
             updated = true;
           }
-          if (!updated && /\b05\b/.test(textVal) && i > 8250 && i < 19500) {
-            textVal = textVal.replace(/\b05\b/, mppt2CountStr);
+
+          if (!updated && (/\b05\b/.test(textVal) || /\b10\b/.test(textVal)) && i > 8200 && i < 19500) {
+            textVal = textVal.replace(/\b(05|10)\b/, mppt2CountStr);
             updated = true;
           }
 
