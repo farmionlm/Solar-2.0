@@ -89,6 +89,12 @@ export type Project = {
   neighborhood?: string | null;
   city?: string | null;
   cep?: string | null;
+  memorialAssinadoUrl?: string | null;
+  memorialAssinadoName?: string | null;
+  artUrl?: string | null;
+  artName?: string | null;
+  certInversorUrl?: string | null;
+  certInversorName?: string | null;
   units: ProcessedUnit[];
   inverters?: Inverter[];
   _count?: { units: number };

@@ -155,7 +155,8 @@ export async function PUT(request: Request) {
       moduleCurrent, inverterManufacturer, inverterOutputPower,
       inverterOutputCurrent, areaOccupied, professionalName, professionalCrt,
       inverters, installationNumber, totalModules, units, estimatedCost,
-      totalKwp, modulePower, address, neighborhood, city, cep
+      totalKwp, modulePower, address, neighborhood, city, cep,
+      memorialAssinadoUrl, memorialAssinadoName, artUrl, artName, certInversorUrl, certInversorName
     } = body;
 
     if (!id) {
@@ -198,6 +199,12 @@ export async function PUT(request: Request) {
           ...(city !== undefined && { city: city?.trim() || null }),
           ...(cep !== undefined && { cep: cep?.trim() || null }),
           ...(estimatedCost !== undefined && { estimatedCost: estimatedCost ? Number(estimatedCost) : null }),
+          ...(memorialAssinadoUrl !== undefined && { memorialAssinadoUrl: memorialAssinadoUrl || null }),
+          ...(memorialAssinadoName !== undefined && { memorialAssinadoName: memorialAssinadoName || null }),
+          ...(artUrl !== undefined && { artUrl: artUrl || null }),
+          ...(artName !== undefined && { artName: artName || null }),
+          ...(certInversorUrl !== undefined && { certInversorUrl: certInversorUrl || null }),
+          ...(certInversorName !== undefined && { certInversorName: certInversorName || null }),
         }
       });
 

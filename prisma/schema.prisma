@@ -116,6 +116,14 @@ model Project {
   professionalName      String?
   professionalCrt       String?
 
+  // Documentos da Homologação (Concessionária)
+  memorialAssinadoUrl   String?
+  memorialAssinadoName  String?
+  artUrl                String?
+  artName               String?
+  certInversorUrl       String?
+  certInversorName      String?
+
   clientId     String?
   client       Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { fetcher } from "@/utils/fetcher";
 import * as XLSX from "xlsx";
-import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X, Trash2, RefreshCw, Upload } from "lucide-react";
+import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X, Trash2, RefreshCw, Upload, Eye } from "lucide-react";
 
 import { Project, ClientDetail, Inverter } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -1277,6 +1277,348 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                             className="w-full md:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl shadow-xl shadow-primary/20 active:scale-95 disabled:opacity-50 h-12 px-8">
                             <Save className="w-4 h-4 mr-2" /> {isSaving ? "Salvando..." : "Salvar Todos os Dados Técnicos"}
                           </Button>
+                        </div>
+
+                        {/* ── Central de Documentos para Homologação na Concessionária ── */}
+                        <div className="bg-card rounded-2xl p-6 border border-border mb-6 shadow-xl">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-border/60">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-primary" />
+                                <h4 className="text-base font-black text-foreground">
+                                  Documentos para Homologação na Concessionária
+                                </h4>
+                              </div>
+                              <p className="text-xs font-medium text-muted-foreground mt-1">
+                                Checklist de conformidade e documentos para protocolo junto à distribuidora de energia.
+                              </p>
+                            </div>
+
+                            {/* Barra de Progresso de Homologação */}
+                            {(() => {
+                              const hasMemorial = Boolean(proj.memorialAssinadoUrl);
+                              const hasProcuracao = Boolean(client.procuracaoUrl);
+                              const hasArt = Boolean(proj.artUrl);
+                              const hasCert = Boolean(proj.certInversorUrl);
+                              const docsCount = [hasMemorial, hasProcuracao, hasArt, hasCert].filter(Boolean).length;
+                              const pct = Math.round((docsCount / 4) * 100);
+
+                              return (
+                                <div className="w-full sm:w-64 bg-secondary/50 p-3 rounded-xl border border-border">
+                                  <div className="flex justify-between items-center text-xs font-bold mb-1.5">
+                                    <span className="text-muted-foreground">Status Homologação</span>
+                                    <span className={docsCount === 4 ? "text-emerald-400" : "text-primary"}>
+                                      {docsCount}/4 Anexados ({pct}%)
+                                    </span>
+                                  </div>
+                                  <div className="w-full bg-secondary h-2.5 rounded-full overflow-hidden border border-border">
+                                    <div
+                                      className={`h-full transition-all duration-500 rounded-full ${
+                                        docsCount === 4 ? "bg-emerald-500" : docsCount > 0 ? "bg-primary" : "bg-muted-foreground/30"
+                                      }`}
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+
+                          {/* Grid dos 4 Documentos de Homologação */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            
+                            {/* Doc 1: Memorial Descritivo Assinado */}
+                            <div className="bg-secondary/20 rounded-xl p-4 border border-border flex flex-col justify-between">
+                              <div>
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                  <h5 className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
+                                    <FileText className="w-4 h-4 text-primary" /> 1. Memorial Assinado
+                                  </h5>
+                                  {proj.memorialAssinadoUrl ? (
+                                    <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/20">
+                                      ✓ Anexado
+                                    </span>
+                                  ) : (
+                                    <span className="bg-amber-500/10 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/20">
+                                      ⚠️ Pendente
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mb-3 font-medium">
+                                  {proj.memorialAssinadoName ? `Arquivo: ${proj.memorialAssinadoName}` : "Gere o memorial e faça upload da cópia assinada pelo cliente/engenheiro."}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border/50">
+                                <div className="relative">
+                                  <input
+                                    type="file"
+                                    accept=".pdf, .png, .jpg, .jpeg"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      if (file.size > 8 * 1024 * 1024) { alert("Arquivo deve ser menor que 8MB"); return; }
+                                      const reader = new FileReader();
+                                      reader.onload = async (ev) => {
+                                        await saveProjectEquipment(proj.id, {
+                                          ...currentEquip,
+                                          memorialAssinadoUrl: ev.target?.result as string,
+                                          memorialAssinadoName: file.name
+                                        });
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }}
+                                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                                  />
+                                  <Button variant="outline" size="sm" className="h-8 text-xs font-bold rounded-lg border-primary/30 text-primary hover:bg-primary/10">
+                                    <Upload className="w-3.5 h-3.5 mr-1" /> {proj.memorialAssinadoUrl ? "Substituir Assinado" : "Anexar Assinado"}
+                                  </Button>
+                                </div>
+
+                                {proj.memorialAssinadoUrl && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        const win = window.open();
+                                        if (win && proj.memorialAssinadoUrl) win.document.write(`<iframe src="${proj.memorialAssinadoUrl}" frameborder="0" style="border:0; top:0px; left:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                                      }}
+                                      className="p-1.5 text-primary bg-primary/10 hover:bg-primary/20 rounded-lg text-xs font-bold"
+                                      title="Visualizar Memorial Assinado"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </button>
+                                    <a
+                                      href={proj.memorialAssinadoUrl}
+                                      download={proj.memorialAssinadoName || "Memorial_Assinado.pdf"}
+                                      className="p-1.5 text-foreground bg-card hover:bg-secondary border border-border rounded-lg text-xs font-bold"
+                                      title="Baixar Memorial Assinado"
+                                    >
+                                      <Download className="w-4 h-4" />
+                                    </a>
+                                    <button
+                                      onClick={() => saveProjectEquipment(proj.id, { ...currentEquip, memorialAssinadoUrl: null, memorialAssinadoName: null })}
+                                      className="p-1.5 text-red-400 bg-red-950/30 hover:bg-red-900/50 rounded-lg text-xs"
+                                      title="Remover"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Doc 2: Procuração do Cliente */}
+                            <div className="bg-secondary/20 rounded-xl p-4 border border-border flex flex-col justify-between">
+                              <div>
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                  <h5 className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
+                                    <FileText className="w-4 h-4 text-primary" /> 2. Procuração do Cliente
+                                  </h5>
+                                  {client.procuracaoUrl ? (
+                                    <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/20">
+                                      ✓ Anexado
+                                    </span>
+                                  ) : (
+                                    <span className="bg-amber-500/10 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/20">
+                                      ⚠️ Pendente
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mb-3 font-medium">
+                                  {client.procuracaoUrl ? `Arquivo: ${client.procuracaoName || 'Procuracao_Cliente.pdf'}` : "Documento de procuração outorgado no cadastro do cliente."}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border/50">
+                                {client.procuracaoUrl ? (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        const win = window.open();
+                                        if (win && client.procuracaoUrl) win.document.write(`<iframe src="${client.procuracaoUrl}" frameborder="0" style="border:0; top:0px; left:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                                      }}
+                                      className="flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-3 py-1.5 rounded-lg text-xs font-bold"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" /> Visualizar Procuração
+                                    </button>
+                                    <a
+                                      href={client.procuracaoUrl}
+                                      download={client.procuracaoName || "Procuracao_Cliente.pdf"}
+                                      className="p-1.5 text-foreground bg-card hover:bg-secondary border border-border rounded-lg text-xs font-bold"
+                                      title="Baixar Procuração"
+                                    >
+                                      <Download className="w-4 h-4" />
+                                    </a>
+                                  </>
+                                ) : (
+                                  <p className="text-[11px] text-amber-400 font-bold">
+                                    💡 Anexe a procuração no card de Procuração do Cliente acima.
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Doc 3: ART / TRT (Responsável Técnico) */}
+                            <div className="bg-secondary/20 rounded-xl p-4 border border-border flex flex-col justify-between">
+                              <div>
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                  <h5 className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
+                                    <FileText className="w-4 h-4 text-primary" /> 3. ART / TRT
+                                  </h5>
+                                  {proj.artUrl ? (
+                                    <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/20">
+                                      ✓ Anexado
+                                    </span>
+                                  ) : (
+                                    <span className="bg-amber-500/10 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/20">
+                                      ⚠️ Pendente
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mb-3 font-medium">
+                                  {proj.artName ? `Arquivo: ${proj.artName}` : "Anotação de Responsabilidade Técnica emitida pelo engenheiro/técnico."}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border/50">
+                                <div className="relative">
+                                  <input
+                                    type="file"
+                                    accept=".pdf, .png, .jpg, .jpeg"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      if (file.size > 8 * 1024 * 1024) { alert("Arquivo deve ser menor que 8MB"); return; }
+                                      const reader = new FileReader();
+                                      reader.onload = async (ev) => {
+                                        await saveProjectEquipment(proj.id, {
+                                          ...currentEquip,
+                                          artUrl: ev.target?.result as string,
+                                          artName: file.name
+                                        });
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }}
+                                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                                  />
+                                  <Button variant="outline" size="sm" className="h-8 text-xs font-bold rounded-lg border-primary/30 text-primary hover:bg-primary/10">
+                                    <Upload className="w-3.5 h-3.5 mr-1" /> {proj.artUrl ? "Substituir ART" : "Anexar ART (.PDF)"}
+                                  </Button>
+                                </div>
+
+                                {proj.artUrl && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        const win = window.open();
+                                        if (win && proj.artUrl) win.document.write(`<iframe src="${proj.artUrl}" frameborder="0" style="border:0; top:0px; left:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                                      }}
+                                      className="p-1.5 text-primary bg-primary/10 hover:bg-primary/20 rounded-lg text-xs font-bold"
+                                      title="Visualizar ART"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </button>
+                                    <a
+                                      href={proj.artUrl}
+                                      download={proj.artName || "ART_TRT.pdf"}
+                                      className="p-1.5 text-foreground bg-card hover:bg-secondary border border-border rounded-lg text-xs font-bold"
+                                      title="Baixar ART"
+                                    >
+                                      <Download className="w-4 h-4" />
+                                    </a>
+                                    <button
+                                      onClick={() => saveProjectEquipment(proj.id, { ...currentEquip, artUrl: null, artName: null })}
+                                      className="p-1.5 text-red-400 bg-red-950/30 hover:bg-red-900/50 rounded-lg text-xs"
+                                      title="Remover ART"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Doc 4: Certificado do Inversor */}
+                            <div className="bg-secondary/20 rounded-xl p-4 border border-border flex flex-col justify-between">
+                              <div>
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                  <h5 className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
+                                    <FileText className="w-4 h-4 text-primary" /> 4. Certificado do Inversor
+                                  </h5>
+                                  {proj.certInversorUrl ? (
+                                    <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/20">
+                                      ✓ Anexado
+                                    </span>
+                                  ) : (
+                                    <span className="bg-amber-500/10 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/20">
+                                      ⚠️ Pendente
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mb-3 font-medium">
+                                  {proj.certInversorName ? `Arquivo: ${proj.certInversorName}` : "Certificado de Conformidade e ensaios Inmetro do fabricante."}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border/50">
+                                <div className="relative">
+                                  <input
+                                    type="file"
+                                    accept=".pdf, .png, .jpg, .jpeg"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      if (file.size > 8 * 1024 * 1024) { alert("Arquivo deve ser menor que 8MB"); return; }
+                                      const reader = new FileReader();
+                                      reader.onload = async (ev) => {
+                                        await saveProjectEquipment(proj.id, {
+                                          ...currentEquip,
+                                          certInversorUrl: ev.target?.result as string,
+                                          certInversorName: file.name
+                                        });
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }}
+                                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                                  />
+                                  <Button variant="outline" size="sm" className="h-8 text-xs font-bold rounded-lg border-primary/30 text-primary hover:bg-primary/10">
+                                    <Upload className="w-3.5 h-3.5 mr-1" /> {proj.certInversorUrl ? "Substituir Certificado" : "Anexar Certificado (.PDF)"}
+                                  </Button>
+                                </div>
+
+                                {proj.certInversorUrl && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        const win = window.open();
+                                        if (win && proj.certInversorUrl) win.document.write(`<iframe src="${proj.certInversorUrl}" frameborder="0" style="border:0; top:0px; left:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                                      }}
+                                      className="p-1.5 text-primary bg-primary/10 hover:bg-primary/20 rounded-lg text-xs font-bold"
+                                      title="Visualizar Certificado"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </button>
+                                    <a
+                                      href={proj.certInversorUrl}
+                                      download={proj.certInversorName || "Certificado_Inversor.pdf"}
+                                      className="p-1.5 text-foreground bg-card hover:bg-secondary border border-border rounded-lg text-xs font-bold"
+                                      title="Baixar Certificado"
+                                    >
+                                      <Download className="w-4 h-4" />
+                                    </a>
+                                    <button
+                                      onClick={() => saveProjectEquipment(proj.id, { ...currentEquip, certInversorUrl: null, certInversorName: null })}
+                                      className="p-1.5 text-red-400 bg-red-950/30 hover:bg-red-900/50 rounded-lg text-xs"
+                                      title="Remover Certificado"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-3 gap-4 mb-4">
