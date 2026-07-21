@@ -13,6 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import { formatCpfCnpj, formatPhone, formatCep } from "@/utils/formatters";
+import { FaturaOcrModal } from "@/components/FaturaOcrModal";
+import { FaturaExtraida } from "@/utils/faturaParser";
+import { Sparkles } from "lucide-react";
 
 export default function Clientes() {
   const { data: session } = useSession();
@@ -20,10 +23,25 @@ export default function Clientes() {
   const [activeTab, setActiveTab] = useState<'MEUS' | 'GERAIS'>('MEUS');
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [newClient, setNewClient] = useState({
     name: "", cpfCnpj: "", phone: "", email: "", address: "", cep: "", neighborhood: "", city: ""
   });
+
+  const handleApplyOcrData = (data: FaturaExtraida) => {
+    setNewClient({
+      name: data.clienteNome || "Novo Cliente Fatura",
+      cpfCnpj: data.cpfCnpj ? formatCpfCnpj(data.cpfCnpj) : "",
+      phone: "",
+      email: "",
+      address: data.endereco || "",
+      cep: data.cep ? formatCep(data.cep) : "",
+      neighborhood: "",
+      city: data.cidade || "",
+    });
+    setShowModal(true);
+  };
 
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +99,11 @@ export default function Clientes() {
           <p className="text-sm text-muted-foreground font-medium mt-0.5">Gerencie sua base de clientes, equipamentos e histórico de projetos</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          <button
+            onClick={() => setIsOcrModalOpen(true)}
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md active:scale-95">
+            <Sparkles className="w-4 h-4" /> Importar Fatura (OCR)
+          </button>
           <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md shadow-primary/20 active:scale-95 h-11 px-5 font-bold text-xs">
             <Users className="w-4 h-4 mr-2" /> Novo Cliente
           </Button>
@@ -297,6 +320,13 @@ export default function Clientes() {
           </div>
         </div>
       )}
+
+      {/* Modal de Leitor Inteligente de Faturas (OCR) */}
+      <FaturaOcrModal
+        isOpen={isOcrModalOpen}
+        onClose={() => setIsOcrModalOpen(false)}
+        onApply={handleApplyOcrData}
+      />
     </div>
   );
 }
