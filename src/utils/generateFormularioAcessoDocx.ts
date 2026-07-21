@@ -70,12 +70,12 @@ export const generateFormularioAcessoDocx = async (client: ClientDetail, project
 
           // 1. TITULAR DA UC
           createSectionHeader("1. DADOS DO TITULAR DA UNIDADE CONSUMIDORA (ACESSANTE)"),
-          createFieldRow("Nome / Razão Social", client.name),
-          createFieldRow("CPF / CNPJ", client.cpfCnpj),
-          createFieldRow("Endereço Completo", fullAddress),
-          createFieldRow("Telefone de Contato", client.phone),
-          createFieldRow("E-mail", client.email),
-          createFieldRow("Número da Instalação / Código da UC", project.installationNumber || project.units?.[0]?.code || client.installationNumber),
+          createFieldRow("Nome / Razão Social", client.name || "–"),
+          createFieldRow("CPF / CNPJ", client.cpfCnpj || "–"),
+          createFieldRow("Endereço Completo", fullAddress || "–"),
+          createFieldRow("Telefone de Contato", client.phone || "–"),
+          createFieldRow("E-mail", client.email || "–"),
+          createFieldRow("Número da Instalação / Código da UC", project.installationNumber || project.units?.[0]?.code || client.installationNumber || "–"),
           createFieldRow("Concessionária Distribuidora", client.concessionaria || "EDP ESPÍRITO SANTO"),
 
           // 2. LIGAÇÃO E UC
@@ -93,15 +93,15 @@ export const generateFormularioAcessoDocx = async (client: ClientDetail, project
           createFieldRow("Fabricante dos Módulos", project.moduleManufacturer || "Canadian Solar / Helius"),
           createFieldRow("Modelo dos Módulos", project.moduleModel || "Módulo Fotovoltaico N-Type"),
           createFieldRow("Potência Unitária do Módulo", `${project.modulePower || 0} W`),
-          createFieldRow("Fabricante do Inversor", invManufacturer),
-          createFieldRow("Modelo do Inversor", invModel),
+          createFieldRow("Fabricante do Inversor", invManufacturer || "–"),
+          createFieldRow("Modelo do Inversor", invModel || "–"),
           createFieldRow("Potência Nominal do Inversor", `${invPower} W`),
           createFieldRow("Quantidade de Inversores", `${invQty} unidade(s)`),
 
           // 4. RESPONSABILIDADE TÉCNICA E ASSINATURA
           createSectionHeader("4. DADOS DO RESPONSÁVEL TÉCNICO E DECLARAÇÃO"),
-          createFieldRow("Responsável Técnico", techName),
-          createFieldRow("Registro CREA / CRT", techCrt),
+          createFieldRow("Responsável Técnico", techName || "–"),
+          createFieldRow("Registro CREA / CRT", techCrt || "–"),
           createFieldRow("Data da Solicitação", currentDate),
 
           new Paragraph({
