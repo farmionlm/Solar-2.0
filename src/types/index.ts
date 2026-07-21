@@ -21,6 +21,7 @@ export type ClientData = {
   concessionaria?: string;
   procuracaoUrl?: string | null;
   procuracaoName?: string | null;
+  procuracaoExpirationDate?: string | null;
   signatureUrl?: string | null;
   signatureUpdatedAt?: string | null;
   protocolDate?: string | null;
@@ -42,6 +43,7 @@ export type ClientListItem = {
   procuracaoUrl?: string | null;
   procuracaoName?: string | null;
   procuracaoUpdatedAt?: string | null;
+  procuracaoExpirationDate?: string | null;
   signatureUrl?: string | null;
   signatureUpdatedAt?: string | null;
   protocolDate?: string | null;
@@ -71,12 +73,11 @@ export type Inverter = {
   stringLayout?: string | null;
 };
 
-
-
 export type Project = {
   id: string;
   name: string;
   createdAt: string;
+  status?: string;
   modulePower: number;
   totalKwp: number;
   totalModules: number;
@@ -84,6 +85,8 @@ export type Project = {
   inverterModel: string | null;
   installationNumber?: string | null;
   estimatedCost?: number | null;
+  lossReason?: string | null;
+  lossDetails?: string | null;
   generationKwh?: number | null;
   reductionPercent?: number | null;
   moduleManufacturer?: string | null;
