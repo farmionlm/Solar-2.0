@@ -97,7 +97,7 @@ export const DXF_TEMPLATES = [
 
 /**
  * Parser DXF estruturado por grupos (Grupo 1 e 3) que preserva 100% da integridade do arquivo para o AutoCAD.
- * Preenche sem cortar o modelo completo do módulo e distribui as strings por MPPT sem sobreposição.
+ * Suporta diagramas de 2 e 3 Entradas/Strings (MPPT 1 com 2 ramais + MPPT 2 com 1 ramal) sem cortar modelos de módulos.
  */
 export async function generateDxfProject(
   client: ClientListItem,
@@ -109,54 +109,62 @@ export async function generateDxfProject(
   customStringLayout?: string
 ): Promise<void> {
   const selectedTemplate = DXF_TEMPLATES.find((t) => t.id === templateType) || DXF_TEMPLATES[0];
-  const templateUrl = `/templates/dxf/${selectedTemplate.filename}`;
+
+  // 1. Dados numéricos dinâmicos do projeto
+  const totalKwpNum = Number(project.totalKwp || 0);
+  const totalKwpFormatted = totalKwpNum.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const totalKwpStr = `${totalKwpFormatted} kWp`;
+  
+  const totalModulesNum = Number(project.totalModules || 0);
+  const modulePowerNum = Number(project.modulePower || 0);
+
+  // 2. Distribuição de MPPTs e Strings
+  const numMppts = customMpptsCount || project.inverters?.[0]?.numMppts || 2;
+  const layoutStr = customStringLayout || project.inverters?.[0]?.stringLayout;
+  const mpptDistribution = calculateMpptDistribution(totalModulesNum, numMppts, layoutStr);
+
+  // Seleção inteligente do gabarito CAD (Se houver 3 entradas/strings, carregar o gabarito unifilar_3strings.dxf)
+  let templateFilename = selectedTemplate.filename;
+  if (templateType === "unifilar" && mpptDistribution.length >= 3) {
+    templateFilename = "unifilar_3strings.dxf";
+  }
+  const templateUrl = `/templates/dxf/${templateFilename}`;
 
   try {
     const response = await fetch(templateUrl);
     if (!response.ok) {
-      throw new Error(`Não foi possível carregar o modelo CAD ${selectedTemplate.filename}`);
+      throw new Error(`Não foi possível carregar o modelo CAD ${templateFilename}`);
     }
 
     const rawDxfText = await response.text();
 
-    // 1. Dimensionamento elétrico NBR 5410
+    // 3. Dimensionamento elétrico NBR 5410
     const electrical = calculateElectricalSizing(patternType, breakerAmps);
-
-    // 2. Dados numéricos dinâmicos do projeto
-    const totalKwpNum = Number(project.totalKwp || 0);
-    const totalKwpFormatted = totalKwpNum.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const totalKwpStr = `${totalKwpFormatted} kWp`;
-    
-    const totalModulesNum = Number(project.totalModules || 0);
-    const modulePowerNum = Number(project.modulePower || 0);
-
-    // 3. Distribuição de MPPTs e Strings
-    const numMppts = customMpptsCount || project.inverters?.[0]?.numMppts || 2;
-    const layoutStr = customStringLayout || project.inverters?.[0]?.stringLayout;
-    const mpptDistribution = calculateMpptDistribution(totalModulesNum, numMppts, layoutStr);
 
     const mppt1Count = mpptDistribution[0] || Math.ceil(totalModulesNum / 2);
     const mppt2Count = mpptDistribution.length > 1 ? mpptDistribution[1] : Math.floor(totalModulesNum / 2);
+    const mppt3Count = mpptDistribution.length > 2 ? mpptDistribution[2] : 0;
 
     const mppt1CountStr = String(mppt1Count).padStart(2, "0");
-    const mppt2CountStr = numMppts >= 2 && mppt2Count > 0 ? String(mppt2Count).padStart(2, "0") : "  ";
+    const mppt2CountStr = mppt2Count > 0 ? String(mppt2Count).padStart(2, "0") : "  ";
+    const mppt3CountStr = mppt3Count > 0 ? String(mppt3Count).padStart(2, "0") : "  ";
 
     // 4. Dados dos Equipamentos (Nome completo sem truncamento)
     const rawModuleModel = project.moduleModel || "Módulo Fotovoltaico";
     const fullModuleModel = rawModuleModel.toUpperCase().trim();
 
-    const moduleManufacturer = (project.moduleManufacturer || "SOLAR").toUpperCase();
+    const moduleManufacturer = (project.moduleManufacturer || "SOLAR").toUpperCase().trim();
     
     const inverterManufacturer = (
       project.inverterManufacturer ||
       project.inverters?.[0]?.manufacturer ||
-      "GROWATT"
-    ).toUpperCase();
+      "SOLIS"
+    ).toUpperCase().trim();
 
     const inverterModel = (
       project.inverterModel ||
       project.inverters?.[0]?.model ||
-      "INVERSOR SOLAR"
+      "S6-GR1P7,5K2"
     ).toUpperCase().trim();
 
     // 5. Dados do Cliente e Responsável Técnico
@@ -218,7 +226,7 @@ export async function generateDxfProject(
             updated = true;
           }
 
-          // D. Marca e Modelo do Inversor (Ex: Solis S6-GR1P7.5K2)
+          // D. Marca e Modelo do Inversor (Ex: Solis S6-GR1P7,5K2)
           if (!updated && /CSI-5K-S2203A-E|S6-GR1P7|MIN 5000TL/i.test(textVal)) {
             textVal = inverterModel;
             updated = true;
@@ -230,24 +238,29 @@ export async function generateDxfProject(
           }
 
           // E. Marca e Modelo Completo de Módulos (Sem Truncar)
-          if (!updated && /HMB132T12R/i.test(textVal)) {
+          if (!updated && /HMB132T12R|HiKu6 CS6W-550MS|CS6W/i.test(textVal)) {
             textVal = fullModuleModel;
             updated = true;
           }
 
-          if (!updated && /HELIUS/i.test(textVal)) {
+          if (!updated && /HELIUS|Canadian Solar/i.test(textVal)) {
             textVal = moduleManufacturer;
             updated = true;
           }
 
-          // F. Quantidades reais de módulos por String/MPPT no Fluxograma (Gerador P1 e P2)
-          if (!updated && (/\b06\b/.test(textVal) || /\b11\b/.test(textVal)) && i > 8200 && i < 19500) {
-            textVal = textVal.replace(/\b(06|11)\b/, mppt1CountStr);
+          // F. Quantidades reais de módulos por String/MPPT no Diagrama de 3 Rames (P1, P2 e P3)
+          if (!updated && (/\b07\b/.test(textVal) || /\b06\b/.test(textVal) || /\b11\b/.test(textVal)) && i > 8200 && i < 24000) {
+            textVal = textVal.replace(/\b(07|06|11)\b/, mppt1CountStr);
             updated = true;
           }
 
-          if (!updated && (/\b05\b/.test(textVal) || /\b10\b/.test(textVal)) && i > 8200 && i < 19500) {
-            textVal = textVal.replace(/\b(05|10)\b/, mppt2CountStr);
+          if (!updated && (/\b07\b/.test(textVal) || /\b05\b/.test(textVal) || /\b10\b/.test(textVal)) && i > 17000 && i < 24000) {
+            textVal = textVal.replace(/\b(07|05|10)\b/, mppt2CountStr);
+            updated = true;
+          }
+
+          if (!updated && /\b08\b/.test(textVal) && i > 17000 && i < 24000) {
+            textVal = textVal.replace(/\b08\b/, mppt3CountStr);
             updated = true;
           }
 
