@@ -43,40 +43,54 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     concessionaria = "EDP Espírito Santo";
   }
 
-  // 2. Extração Avançada de CPF / CNPJ
+  // 2. Extração Avançada de CPF / CNPJ do Cliente (Ignorando CNPJ da Distribuidora)
   let cpfCnpj: string | undefined;
 
-  // Busca 1: Padrão Formatado
-  const cnpjMatch = cleanText.match(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/);
-  const cpfMatch = cleanText.match(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/);
+  // Lista de CNPJs conhecidos de distribuidoras para ignorar
+  const cnpjsDistribuidoras = [
+    '28.152.650/0001-71', // EDP ES
+    '03.238.961/0001-51', // EDP SP
+    '33.050.196/0001-44', // Light
+    '09.047.435/0001-55', // Enel SP
+    '04.920.816/0001-56', // Enel RJ
+    '17.155.730/0001-64', // Cemig
+    '02.429.980/0001-40', // CPFL
+  ];
 
-  if (cnpjMatch) {
-    cpfCnpj = cnpjMatch[0];
-  } else if (cpfMatch) {
-    cpfCnpj = cpfMatch[0];
-  } else {
-    // Busca 2: Padrão por Rótulo (ex: "CPF: 12345678900", "CPF/CNPJ 05557750703")
-    const labelMatch = cleanText.match(/(?:CPF|CNPJ|CPF\/CNPJ|DOC(?:UMENTO)?(?:\s*TITULAR)?)\s*[:\.\s\-]*\n?\s*(\d{2,3}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s\-]?\d{2,4}[\.\s\-]?\d{2})/i);
-    if (labelMatch) {
-      const rawDigits = labelMatch[1].replace(/\D/g, '');
-      if (rawDigits.length === 11) {
-        cpfCnpj = rawDigits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-      } else if (rawDigits.length === 14) {
-        cpfCnpj = rawDigits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-      }
+  // Extrai todos os CPFs e CNPJs do texto
+  const todosCpfs = Array.from(cleanText.matchAll(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g)).map(m => m[0]);
+  const todosCnpjs = Array.from(cleanText.matchAll(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g)).map(m => m[0]);
+
+  // Filtrar CNPJs das distribuidoras
+  const cnpjsValidosCliente = todosCnpjs.filter(c => !cnpjsDistribuidoras.includes(c));
+
+  // Prioridade 1: Buscar CPF/CNPJ com rótulo explícito do cliente (ex: "CPF: 055.577.507-03" ou "CPF/CNPJ do Cliente")
+  const rotuloClienteMatch = cleanText.match(/(?:CPF|CNPJ|CPF\/CNPJ|DOC(?:UMENTO)?)\s*(?:DO\s*CLIENTE|DO\s*TITULAR|DO\s*DESTINATÁRIO)?\s*[:\.\s\-]*\n?\s*(\d{2,3}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s\-]?\d{2,4}[\.\s\-]?\d{2})/i);
+  
+  if (rotuloClienteMatch) {
+    const rawDigits = rotuloClienteMatch[1].replace(/\D/g, '');
+    if (rawDigits.length === 11) {
+      cpfCnpj = rawDigits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    } else if (rawDigits.length === 14) {
+      cpfCnpj = rawDigits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
     }
   }
 
-  // Busca 3: Se ainda não achou, procura sequência pura de 11 ou 14 dígitos perto de palavras chave
+  // Prioridade 2: Se não encontrou por rótulo, pega o primeiro CPF formatado encontrado no texto
+  if (!cpfCnpj && todosCpfs.length > 0) {
+    cpfCnpj = todosCpfs[0];
+  }
+
+  // Prioridade 3: Se não encontrou CPF, pega o CNPJ do cliente (excluindo distribuidora)
+  if (!cpfCnpj && cnpjsValidosCliente.length > 0) {
+    cpfCnpj = cnpjsValidosCliente[0];
+  }
+
+  // Prioridade 4: Busca números puros de 11 dígitos no bloco de dados do cliente
   if (!cpfCnpj) {
-    const rawNumberMatch = cleanText.match(/(?:CLIENTE|TITULAR|UC|CONTA|PAGADOR|NOTA\s*FISCAL)[\s\S]{0,100}?\b(\d{11}|\d{14})\b/i);
-    if (rawNumberMatch) {
-      const raw = rawNumberMatch[1];
-      if (raw.length === 11) {
-        cpfCnpj = raw.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-      } else if (raw.length === 14) {
-        cpfCnpj = raw.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-      }
+    const rawCpfMatch = cleanText.match(/(?:CLIENTE|TITULAR|CONSUMIDOR|DESTINATÁRIO)[\s\S]{0,120}?\b(\d{11})\b/i);
+    if (rawCpfMatch) {
+      cpfCnpj = rawCpfMatch[1].replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     }
   }
 
