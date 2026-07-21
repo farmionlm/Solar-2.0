@@ -1,0 +1,320 @@
+"use client";
+
+import React, { useState } from 'react';
+import { 
+  X, 
+  Upload, 
+  FileText, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Sparkles, 
+  Zap, 
+  Building2, 
+  User, 
+  Hash, 
+  Gauge, 
+  ArrowRight,
+  ClipboardList
+} from 'lucide-react';
+import { FaturaExtraida, HistoricoConsumoItem } from '@/utils/faturaParser';
+
+interface FaturaOcrModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onApply: (data: FaturaExtraida) => void;
+}
+
+export function FaturaOcrModal({ isOpen, onClose, onApply }: FaturaOcrModalProps) {
+  const [activeTab, setActiveTab] = useState<'FILE' | 'TEXT'>('FILE');
+  const [file, setFile] = useState<File | null>(null);
+  const [pastedText, setPastedText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [extractedData, setExtractedData] = useState<FaturaExtraida | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setError(null);
+    }
+  };
+
+  const handleProcess = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      let res: Response;
+
+      if (activeTab === 'FILE' && file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        res = await fetch('/api/ocr/fatura', {
+          method: 'POST',
+          body: formData,
+        });
+      } else if (activeTab === 'TEXT' && pastedText.trim()) {
+        res = await fetch('/api/ocr/fatura', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: pastedText }),
+        });
+      } else {
+        setError('Por favor, selecione um arquivo PDF/Imagem ou cole o texto da fatura.');
+        setLoading(false);
+        return;
+      }
+
+      const result = await res.json();
+
+      if (!res.ok || result.error) {
+        throw new Error(result.error || 'Erro ao ler a fatura.');
+      }
+
+      setExtractedData(result.data);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Falha ao processar arquivo da fatura.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApply = () => {
+    if (extractedData) {
+      onApply(extractedData);
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-card border border-border rounded-3xl shadow-2xl overflow-hidden my-8">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border bg-secondary/30">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-base text-foreground">Leitor Inteligente de Faturas (OCR)</h3>
+              <p className="text-xs text-muted-foreground">Importe o histórico de consumo e dados do cliente via PDF ou Texto</p>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+
+          {/* Seleção de Aba */}
+          {!extractedData && (
+            <div className="flex bg-secondary/50 p-1 rounded-2xl border border-border">
+              <button
+                type="button"
+                onClick={() => setActiveTab('FILE')}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                  activeTab === 'FILE'
+                    ? 'bg-card text-primary shadow-sm border border-border'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Upload className="w-4 h-4" />
+                Upload do PDF da Fatura
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('TEXT')}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                  activeTab === 'TEXT'
+                    ? 'bg-card text-primary shadow-sm border border-border'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                Colar Texto / Copia e Cola
+              </button>
+            </div>
+          )}
+
+          {/* Formulário de Input ou Resultado */}
+          {!extractedData ? (
+            <div>
+              {activeTab === 'FILE' ? (
+                <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center bg-secondary/10 hover:bg-secondary/30 transition-colors">
+                  <input
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="fatura-file-input"
+                  />
+                  <label htmlFor="fatura-file-input" className="cursor-pointer flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    {file ? (
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB — Clique para substituir</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-sm font-bold text-foreground">Clique para selecionar a fatura (PDF ou Imagem)</p>
+                        <p className="text-xs text-muted-foreground mt-1">Suporta EDP, Light, Enel, Cemig, CPFL, Neoenergia e outras</p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              ) : (
+                <div>
+                  <textarea
+                    rows={6}
+                    value={pastedText}
+                    onChange={(e) => setPastedText(e.target.value)}
+                    placeholder="Copie e cole aqui o conteúdo completo do texto da sua fatura de energia..."
+                    className="w-full bg-secondary/30 border border-border rounded-2xl p-4 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary custom-scrollbar"
+                  />
+                </div>
+              )}
+
+              {error && (
+                <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-medium flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleProcess}
+                disabled={loading || (activeTab === 'FILE' && !file) || (activeTab === 'TEXT' && !pastedText.trim())}
+                className="w-full mt-5 py-3.5 px-4 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground font-extrabold text-sm rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Zap className="w-4 h-4 animate-spin" />
+                    Extraindo Histórico & Dados via OCR...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Processar e Extrair Dados da Fatura
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            /* Dados Extraídos */
+            <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>Fatura lida com sucesso! Confira os dados extraídos abaixo:</span>
+              </div>
+
+              {/* Grid de Campos Extraídos */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="bg-secondary/40 border border-border rounded-xl p-3">
+                  <span className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px]">
+                    <User className="w-3.5 h-3.5 text-primary" /> Nome do Cliente
+                  </span>
+                  <p className="font-bold text-foreground mt-1">{extractedData.clienteNome || "Não identificado"}</p>
+                </div>
+
+                <div className="bg-secondary/40 border border-border rounded-xl p-3">
+                  <span className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px]">
+                    <Hash className="w-3.5 h-3.5 text-primary" /> CPF / CNPJ
+                  </span>
+                  <p className="font-bold text-foreground mt-1">{extractedData.cpfCnpj || "Não identificado"}</p>
+                </div>
+
+                <div className="bg-secondary/40 border border-border rounded-xl p-3">
+                  <span className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px]">
+                    <Building2 className="w-3.5 h-3.5 text-primary" /> Nº da Instalação (UC)
+                  </span>
+                  <p className="font-bold text-foreground mt-1">{extractedData.instalacao || "Não identificada"}</p>
+                </div>
+
+                <div className="bg-secondary/40 border border-border rounded-xl p-3">
+                  <span className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px]">
+                    <Zap className="w-3.5 h-3.5 text-amber-500" /> Concessionária
+                  </span>
+                  <p className="font-bold text-foreground mt-1">{extractedData.concessionaria}</p>
+                </div>
+
+                <div className="bg-secondary/40 border border-border rounded-xl p-3">
+                  <span className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px]">
+                    <Gauge className="w-3.5 h-3.5 text-blue-500" /> Tipo de Ligação / Grupo
+                  </span>
+                  <p className="font-bold text-foreground mt-1">
+                    {extractedData.tipoLigacao} — {extractedData.grupoTarifario}
+                  </p>
+                </div>
+
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+                  <span className="text-amber-500 flex items-center gap-1 font-bold text-[11px]">
+                    <Zap className="w-3.5 h-3.5" /> Consumo Médio Calculado
+                  </span>
+                  <p className="font-black text-amber-500 text-sm mt-1">{extractedData.consumoMedioKwh} kWh/mês</p>
+                </div>
+              </div>
+
+              {/* Tabela do Histórico de Consumo */}
+              {extractedData.historicoConsumo.length > 0 && (
+                <div className="border border-border rounded-2xl overflow-hidden bg-card">
+                  <div className="px-4 py-2.5 bg-secondary/50 border-b border-border flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <ClipboardList className="w-3.5 h-3.5 text-primary" /> Histórico de Consumo Extraído ({extractedData.historicoConsumo.length} meses)
+                    </span>
+                    <span className="text-[11px] font-bold text-amber-500">
+                      Média: {extractedData.consumoMedioKwh} kWh/mês
+                    </span>
+                  </div>
+                  <div className="p-3 max-h-36 overflow-y-auto custom-scrollbar">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {extractedData.historicoConsumo.map((item, idx) => (
+                        <div key={idx} className="p-2 rounded-lg bg-secondary/30 border border-border/50 text-center">
+                          <span className="text-[10px] text-muted-foreground font-semibold block">{item.mesAno}</span>
+                          <span className="text-xs font-extrabold text-foreground">{item.kwh} kWh</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Botões de Ação */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setExtractedData(null)}
+                  className="flex-1 py-3 px-4 bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs rounded-xl transition-all border border-border"
+                >
+                  Refazer Leitura
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApply}
+                  className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                >
+                  <span>Aplicar Dados da Fatura</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}

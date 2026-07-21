@@ -17,6 +17,9 @@ import { generateFormularioAcessoPDF } from "@/utils/generateFormularioAcesso";
 import { generateFormularioAcessoDocx } from "@/utils/generateFormularioAcessoDocx";
 import { SlaCountdownBadge } from "@/components/SlaCountdownBadge";
 import { SignatureCanvasModal } from "@/components/SignatureCanvasModal";
+import { FaturaOcrModal } from "@/components/FaturaOcrModal";
+import { FaturaExtraida } from "@/utils/faturaParser";
+import { Sparkles } from "lucide-react";
 
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 
@@ -61,6 +64,42 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
   // Estado do modal de Assinatura Eletrônica
   const [showSignatureModal, setShowSignatureModal] = useState(false);
+
+  // Estado do modal de OCR de Fatura
+  const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
+
+  const handleApplyOcrData = async (data: FaturaExtraida) => {
+    setIsSaving(true);
+    try {
+      const updateData: any = {
+        id,
+        cpfCnpj: data.cpfCnpj ? formatCpfCnpj(data.cpfCnpj) : client?.cpfCnpj,
+        installationNumber: data.instalacao || client?.installationNumber,
+        concessionaria: data.concessionaria || client?.concessionaria,
+        city: data.cidade || client?.city,
+        cep: data.cep ? formatCep(data.cep) : client?.cep,
+      };
+      if (data.clienteNome && (!client?.name || client.name.startsWith("Cliente "))) {
+        updateData.name = data.clienteNome;
+      }
+
+      const res = await fetch("/api/clients", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!res.ok) throw new Error("Erro ao atualizar cliente com dados da fatura");
+
+      await mutate();
+      setSaveMsg(`Fatura lida! Concessionária ${data.concessionaria} e consumo de ${data.consumoMedioKwh} kWh/mês importados com sucesso!`);
+      setTimeout(() => setSaveMsg(""), 5000);
+    } catch (err: any) {
+      setError(err.message || "Erro ao aplicar dados da fatura.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const resetManualModal = () => {
     setShowNewProjectModal(false);
@@ -652,6 +691,11 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-foreground break-words">{client.name}</h1>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <button
+            onClick={() => setIsOcrModalOpen(true)}
+            className="flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md active:scale-95 text-xs">
+            <Sparkles className="w-4 h-4" /> Importar Fatura (OCR)
+          </button>
           <button
             onClick={() => { setShowNewProjectModal(true); setNewProjectMode('choice'); }}
             className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 rounded-xl font-bold transition-all shadow-md shadow-primary/20 active:scale-95 text-xs">
@@ -2292,6 +2336,13 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
             setIsSaving(false);
           }
         }}
+      />
+
+      {/* Modal de Leitor Inteligente de Faturas (OCR) */}
+      <FaturaOcrModal
+        isOpen={isOcrModalOpen}
+        onClose={() => setIsOcrModalOpen(false)}
+        onApply={handleApplyOcrData}
       />
 
     </div>
