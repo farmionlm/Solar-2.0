@@ -43,6 +43,7 @@ model User {
   
   clients       Client[]
   auditLogs     AuditLog[]
+  notifications Notification[]
 
   // White-Label / Branding (only for PARTNER role)
   brandColor    String?   // Hex color, ex: "#2563eb"
@@ -209,4 +210,34 @@ model SolarInverter {
   inputsPerMppt Int?     // Optional
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  read      Boolean  @default(false)
+  link      String?  // Rota para onde a notificação deve direcionar (ex: /clientes/abc123)
+  
+  // Referência opcional ao cliente relacionado
+  clientId  String?
+  clientName String?
+
+  // Notificação pertence a um usuário/empresa
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  CRITICAL
 }

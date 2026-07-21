@@ -114,3 +114,19 @@ export type Project = {
 export type ClientDetail = ClientListItem & {
   projects: Project[];
 };
+
+export type NotificationType = "INFO" | "SUCCESS" | "WARNING" | "CRITICAL";
+
+export type AppNotification = {
+  id: string;
+  createdAt: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  read: boolean;
+  link?: string | null;
+  clientId?: string | null;
+  clientName?: string | null;
+  userId: string;
+};
+
