@@ -228,7 +228,6 @@ export default function Historico() {
             ))}
           </div>
         )}
-      </div>
     </div>
   );
 }

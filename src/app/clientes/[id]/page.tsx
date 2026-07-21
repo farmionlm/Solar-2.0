@@ -1201,7 +1201,6 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
             </div>
           )}
         </div>
-      </div>
       {/* Modal de Novo Projeto */}
       {showNewProjectModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">

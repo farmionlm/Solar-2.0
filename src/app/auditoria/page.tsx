@@ -102,7 +102,6 @@ function AuditoriaContent() {
             </table>
           </div>
         </div>
-      </div>
     </div>
   );
 }

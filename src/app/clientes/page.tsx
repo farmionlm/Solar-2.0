@@ -216,7 +216,6 @@ export default function Clientes() {
             ))}
           </div>
         )}
-      </div>
 
       {/* Modal Novo Cliente */}
       {showModal && (

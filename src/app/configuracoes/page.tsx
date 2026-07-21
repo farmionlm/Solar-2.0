@@ -267,7 +267,6 @@ export default function ConfiguracoesPage() {
             </div>
           </form>
         )}
-      </div>
     </div>
   );
 }
