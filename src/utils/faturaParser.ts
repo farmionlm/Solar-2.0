@@ -69,31 +69,41 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
   let endereco: string | undefined;
   let cidade: string | undefined;
   let cep: string | undefined;
+  let instalacao: string | undefined;
 
-  // --- 2. EXTRAÇÃO CONTEXTUAL DO BLOCO DO CLIENTE (Foco no local da imagem EDP/Light/Enel) ---
-  const linhas = cleanText.split('\n').map(l => l.trim()).filter(Boolean);
+  // --- Funções Auxiliares para Limpeza de Colunas Concatenadas do PDF ---
+  const sanitizeLineRightColumn = (raw: string) => {
+    return raw
+      .replace(/CÓDIGO\s*DA\s*INSTALAÇÃO.*/i, '')
+      .replace(/CÓDIGO\s*DO\s*CLIENTE.*/i, '')
+      .replace(/UNIDADE\s*CONSUMIDORA.*/i, '')
+      .replace(/CONTA\s*CONTRATO.*/i, '')
+      .replace(/\b\d{8,12}\b\s*$/, '') // Remove código da instalação ou cliente concatenado no final da linha
+      .trim();
+  };
+
+  // --- 2. EXTRAÇÃO CONTEXTUAL DO BLOCO DO CLIENTE (EDP/Light/Enel) ---
+  const rawLinhas = cleanText.split('\n').map(l => l.trim()).filter(Boolean);
   
-  // Encontrar o índice pivô do bloco do cliente (linha contendo CPF, CEP ou "CÓDIGO DO CLIENTE")
+  // Encontrar o índice pivô do bloco do cliente (linha contendo CPF, CEP ou CÓDIGO DO CLIENTE)
   let clienteBlockIndex = -1;
-  for (let i = 0; i < linhas.length; i++) {
-    if (/(?:CPF|CPF\/CNPJ|DOC)\s*[:\s]*\d+/i.test(linhas[i]) || /CEP\s*[:\s]*\d+/i.test(linhas[i]) || /CÓDIGO\s*DO\s*CLIENTE/i.test(linhas[i])) {
+  for (let i = 0; i < rawLinhas.length; i++) {
+    if (/(?:CPF|CPF\/CNPJ|DOC)\s*[:\s]*\d+/i.test(rawLinhas[i]) || /CEP\s*[:\s]*\d+/i.test(rawLinhas[i]) || /CÓDIGO\s*DO\s*CLIENTE/i.test(rawLinhas[i])) {
       clienteBlockIndex = i;
       break;
     }
   }
 
   if (clienteBlockIndex !== -1) {
-    // Captura as 6 linhas antes e 3 linhas depois do pivô (bloco isolado do cliente)
     const startIdx = Math.max(0, clienteBlockIndex - 6);
-    const endIdx = Math.min(linhas.length, clienteBlockIndex + 4);
-    const blocoLinhas = linhas.slice(startIdx, endIdx);
+    const endIdx = Math.min(rawLinhas.length, clienteBlockIndex + 4);
+    const blocoLinhas = rawLinhas.slice(startIdx, endIdx);
 
-    for (const linha of blocoLinhas) {
-      const linhaUpper = linha.toUpperCase();
-
-      // a) CPF do Cliente no Bloco (ex: "CPF: 14487106770" ou "CPF: 144.871.067-70")
+    // Passagem 1: Extrair CPF, CEP, Cidade e Instalação do Bloco
+    for (const rawLinha of blocoLinhas) {
+      // a) CPF do Cliente no Bloco (ex: "CPF: 14487106770")
       if (!cpfCnpj) {
-        const cpfMatch = linha.match(/(?:CPF|CNPJ|CPF\/CNPJ|DOC(?:UMENTO)?)\s*[:\.\s\-]*\s*([\d\.\/\-]{11,18})/i);
+        const cpfMatch = rawLinha.match(/(?:CPF|CNPJ|CPF\/CNPJ|DOC(?:UMENTO)?)\s*[:\.\s\-]*\s*([\d\.\/\-]{11,18})/i);
         if (cpfMatch) {
           const rawDigits = cpfMatch[1].replace(/\D/g, '');
           if (rawDigits.length === 11) {
@@ -106,7 +116,7 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
 
       // b) CEP no Bloco (ex: "CEP: 29903-610")
       if (!cep) {
-        const cepMatch = linha.match(/(?:CEP)?\s*[:\s]*(\d{5}-\d{3}|\d{8})\b/i);
+        const cepMatch = rawLinha.match(/(?:CEP)?\s*[:\s]*(\d{5}-\d{3}|\d{8})\b/i);
         if (cepMatch) {
           const rawCep = cepMatch[1].replace(/\D/g, '');
           if (rawCep.length === 8) {
@@ -117,52 +127,62 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
 
       // c) Cidade no Bloco (ex: "INTERLAGOS / LINHARES - ES")
       if (!cidade) {
-        const cidadeMatch = linha.match(/\/\s*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{3,30})\s*-\s*([A-Z]{2})/i);
+        const cidadeMatch = rawLinha.match(/\/\s*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{3,30})\s*-\s*([A-Z]{2})/i);
         if (cidadeMatch) {
           cidade = cidadeMatch[1].trim();
         } else {
-          const cidLista = linha.match(/(Vitória|Vila Velha|Serra|Cariacica|Guarapari|Linhares|São Mateus|Colatina|Cachoeiro de Itapemirim|Aracruz|Viana|Domingos Martins)\b/i);
+          const cidLista = rawLinha.match(/(Vitória|Vila Velha|Serra|Cariacica|Guarapari|Linhares|São Mateus|Colatina|Cachoeiro de Itapemirim|Aracruz|Viana|Domingos Martins)\b/i);
           if (cidLista) cidade = cidLista[0];
         }
       }
 
-      // d) Endereço no Bloco (ex: "RUA MONTEIRO LOBATO 2137 CX 01")
-      if (!endereco) {
-        const isStreet = /(?:RUA|R\.|AVENIDA|AV\.|ALAMEDA|PRAÇA|PRACA|ESTRADA|RODOVIA|SERVIDÃO|SERVIDAO|TRAVESSA|TV\.|SÍTIO|SITIO|FAZENDA|RESIDENCIAL)\s+/i.test(linha);
-        const isHeaderAddr = palavrasProibidas.some(p => linhaUpper.includes(p));
-        if (isStreet && !isHeaderAddr) {
-          endereco = linha;
-        }
-      }
-
-      // e) Nome do Cliente no Bloco (ex: "LUAN PARDIM MUNIZ")
-      if (!clienteNome) {
-        if (/^[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{2,20}(\s+[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{2,20}){1,4}$/.test(linha)) {
-          const isForbidden = palavrasProibidas.some(p => linhaUpper.includes(p));
-          const isAddrOrDetails = /(?:RUA|AVENIDA|CEP|CPF|INTERLAGOS|LINHARES|SERRA|VITÓRIA)/i.test(linha);
-          if (!isForbidden && !isAddrOrDetails) {
-            clienteNome = linha;
-          }
+      // d) Número da Instalação (UC)
+      if (!instalacao) {
+        const instM = rawLinha.match(/(?:CÓDIGO\s*DA\s*INSTALAÇÃO|CODIGO\s*DA\s*INSTALACAO|INSTALAÇÃ|INSTALACAO|Nº\s*DA\s*UC)\s*[:\s\n]*(\d{5,12})/i);
+        if (instM) {
+          instalacao = instM[1];
         }
       }
     }
 
-    // Se o endereço ainda não foi capturado por palavra-chave de rua, pega a linha imediatamente anterior à Cidade/Bairro ou CEP
-    if (!endereco) {
-      for (let i = 0; i < blocoLinhas.length; i++) {
-        const l = blocoLinhas[i];
-        if ((/CEP:|CPF:|\//i.test(l) || l === cidade) && i > 0) {
-          const candidate = blocoLinhas[i - 1];
-          if (candidate !== clienteNome && candidate.length >= 5 && !palavrasProibidas.some(p => candidate.toUpperCase().includes(p))) {
-            endereco = candidate;
-            break;
+    // Passagem 2: Extrair Nome do Cliente e Endereço por Sequência do Bloco
+    // No PDF da EDP, as linhas do bloco do cliente vêm em sequência perfeita:
+    // Linha A: NOME DO CLIENTE (ex: "LUAN PARDIM MUNIZ")
+    // Linha B: ENDEREÇO (ex: "RUA MONTEIRO LOBATO 2137 CX 01")
+    // Linha C: BAIRRO / CIDADE - UF (ex: "INTERLAGOS / LINHARES - ES")
+    for (let i = 0; i < blocoLinhas.length; i++) {
+      const lineClean = sanitizeLineRightColumn(blocoLinhas[i]);
+      const lineUpper = lineClean.toUpperCase();
+
+      // Identifica o Nome do Cliente (linha de 2 a 5 palavras em maiúsculas sem palavras de sistema/endereço)
+      if (!clienteNome && /^[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{2,20}(\s+[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{2,20}){1,4}$/.test(lineClean)) {
+        const isForbidden = palavrasProibidas.some(p => lineUpper.includes(p));
+        const isAddrOrDetails = /(?:RUA|R\.|AVENIDA|AV\.|CEP|CPF|INTERLAGOS|LINHARES|SERRA|VITÓRIA)/i.test(lineClean);
+        if (!isForbidden && !isAddrOrDetails) {
+          clienteNome = lineClean;
+          
+          // O Endereço no modelo EDP é a linha IMEDIATAMENTE APÓS o Nome do Cliente!
+          if (i + 1 < blocoLinhas.length) {
+            const nextLineClean = sanitizeLineRightColumn(blocoLinhas[i + 1]);
+            if (nextLineClean && !nextLineClean.includes('CPF:') && !nextLineClean.includes('CEP:')) {
+              endereco = nextLineClean;
+            }
           }
+        }
+      }
+
+      // Se ainda não capturou o endereço via linha seguinte do nome, busca por palavra-chave de logradouro (RUA, R., AVENUE, PRAÇA, etc.)
+      if (!endereco) {
+        const isStreetPrefix = /(?:RUA|R\.|AVENIDA|AV\.|ALAMEDA|PRAÇA|PRACA|ESTRADA|RODOVIA|SERVIDÃO|SERVIDAO|TRAVESSA|TV\.|SÍTIO|SITIO|FAZENDA|CONJUNTO|QUADRA|PARQUE)\s+/i.test(lineClean);
+        const isHeaderAddr = palavrasProibidas.some(p => lineUpper.includes(p));
+        if (isStreetPrefix && !isHeaderAddr) {
+          endereco = lineClean;
         }
       }
     }
   }
 
-  // --- FALLBACKS GLOBAIS (Caso o bloco não tenha sido isolado) ---
+  // --- FALLBACKS GLOBAIS (Se algum campo não tiver sido extraído do bloco) ---
   if (!cpfCnpj) {
     const rotuloMatches = Array.from(cleanText.matchAll(/(?:CPF|CNPJ|CPF\/CNPJ|DOC(?:UMENTO)?)\s*(?:DO\s*CLIENTE|DO\s*TITULAR|DO\s*DESTINATÁRIO)?\s*[:\.\s\-]*\n?\s*([\d\.\/\-]{11,18})/gi));
     for (const match of rotuloMatches) {
@@ -217,12 +237,12 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     }
   }
 
-  // 3. Nº da Instalação / Unidade Consumidora (UC)
-  let instalacao: string | undefined;
-  const instMatch = cleanText.match(/(?:CÓDIGO\s*DA\s*INSTALAÇÃO|CODIGO\s*DA\s*INSTALACAO|INSTALAÇÃ|INSTALACAO|Nº\s*DA\s*UC|UNIDADE\s*CONSUMIDORA|CONTA\s*CONTRATO)\s*[:\s\n]*(\d{5,12})/i)
-                 || cleanText.match(/\b(\d{8,10})\b/);
-  if (instMatch) {
-    instalacao = instMatch[1];
+  if (!instalacao) {
+    const instMatch = cleanText.match(/(?:CÓDIGO\s*DA\s*INSTALAÇÃO|CODIGO\s*DA\s*INSTALACAO|INSTALAÇÃ|INSTALACAO|Nº\s*DA\s*UC|UNIDADE\s*CONSUMIDORA|CONTA\s*CONTRATO)\s*[:\s\n]*(\d{5,12})/i)
+                   || cleanText.match(/\b(\d{8,10})\b/);
+    if (instMatch) {
+      instalacao = instMatch[1];
+    }
   }
 
   // 4. Tipo de Ligação (Mono, Bi ou Trifásico)
