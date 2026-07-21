@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { generateMemorialPDF } from "@/utils/generateMemorial";
 import { generateMemorialDocx } from "@/utils/generateMemorialDocx";
-import { generateDxfProject, DXF_TEMPLATES, DxfTemplateType } from "@/utils/generateDxf";
+import { generateDxfProject, DXF_TEMPLATES, DxfTemplateType, calculateElectricalSizing, PatternType } from "@/utils/generateDxf";
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 
 import { formatUnidadeConsumidora, formatCpfCnpj, formatPhone, formatCep } from "@/utils/formatters";
@@ -57,6 +57,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
   const [dxfModalProject, setDxfModalProject] = useState<Project | null>(null);
   const [selectedDxfTemplate, setSelectedDxfTemplate] = useState<DxfTemplateType>("unifilar");
+  const [dxfPatternType, setDxfPatternType] = useState<PatternType>("BIFASICO");
+  const [dxfBreakerAmps, setDxfBreakerAmps] = useState<number>(63);
 
   const resetManualModal = () => {
     setShowNewProjectModal(false);
@@ -2090,7 +2092,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
       {/* Modal Gerador de Arquivos CAD (.DXF) */}
       {dxfModalProject && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-card border border-border rounded-3xl max-w-xl w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-border flex justify-between items-center bg-secondary/30">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-xl">
@@ -2109,38 +2111,115 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
-              <p className="text-xs text-muted-foreground font-medium">
-                Selecione o modelo de gabarito técnico que deseja exportar. Os dados do cliente, endereço, potência em kWp e responsável técnico serão aplicados automaticamente ao carimbo do desenho CAD:
-              </p>
+            <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+              {/* Resumo dos Dados do Projeto */}
+              <div className="bg-cyan-950/20 border border-cyan-500/30 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-black uppercase text-cyan-400 tracking-wider">Dados Injetados no Desenho</span>
+                  <div className="text-sm font-extrabold text-foreground mt-0.5">
+                    {Number(dxfModalProject.totalKwp).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWp — {dxfModalProject.totalModules} Módulos
+                  </div>
+                </div>
+                <div className="bg-cyan-500/10 text-cyan-400 text-xs font-bold px-3 py-1 rounded-full border border-cyan-500/20">
+                  ✓ Dinâmico
+                </div>
+              </div>
 
-              <div className="space-y-3">
-                {DXF_TEMPLATES.map((tmpl) => {
-                  const isSelected = selectedDxfTemplate === tmpl.id;
-                  return (
-                    <div
-                      key={tmpl.id}
-                      onClick={() => setSelectedDxfTemplate(tmpl.id)}
-                      className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                        isSelected
-                          ? "bg-cyan-950/20 border-cyan-500/50 shadow-md shadow-cyan-500/5"
-                          : "bg-secondary/20 border-border hover:bg-secondary/40"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
+              {/* Seleção do Gabarito DXF */}
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
+                  1. Modelo de Gabarito CAD
+                </label>
+                <div className="space-y-2">
+                  {DXF_TEMPLATES.map((tmpl) => {
+                    const isSelected = selectedDxfTemplate === tmpl.id;
+                    return (
+                      <div
+                        key={tmpl.id}
+                        onClick={() => setSelectedDxfTemplate(tmpl.id)}
+                        className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? "bg-cyan-950/30 border-cyan-500/50 shadow-sm"
+                            : "bg-secondary/20 border-border hover:bg-secondary/40"
+                        }`}
+                      >
                         <div className="flex items-center gap-3">
                           <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? "border-cyan-400 bg-cyan-400" : "border-muted-foreground"}`}>
                             {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
                           </div>
                           <div>
-                            <h4 className="text-sm font-bold text-foreground">{tmpl.title}</h4>
-                            <p className="text-xs text-muted-foreground">{tmpl.description}</p>
+                            <h4 className="text-xs font-bold text-foreground">{tmpl.title}</h4>
+                            <p className="text-[11px] text-muted-foreground">{tmpl.description}</p>
                           </div>
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Parâmetros Elétricos do Padrão da Concessionária */}
+              <div className="bg-secondary/20 p-4 rounded-2xl border border-border space-y-4">
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  2. Padrão de Entrada da Concessionária (NBR 5410)
+                </label>
+
+                {/* Tipo de Ligação */}
+                <div>
+                  <label className="block text-[11px] font-bold text-muted-foreground mb-1.5">Tipo de Ligação</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["MONOFASICO", "BIFASICO", "TRIFASICO"] as PatternType[]).map((type) => {
+                      const isSel = dxfPatternType === type;
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setDxfPatternType(type)}
+                          className={`py-2 px-3 text-xs font-bold rounded-xl border transition-all ${
+                            isSel
+                              ? "bg-primary text-primary-foreground border-primary shadow-md"
+                              : "bg-card text-muted-foreground border-border hover:bg-secondary"
+                          }`}
+                        >
+                          {type === "MONOFASICO" ? "Monofásico" : type === "BIFASICO" ? "Bifásico" : "Trifásico"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Disjuntor Geral */}
+                <div>
+                  <label className="block text-[11px] font-bold text-muted-foreground mb-1.5">Disjuntor Geral do Padrão (Amperes)</label>
+                  <select
+                    value={dxfBreakerAmps}
+                    onChange={(e) => setDxfBreakerAmps(Number(e.target.value))}
+                    className="w-full bg-background border border-border text-foreground font-bold text-xs rounded-xl h-10 px-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {[32, 40, 50, 63, 70, 80, 100, 125, 150].map((amp) => (
+                      <option key={amp} value={amp}>
+                        {amp} A
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Resultado do Dimensionamento NBR 5410 */}
+                {(() => {
+                  const elec = calculateElectricalSizing(dxfPatternType, dxfBreakerAmps);
+                  return (
+                    <div className="bg-background p-3 rounded-xl border border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground font-medium block">Condutor do Ramal Dimensionado:</span>
+                        <strong className="text-emerald-400 font-mono text-sm">{elec.cableLabel}</strong>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-muted-foreground font-medium block">Disjuntor no Desenho:</span>
+                        <strong className="text-primary font-bold">{elec.breakerLabel}</strong>
+                      </div>
                     </div>
                   );
-                })}
+                })()}
               </div>
             </div>
 
@@ -2155,7 +2234,13 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
               <Button
                 onClick={async () => {
                   if (!dxfModalProject || !client) return;
-                  await generateDxfProject(client, dxfModalProject, selectedDxfTemplate);
+                  await generateDxfProject(
+                    client,
+                    dxfModalProject,
+                    selectedDxfTemplate,
+                    dxfPatternType,
+                    dxfBreakerAmps
+                  );
                   setDxfModalProject(null);
                 }}
                 className="bg-cyan-500 hover:bg-cyan-600 text-black font-black rounded-xl h-11 px-6 shadow-lg shadow-cyan-500/20"
