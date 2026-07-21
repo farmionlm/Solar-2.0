@@ -152,6 +152,13 @@ export async function generateDxfProject(
           textVal = textVal.replace(/DISJUNTOR TRIFÁSICO 63A/gi, electrical.breakerLabel);
           textVal = textVal.replace(/DISJUNTOR BIFÁSICO/gi, `DISJUNTOR ${electrical.breakerLabel.replace("DISJUNTOR ", "")}`);
 
+          // Dispositivo de Proteção e Disjuntores dos 3 Locais do Desenho CAD
+          textVal = textVal.replace(/Dispositivo de Proteção\s*\d*A?/gi, `Dispositivo de Proteção ${breakerAmps}A`);
+          textVal = textVal.replace(/\bDISJUNTOR\s+\d+A\b/gi, `DISJUNTOR ${breakerAmps}A`);
+          textVal = textVal.replace(/DISJUNTOR BIFÁSICO 63A/gi, electrical.breakerLabel);
+          textVal = textVal.replace(/DISJUNTOR MONOFÁSICO 63A/gi, electrical.breakerLabel);
+          textVal = textVal.replace(/DISJUNTOR TRIFÁSICO 63A/gi, electrical.breakerLabel);
+
           // Substituir kWp e Módulos exclusivamente no texto da entidade DXF
           textVal = textVal.replace(/\b\d+[\.,]\d+\s*(?:kWp|kwp|KWP)\b/gi, totalKwpStr);
           textVal = textVal.replace(/\b7[\.,]48\b/gi, totalKwpFormatted);
