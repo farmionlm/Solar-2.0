@@ -222,11 +222,24 @@ export function FaturaOcrModal({ isOpen, onClose, onApply }: FaturaOcrModalProps
                 <span>Fatura lida com sucesso! Confira os dados extraídos abaixo:</span>
               </div>
 
+              {extractedData.alertaConsumoAtipico && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>{extractedData.alertaConsumoAtipico}</span>
+                </div>
+              )}
+
               {/* Grid de Campos Extraídos (Editáveis para Ajuste Fino) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="bg-secondary/40 border border-border rounded-xl p-3">
                   <label className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px] mb-1">
                     <User className="w-3.5 h-3.5 text-primary" /> Nome do Cliente
+                    {extractedData.confidenceScore?.clienteNome === 'HIGH' && (
+                      <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold">Alta Confiança</span>
+                    )}
+                    {extractedData.confidenceScore?.clienteNome === 'MEDIUM' && (
+                      <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold">Verificar</span>
+                    )}
                   </label>
                   <input
                     type="text"

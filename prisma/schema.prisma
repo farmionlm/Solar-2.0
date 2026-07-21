@@ -70,6 +70,7 @@ model Client {
   procuracaoUrl       String?
   procuracaoName      String?
   procuracaoUpdatedAt DateTime?
+  procuracaoExpirationDate DateTime? // Validade da procuração do cliente
 
   // Assinatura Eletrônica do Titular
   signatureUrl        String?   // PNG em Base64 da assinatura digital
@@ -97,6 +98,10 @@ model Project {
   totalKwp     Float
   totalModules Int
   installationNumber String?
+  
+  // Motivo de Perda (caso status seja CANCELED / Perdido)
+  lossReason         String?  // Ex: "Preço Alto", "Concorrência", "Prazo de Entrega", "Financiamento", "Desistência"
+  lossDetails        String?  // Observações adicionais sobre o cancelamento
   
   // Valores e Orçamento
   estimatedCost      Float?

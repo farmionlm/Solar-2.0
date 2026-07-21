@@ -3,9 +3,10 @@
 import React, { Suspense } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
-import { ArrowLeft, ShieldCheck, Activity, Search } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Activity, Search, Download } from 'lucide-react';
 import { UserMenu } from '@/components/UserMenu';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -20,6 +21,27 @@ function AuditoriaContent() {
            log.user.name.toLowerCase().includes(term);
   });
 
+  const handleExportCsv = () => {
+    if (!filteredLogs || filteredLogs.length === 0) return;
+    const header = "Data/Hora,Usuário,Função,Ação,Detalhes\n";
+    const rows = filteredLogs.map((log: any) => {
+      const dateStr = `"${new Date(log.createdAt).toLocaleString('pt-BR')}"`;
+      const userStr = `"${log.user.name.replace(/"/g, '""')}"`;
+      const roleStr = `"${log.user.role}"`;
+      const actionStr = `"${log.action.replace(/_/g, ' ')}"`;
+      const detailsStr = `"${(log.details || '').replace(/"/g, '""')}"`;
+      return `${dateStr},${userStr},${roleStr},${actionStr},${detailsStr}`;
+    }).join("\n");
+
+    const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `logs-auditoria-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -30,6 +52,13 @@ function AuditoriaContent() {
           <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">Logs de Auditoria</h1>
           <p className="text-sm text-muted-foreground font-medium mt-0.5">Histórico completo de alterações de status e ações executadas no sistema</p>
         </div>
+        <Button
+          onClick={handleExportCsv}
+          disabled={!filteredLogs || filteredLogs.length === 0}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-xl shadow-md h-10 px-4 gap-1.5"
+        >
+          <Download className="w-4 h-4" /> Exportar CSV
+        </Button>
       </header>
 
         <div className="bg-card rounded-2xl shadow-xl border border-border overflow-hidden">

@@ -795,9 +795,24 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                 <FileText className="w-5 h-5 text-primary" />
                 <h2 className="text-lg font-black text-foreground">Procuração do Cliente</h2>
                 {client.procuracaoUrl ? (
-                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                    ✓ Procuração Anexada
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                      ✓ Procuração Anexada
+                    </span>
+                    {client.procuracaoExpirationDate && (
+                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                        new Date(client.procuracaoExpirationDate) < new Date()
+                          ? "bg-red-500/10 text-red-400 border-red-500/30"
+                          : new Date(client.procuracaoExpirationDate).getTime() - new Date().getTime() < 30 * 24 * 60 * 60 * 1000
+                          ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                          : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                      }`}>
+                        {new Date(client.procuracaoExpirationDate) < new Date()
+                          ? "⚠️ Procuração Expirada"
+                          : `Validade: ${new Date(client.procuracaoExpirationDate).toLocaleDateString("pt-BR")}`}
+                      </span>
+                    )}
+                  </div>
                 ) : (
                   <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold px-2.5 py-0.5 rounded-full">
                     ⚠️ Sem Procuração Anexada

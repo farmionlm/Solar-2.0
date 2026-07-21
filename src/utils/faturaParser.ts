@@ -3,6 +3,14 @@ export type HistoricoConsumoItem = {
   kwh: number;
 };
 
+export type FieldConfidence = {
+  clienteNome: 'HIGH' | 'MEDIUM' | 'LOW';
+  cpfCnpj: 'HIGH' | 'MEDIUM' | 'LOW';
+  instalacao: 'HIGH' | 'MEDIUM' | 'LOW';
+  endereco: 'HIGH' | 'MEDIUM' | 'LOW';
+  consumoMedioKwh: 'HIGH' | 'MEDIUM' | 'LOW';
+};
+
 export type FaturaExtraida = {
   clienteNome?: string;
   cpfCnpj?: string;
@@ -15,6 +23,11 @@ export type FaturaExtraida = {
   cep?: string;
   tipoLigacao?: 'Monofásico' | 'Bifásico' | 'Trifásico';
   grupoTarifario?: string;
+  subgrupoA?: string;
+  demandaPontaKwh?: number;
+  demandaForaPontaKwh?: number;
+  alertaConsumoAtipico?: string;
+  confidenceScore?: FieldConfidence;
   historicoConsumo: HistoricoConsumoItem[];
   consumoMedioKwh: number;
   valorTotalFatura?: number;
@@ -115,18 +128,17 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
       .replace(/CÓDIGO\s*DO\s*CLIENTE.*/i, '')
       .replace(/UNIDADE\s*CONSUMIDORA.*/i, '')
       .replace(/CONTA\s*CONTRATO.*/i, '')
-      .replace(/\b\d{8,12}\b\s*$/, '') // Remove código da instalação ou cliente concatenado no final da linha
+      .replace(/\b\d{8,12}\b\s*$/, '')
       .trim();
   };
 
   // --- 2. EXTRAÇÃO CONTEXTUAL DO BLOCO DO CLIENTE (EDP/Light/Enel) ---
   const rawLinhas = cleanText.split('\n').map(l => l.trim()).filter(Boolean);
   
-  // Encontrar o índice pivô do bloco do cliente (ignorando cabeçalho da distribuidora)
   let clienteBlockIndex = -1;
   for (let i = 0; i < rawLinhas.length; i++) {
     const l = rawLinhas[i];
-    if (isDistributorData(l)) continue; // Ignora o cabeçalho da EDP / distribuidora
+    if (isDistributorData(l)) continue;
 
     if (
       /(?:CPF|CPF\/CNPJ|DOC)\s*[:\s]*\d+/i.test(l) ||
@@ -144,11 +156,9 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     const endIdx = Math.min(rawLinhas.length, clienteBlockIndex + 5);
     const blocoLinhas = rawLinhas.slice(startIdx, endIdx);
 
-    // Passagem 1: Extrair CPF, CEP, Bairro, Cidade, UF e Instalação do Bloco
     for (const rawLinha of blocoLinhas) {
       if (isDistributorData(rawLinha)) continue;
 
-      // a) CPF do Cliente no Bloco (ex: "CPF: 14487106770")
       if (!cpfCnpj) {
         const cpfMatch = rawLinha.match(/(?:CPF|CNPJ|CPF\/CNPJ|DOC(?:UMENTO)?)\s*[:\.\s\-]*\s*([\d\.\/\-]{11,18})/i);
         if (cpfMatch) {
@@ -161,7 +171,6 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
         }
       }
 
-      // b) CEP no Bloco (ex: "CEP: 29903-610")
       if (!cep) {
         const cepMatch = rawLinha.match(/(?:CEP)?\s*[:\s]*(\d{5}-\d{3}|\d{8})\b/i);
         if (cepMatch) {
@@ -172,7 +181,6 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
         }
       }
 
-      // c) Bairro, Cidade e UF no Bloco (ex: "INTERLAGOS / LINHARES - ES")
       if (!cidade || !bairro) {
         const bairroCidadeUfMatch = rawLinha.match(/\b([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s]{2,30})\s*\/\s*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{3,30})\s*-\s*([A-Z]{2})\b/i);
         
@@ -208,7 +216,6 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
         }
       }
 
-      // d) Número da Instalação (UC)
       if (!instalacao) {
         const instM = rawLinha.match(/(?:CÓDIGO\s*DA\s*INSTALAÇÃO|CODIGO\s*DA\s*INSTALACAO|INSTALAÇÃ|INSTALACAO|Nº\s*DA\s*UC)\s*[:\s\n]*(\d{5,12})/i);
         if (instM) {
@@ -217,21 +224,18 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
       }
     }
 
-    // Passagem 2: Extrair Nome do Cliente e Endereço por Sequência do Bloco
     for (let i = 0; i < blocoLinhas.length; i++) {
       if (isDistributorData(blocoLinhas[i])) continue;
 
       const lineClean = sanitizeLineRightColumn(blocoLinhas[i]);
       const lineUpper = lineClean.toUpperCase();
 
-      // Identifica o Nome do Cliente (linha de 2 a 5 palavras em maiúsculas sem palavras de sistema/endereço)
       if (!clienteNome && /^[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{2,20}(\s+[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{2,20}){1,4}$/.test(lineClean)) {
         const isForbidden = palavrasProibidas.some(p => lineUpper.includes(p));
         const isAddrOrDetails = /(?:RUA|R\.|AVENIDA|AV\.|CEP|CPF|INTERLAGOS|LINHARES|SERRA|VITÓRIA)/i.test(lineClean);
         if (!isForbidden && !isAddrOrDetails) {
           clienteNome = lineClean;
           
-          // O Endereço no modelo EDP é a linha IMEDIATAMENTE APÓS o Nome do Cliente!
           if (i + 1 < blocoLinhas.length) {
             const nextLineClean = sanitizeLineRightColumn(blocoLinhas[i + 1]);
             if (nextLineClean && !isDistributorData(nextLineClean) && !nextLineClean.includes('CPF:') && !nextLineClean.includes('CEP:')) {
@@ -241,7 +245,6 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
         }
       }
 
-      // Se ainda não capturou o endereço via linha seguinte do nome, busca por palavra-chave de logradouro (RUA, R., AVENUE, PRAÇA, etc.)
       if (!endereco) {
         const isStreetPrefix = /(?:RUA|R\.|AVENIDA|AV\.|ALAMEDA|PRAÇA|PRACA|ESTRADA|RODOVIA|SERVIDÃO|SERVIDAO|TRAVESSA|TV\.|SÍTIO|SITIO|FAZENDA|CONJUNTO|QUADRA|PARQUE)\s+/i.test(lineClean);
         const isHeaderAddr = palavrasProibidas.some(p => lineUpper.includes(p)) || isDistributorData(lineClean);
@@ -333,18 +336,34 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     tipoLigacao = 'Monofásico';
   }
 
-  // 5. Grupo Tarifário
+  // 5. Grupo Tarifário & Suporte a Grupo A (Média/Alta Tensão)
   let grupoTarifario: string | undefined;
-  const grupoMatch = cleanText.match(/(?:GRUPO|SUBGRUPO|MODALIDADE|TIPO\s*DE\s*TARIFA|CLASSIFICAÇÃO)\s*[:\s\-]*(B1|B2|B3|A4|A3a|A2|VERDE|AZUL|CONVENCIONAL|B\s*-\s*B1-RESIDENCIAL)/i);
-  if (grupoMatch) {
-    const rawGroup = grupoMatch[1].toUpperCase();
-    if (rawGroup.includes('B1')) grupoTarifario = 'B1 - Residencial';
-    else if (rawGroup.includes('B2')) grupoTarifario = 'B2 - Rural';
-    else if (rawGroup.includes('B3')) grupoTarifario = 'B3 - Comercial/Outros';
-    else if (rawGroup.includes('A4')) grupoTarifario = 'A4 - Alta Tensão';
-    else grupoTarifario = rawGroup;
+  let subgrupoA: string | undefined;
+  let demandaPontaKwh: number | undefined;
+  let demandaForaPontaKwh: number | undefined;
+
+  const grupoAMatch = cleanText.match(/(?:SUBGRUPO|GRUPO|TARIFA)\s*[:\s\-]*(A4|A3a|A3|A2|A1|HORO-VERDE|HORO-AZUL|VERDE|AZUL)/i);
+  if (grupoAMatch) {
+    subgrupoA = grupoAMatch[1].toUpperCase();
+    grupoTarifario = `Grupo A (${subgrupoA})`;
+
+    const demandaPMatch = cleanText.match(/(?:DEMANDA\s*PONTA|DEM\.\s*PONTA)\s*[:\s]*(\d{1,5})/i);
+    if (demandaPMatch) demandaPontaKwh = parseInt(demandaPMatch[1], 10);
+
+    const demandaFpMatch = cleanText.match(/(?:DEMANDA\s*FORA\s*PONTA|DEM\.\s*F\.PONTA)\s*[:\s]*(\d{1,5})/i);
+    if (demandaFpMatch) demandaForaPontaKwh = parseInt(demandaFpMatch[1], 10);
   } else {
-    grupoTarifario = 'B1 - Residencial';
+    const grupoMatch = cleanText.match(/(?:GRUPO|SUBGRUPO|MODALIDADE|TIPO\s*DE\s*TARIFA|CLASSIFICAÇÃO)\s*[:\s\-]*(B1|B2|B3|A4|A3a|A2|VERDE|AZUL|CONVENCIONAL|B\s*-\s*B1-RESIDENCIAL)/i);
+    if (grupoMatch) {
+      const rawGroup = grupoMatch[1].toUpperCase();
+      if (rawGroup.includes('B1')) grupoTarifario = 'B1 - Residencial';
+      else if (rawGroup.includes('B2')) grupoTarifario = 'B2 - Rural';
+      else if (rawGroup.includes('B3')) grupoTarifario = 'B3 - Comercial/Outros';
+      else if (rawGroup.includes('A4')) grupoTarifario = 'A4 - Alta Tensão';
+      else grupoTarifario = rawGroup;
+    } else {
+      grupoTarifario = 'B1 - Residencial';
+    }
   }
 
   // 6. Valor Total da Fatura (R$)
@@ -412,6 +431,21 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     }
   }
 
+  // --- 9. VALIDAÇÃO CRUZADA DE CONSUMO & ALERTA DE PERFIL ---
+  let alertaConsumoAtipico: string | undefined;
+  if (grupoTarifario?.includes('B1') && consumoMedioKwh > 3000) {
+    alertaConsumoAtipico = `⚠️ Atenção: Consumo médio de ${consumoMedioKwh.toLocaleString('pt-BR')} kWh/mês é atípico para perfil B1 Residencial (geralmente < 3.000 kWh). Verifique se a fatura é de Grupo A ou Comercial.`;
+  }
+
+  // --- 10. SCORE DE CONFIANÇA DOS CAMPOS (Field Confidence) ---
+  const confidenceScore: FieldConfidence = {
+    clienteNome: clienteNome ? (clienteNome.length > 5 ? 'HIGH' : 'MEDIUM') : 'LOW',
+    cpfCnpj: cpfCnpj ? 'HIGH' : 'LOW',
+    instalacao: instalacao ? 'HIGH' : 'LOW',
+    endereco: endereco ? (endereco.length > 10 ? 'HIGH' : 'MEDIUM') : 'LOW',
+    consumoMedioKwh: historicoConsumo.length >= 6 ? 'HIGH' : (historicoConsumo.length > 0 ? 'MEDIUM' : 'LOW'),
+  };
+
   return {
     clienteNome,
     cpfCnpj,
@@ -424,6 +458,11 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     cep,
     tipoLigacao: tipoLigacao || 'Monofásico',
     grupoTarifario,
+    subgrupoA,
+    demandaPontaKwh,
+    demandaForaPontaKwh,
+    alertaConsumoAtipico,
+    confidenceScore,
     historicoConsumo,
     consumoMedioKwh,
     valorTotalFatura,

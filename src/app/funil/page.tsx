@@ -6,7 +6,7 @@ import Link from "next/link";
 import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent, useDroppable } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeft, LayoutDashboard, Sun, Clock, CheckCircle, Briefcase, FileText, ExternalLink, Trash2 } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Sun, Clock, CheckCircle, Briefcase, FileText, ExternalLink, Trash2, XCircle, AlertTriangle } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -18,7 +18,8 @@ const COLUMNS = [
   { id: "NEGOTIATION", title: "Em Negociação", icon: <Briefcase className="w-4 h-4 text-amber-400" />, color: "border-amber-500/50 bg-amber-500/5" },
   { id: "CLOSED", title: "Fechado", icon: <CheckCircle className="w-4 h-4 text-emerald-400" />, color: "border-emerald-500/50 bg-emerald-500/5" },
   { id: "INSTALLATION", title: "Instalação", icon: <Clock className="w-4 h-4 text-purple-400" />, color: "border-purple-500/50 bg-purple-500/5" },
-  { id: "COMPLETED", title: "Concluído", icon: <Sun className="w-4 h-4 text-yellow-500" />, color: "border-yellow-500/50 bg-yellow-500/5" }
+  { id: "COMPLETED", title: "Concluído", icon: <Sun className="w-4 h-4 text-yellow-500" />, color: "border-yellow-500/50 bg-yellow-500/5" },
+  { id: "CANCELED", title: "Perdido", icon: <XCircle className="w-4 h-4 text-red-400" />, color: "border-red-500/50 bg-red-500/5" }
 ];
 
 function DroppableColumn({ colId, items, children }: { colId: string, items: any[], children: React.ReactNode }) {
