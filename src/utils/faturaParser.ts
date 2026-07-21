@@ -48,65 +48,105 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
 
   // Lista de CNPJs conhecidos de distribuidoras para ignorar
   const cnpjsDistribuidoras = [
-    '28.152.650/0001-71', // EDP ES
-    '03.238.961/0001-51', // EDP SP
-    '33.050.196/0001-44', // Light
-    '09.047.435/0001-55', // Enel SP
-    '04.920.816/0001-56', // Enel RJ
-    '17.155.730/0001-64', // Cemig
-    '02.429.980/0001-40', // CPFL
+    '28.152.650/0001-71', '28152650000171', // EDP ES
+    '03.238.961/0001-51', '03238961000151', // EDP SP
+    '33.050.196/0001-44', '33050196000144', // Light
+    '09.047.435/0001-55', '09047435000155', // Enel SP
+    '04.920.816/0001-56', '04920816000156', // Enel RJ
+    '17.155.730/0001-64', '17155730000164', // Cemig
+    '02.429.980/0001-40', '02429980000140', // CPFL
   ];
 
-  // Extrai todos os CPFs e CNPJs do texto
-  const todosCpfs = Array.from(cleanText.matchAll(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g)).map(m => m[0]);
-  const todosCnpjs = Array.from(cleanText.matchAll(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g)).map(m => m[0]);
-
-  // Filtrar CNPJs das distribuidoras
-  const cnpjsValidosCliente = todosCnpjs.filter(c => !cnpjsDistribuidoras.includes(c));
-
-  // Prioridade 1: Buscar CPF/CNPJ com rótulo explícito do cliente (ex: "CPF: 055.577.507-03" ou "CPF/CNPJ do Cliente")
-  const rotuloClienteMatch = cleanText.match(/(?:CPF|CNPJ|CPF\/CNPJ|DOC(?:UMENTO)?)\s*(?:DO\s*CLIENTE|DO\s*TITULAR|DO\s*DESTINATÁRIO)?\s*[:\.\s\-]*\n?\s*(\d{2,3}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s\-]?\d{2,4}[\.\s\-]?\d{2})/i);
+  // Prioridade 1: Rótulo explícito CPF ou CNPJ (ex: "CPF: 14487106770", "CPF: 144.871.067-70", "CPF/CNPJ: 14487106770")
+  const rotuloMatches = Array.from(cleanText.matchAll(/(?:CPF|CNPJ|CPF\/CNPJ|DOC(?:UMENTO)?)\s*(?:DO\s*CLIENTE|DO\s*TITULAR|DO\s*DESTINATÁRIO)?\s*[:\.\s\-]*\n?\s*([\d\.\/\-]{11,18})/gi));
   
-  if (rotuloClienteMatch) {
-    const rawDigits = rotuloClienteMatch[1].replace(/\D/g, '');
+  for (const match of rotuloMatches) {
+    const rawVal = match[1];
+    const rawDigits = rawVal.replace(/\D/g, '');
     if (rawDigits.length === 11) {
       cpfCnpj = rawDigits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-    } else if (rawDigits.length === 14) {
+      break;
+    } else if (rawDigits.length === 14 && !cnpjsDistribuidoras.includes(rawDigits)) {
       cpfCnpj = rawDigits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+      break;
     }
   }
 
-  // Prioridade 2: Se não encontrou por rótulo, pega o primeiro CPF formatado encontrado no texto
-  if (!cpfCnpj && todosCpfs.length > 0) {
-    cpfCnpj = todosCpfs[0];
-  }
-
-  // Prioridade 3: Se não encontrou CPF, pega o CNPJ do cliente (excluindo distribuidora)
-  if (!cpfCnpj && cnpjsValidosCliente.length > 0) {
-    cpfCnpj = cnpjsValidosCliente[0];
-  }
-
-  // Prioridade 4: Busca números puros de 11 dígitos no bloco de dados do cliente
+  // Prioridade 2: Se não encontrou por rótulo explícito, busca CPFs formatados no texto (XXX.XXX.XXX-XX)
   if (!cpfCnpj) {
-    const rawCpfMatch = cleanText.match(/(?:CLIENTE|TITULAR|CONSUMIDOR|DESTINATÁRIO)[\s\S]{0,120}?\b(\d{11})\b/i);
-    if (rawCpfMatch) {
-      cpfCnpj = rawCpfMatch[1].replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    const todosCpfs = Array.from(cleanText.matchAll(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g)).map(m => m[0]);
+    if (todosCpfs.length > 0) {
+      cpfCnpj = todosCpfs[0];
     }
   }
 
-  // 3. Extração Avançada de Nome do Cliente
-  let clienteNome: string | undefined;
+  // Prioridade 3: Se não encontrou CPF, pega CNPJs formatados válidos (excluindo distribuidora)
+  if (!cpfCnpj) {
+    const todosCnpjs = Array.from(cleanText.matchAll(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g)).map(m => m[0]);
+    const cnpjsValidosCliente = todosCnpjs.filter(c => !cnpjsDistribuidoras.includes(c) && !cnpjsDistribuidoras.includes(c.replace(/\D/g, '')));
+    if (cnpjsValidosCliente.length > 0) {
+      cpfCnpj = cnpjsValidosCliente[0];
+    }
+  }
 
-  // Rótulos comuns em faturas de energia
-  const nomeLabelRegex = /(?:NOME\s*DO\s*CLIENTE|NOME\s*DO\s*TITULAR|NOME\s*RAZÃO\s*SOCIAL|DESTINATÁRIO|TITULAR|CLIENTE|NOME)\s*[:\.\s\-]*\n?\s*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{4,60})/gi;
-  let matchNome: RegExpExecArray | null;
+  // Prioridade 4: Busca números puros de 11 dígitos isolados
+  if (!cpfCnpj) {
+    const raw11DigitsMatches = Array.from(cleanText.matchAll(/\b(\d{11})\b/g)).map(m => m[1]);
+    for (const digitStr of raw11DigitsMatches) {
+      cpfCnpj = digitStr.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+      break;
+    }
+  }
+
+  // 3. Nº da Instalação / Unidade Consumidora (UC)
+  let instalacao: string | undefined;
+  const instMatch = cleanText.match(/(?:CÓDIGO\s*DA\s*INSTALAÇÃO|CODIGO\s*DA\s*INSTALACAO|INSTALAÇÃ|INSTALACAO|Nº\s*DA\s*UC|UNIDADE\s*CONSUMIDORA|CONTA\s*CONTRATO)\s*[:\s\n]*(\d{5,12})/i)
+                 || cleanText.match(/\b(\d{8,10})\b/);
+  if (instMatch) {
+    instalacao = instMatch[1];
+  }
+
+  // 4. CEP, Endereço e Cidade
+  let cep: string | undefined;
+  const cepMatch = cleanText.match(/(?:CEP)?\s*[:\s]*(\d{5}-\d{3}|\d{8})\b/i);
+  if (cepMatch) {
+    const rawCep = cepMatch[1].replace(/\D/g, '');
+    if (rawCep.length === 8) {
+      cep = rawCep.replace(/(\d{5})(\d{3})/, '$1-$2');
+    }
+  }
+
+  let endereco: string | undefined;
+  const enderecoMatch = cleanText.match(/(?:RUA|R\.|AVENIDA|AV\.|ALAMEDA|PRAÇA|PRACA|ESTRADA|RODOVIA|SERVIDÃO|SERVIDAO|TRAVESSA|TV\.)\s+[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s,\.\-\/]{5,80}/i);
+  if (enderecoMatch) {
+    endereco = enderecoMatch[0].trim().split('\n')[0];
+  }
+
+  let cidade: string | undefined;
+  // Tenta extrair padrao "BAIRRO / CIDADE - UF" (ex: "INTERLAGOS / LINHARES - ES")
+  const cidadeUfMatch = cleanText.match(/\/\s*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{3,30})\s*-\s*([A-Z]{2})/i);
+  if (cidadeUfMatch) {
+    cidade = cidadeUfMatch[1].trim();
+  } else {
+    const cidadeListaMatch = cleanText.match(/(Vitória|Vila Velha|Serra|Cariacica|Guarapari|Linhares|São Mateus|Colatina|Cachoeiro de Itapemirim|Aracruz|Viana|Domingos Martins|São Paulo|Rio de Janeiro|Belo Horizonte)\b/i);
+    if (cidadeListaMatch) cidade = cidadeListaMatch[0];
+  }
+
+  // 5. Extração Avançada de Nome do Cliente
+  let clienteNome: string | undefined;
 
   const palavrasProibidas = [
     'EDP', 'ENEL', 'LIGHT', 'CEMIG', 'CPFL', 'NEOENERGIA', 'EQUATORIAL',
     'CONCESSIONARIA', 'DISTRIBUIDORA', 'ENERGIA', 'COMPANHIA', 'FATURA',
     'MINISTÉRIO', 'CONTA', 'CONSUMIDOR', 'NOTA FISCAL', 'ENDEREÇO', 'CIDADE',
-    'BANCO', 'PAGAMENTO', 'TOTAL', 'DEBITO', 'REGULATÓRIO', 'SOLICITAÇÃO'
+    'BANCO', 'PAGAMENTO', 'TOTAL', 'DEBITO', 'REGULATÓRIO', 'SOLICITAÇÃO',
+    'CLASSIFICAÇÃO', 'TENSÃO', 'MODALIDADE', 'FORNECIMENTO', 'MÊS', 'ANO',
+    'VENCIMENTO', 'VALOR', 'INSTALAÇÃO', 'CÓDIGO', 'RESIDENCIAL', 'CONVENCIONAL'
   ];
+
+  // Rótulos comuns em faturas de energia
+  const nomeLabelRegex = /(?:NOME\s*DO\s*CLIENTE|NOME\s*DO\s*TITULAR|NOME\s*RAZÃO\s*SOCIAL|DESTINATÁRIO|TITULAR|CLIENTE|NOME)\s*[:\.\s\-]*\n?\s*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{4,60})/gi;
+  let matchNome: RegExpExecArray | null;
 
   while ((matchNome = nomeLabelRegex.exec(cleanText)) !== null) {
     const candidato = matchNome[1].trim().split('\n')[0].trim();
@@ -119,13 +159,13 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     }
   }
 
-  // Se não achou por rótulo, procura linha com Nome Próprio de 2 a 4 palavras em MAIÚSCULAS antes do endereço
+  // Se não achou por rótulo, procura por linha com Nome Próprio antes do Endereço/CEP/CPF
   if (!clienteNome) {
     const linhas = cleanText.split('\n');
-    for (const linha of linhas) {
-      const trimmed = linha.trim();
-      // Nome próprio em maiúsculas (ex: RODRIGO PIANNA PERIN ou PABLO BRAZ PEDRONI)
-      if (/^[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{3,20}(\s+[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{2,20}){1,4}$/.test(trimmed)) {
+    for (let i = 0; i < linhas.length; i++) {
+      const trimmed = linhas[i].trim();
+      // Nome próprio em maiúsculas de 2 a 5 palavras (ex: LUAN PARDIM MUNIZ)
+      if (/^[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{2,20}(\s+[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{2,20}){1,4}$/.test(trimmed)) {
         const trimmedUpper = trimmed.toUpperCase();
         if (!palavrasProibidas.some(p => trimmedUpper.includes(p))) {
           clienteNome = trimmed;
@@ -135,15 +175,7 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     }
   }
 
-  // 4. Nº da Instalação / Unidade Consumidora (UC)
-  let instalacao: string | undefined;
-  const instMatch = cleanText.match(/(?:INSTALAÇÃ|INSTALACAO|Nº\s*DA\s*UC|UNIDADE\s*CONSUMIDORA|CONTA\s*CONTRATO|Nº\s*DO\s*CLIENTE|CÓDIGO\s*DA\s*UC)\s*[:\s]*(\d{5,12})/i)
-                 || cleanText.match(/\b(\d{7,10})\b/);
-  if (instMatch) {
-    instalacao = instMatch[1];
-  }
-
-  // 5. Tipo de Ligação (Mono, Bi ou Trifásico)
+  // 6. Tipo de Ligação (Mono, Bi ou Trifásico)
   let tipoLigacao: 'Monofásico' | 'Bifásico' | 'Trifásico' | undefined;
   if (/TRIFÁSI|TRIFASI|3\s*FASES|TRIPOLAR/i.test(cleanText)) {
     tipoLigacao = 'Trifásico';
@@ -153,28 +185,19 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     tipoLigacao = 'Monofásico';
   }
 
-  // 6. Grupo Tarifário
+  // 7. Grupo Tarifário
   let grupoTarifario: string | undefined;
-  const grupoMatch = cleanText.match(/(?:GRUPO|SUBGRUPO|MODALIDADE|TIPO\s*DE\s*TARIFA)\s*[:\s]*(B1|B2|B3|A4|A3a|A2|VERDE|AZUL|CONVENCIONAL)/i);
+  const grupoMatch = cleanText.match(/(?:GRUPO|SUBGRUPO|MODALIDADE|TIPO\s*DE\s*TARIFA|CLASSIFICAÇÃO)\s*[:\s\-]*(B1|B2|B3|A4|A3a|A2|VERDE|AZUL|CONVENCIONAL|B\s*-\s*B1-RESIDENCIAL)/i);
   if (grupoMatch) {
     const rawGroup = grupoMatch[1].toUpperCase();
-    if (rawGroup === 'B1') grupoTarifario = 'B1 - Residencial';
-    else if (rawGroup === 'B2') grupoTarifario = 'B2 - Rural';
-    else if (rawGroup === 'B3') grupoTarifario = 'B3 - Comercial/Outros';
-    else if (rawGroup === 'A4') grupoTarifario = 'A4 - Alta Tensão';
+    if (rawGroup.includes('B1')) grupoTarifario = 'B1 - Residencial';
+    else if (rawGroup.includes('B2')) grupoTarifario = 'B2 - Rural';
+    else if (rawGroup.includes('B3')) grupoTarifario = 'B3 - Comercial/Outros';
+    else if (rawGroup.includes('A4')) grupoTarifario = 'A4 - Alta Tensão';
     else grupoTarifario = rawGroup;
   } else {
     grupoTarifario = 'B1 - Residencial';
   }
-
-  // 7. CEP e Cidade
-  let cep: string | undefined;
-  const cepMatch = cleanText.match(/\b\d{5}-\d{3}\b/);
-  if (cepMatch) cep = cepMatch[0];
-
-  let cidade: string | undefined;
-  const cidadeMatch = cleanText.match(/(Vitória|Vila Velha|Serra|Cariacica|Guarapari|Linhares|São Mateus|Colatina|Cachoeiro de Itapemirim|Aracruz|Viana|Domingos Martins|São Paulo|Rio de Janeiro|Belo Horizonte)\b/i);
-  if (cidadeMatch) cidade = cidadeMatch[0];
 
   // 8. Valor Total da Fatura (R$)
   let valorTotalFatura: number | undefined;
@@ -246,10 +269,10 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     cpfCnpj,
     instalacao,
     concessionaria,
-    endereco: undefined,
+    endereco,
     cidade,
     cep,
-    tipoLigacao: tipoLigacao || 'Bifásico',
+    tipoLigacao: tipoLigacao || 'Monofásico',
     grupoTarifario,
     historicoConsumo,
     consumoMedioKwh,

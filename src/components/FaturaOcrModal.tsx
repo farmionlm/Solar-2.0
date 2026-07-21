@@ -14,7 +14,8 @@ import {
   Hash, 
   Gauge, 
   ArrowRight,
-  ClipboardList
+  ClipboardList,
+  MapPin
 } from 'lucide-react';
 import { FaturaExtraida, HistoricoConsumoItem } from '@/utils/faturaParser';
 
@@ -231,20 +232,20 @@ export function FaturaOcrModal({ isOpen, onClose, onApply }: FaturaOcrModalProps
                     type="text"
                     value={extractedData.clienteNome || ''}
                     onChange={(e) => setExtractedData({ ...extractedData, clienteNome: e.target.value })}
-                    placeholder="Digite ou ajuste o nome..."
+                    placeholder="LUAN PARDIM MUNIZ..."
                     className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
                 <div className="bg-secondary/40 border border-border rounded-xl p-3">
                   <label className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px] mb-1">
-                    <Hash className="w-3.5 h-3.5 text-primary" /> CPF / CNPJ
+                    <Hash className="w-3.5 h-3.5 text-primary" /> CPF / CNPJ do Cliente
                   </label>
                   <input
                     type="text"
                     value={extractedData.cpfCnpj || ''}
                     onChange={(e) => setExtractedData({ ...extractedData, cpfCnpj: e.target.value })}
-                    placeholder="000.000.000-00 ou 00.000.000/0001-00"
+                    placeholder="144.871.067-70"
                     className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
@@ -257,7 +258,7 @@ export function FaturaOcrModal({ isOpen, onClose, onApply }: FaturaOcrModalProps
                     type="text"
                     value={extractedData.instalacao || ''}
                     onChange={(e) => setExtractedData({ ...extractedData, instalacao: e.target.value })}
-                    placeholder="Digite o código da UC..."
+                    placeholder="0001751212"
                     className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
@@ -272,6 +273,28 @@ export function FaturaOcrModal({ isOpen, onClose, onApply }: FaturaOcrModalProps
                     onChange={(e) => setExtractedData({ ...extractedData, concessionaria: e.target.value })}
                     className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                   />
+                </div>
+
+                <div className="bg-secondary/40 border border-border rounded-xl p-3 sm:col-span-2">
+                  <label className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px] mb-1">
+                    <MapPin className="w-3.5 h-3.5 text-primary" /> Endereço / Cidade / CEP
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input
+                      type="text"
+                      value={extractedData.endereco || ''}
+                      onChange={(e) => setExtractedData({ ...extractedData, endereco: e.target.value })}
+                      placeholder="RUA MONTEIRO LOBATO..."
+                      className="sm:col-span-2 bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <input
+                      type="text"
+                      value={extractedData.cidade || ''}
+                      onChange={(e) => setExtractedData({ ...extractedData, cidade: e.target.value })}
+                      placeholder="LINHARES"
+                      className="bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
                 </div>
 
                 <div className="bg-secondary/40 border border-border rounded-xl p-3">
