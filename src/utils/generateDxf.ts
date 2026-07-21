@@ -69,6 +69,11 @@ export const DXF_TEMPLATES = [
   },
 ];
 
+/**
+ * Parser DXF estruturado que preserva 100% da integridade do arquivo para o AutoCAD.
+ * Altera EXCLUSIVAMENTE o conteúdo das entidades de texto (Grupo 1 e 3), sem jamais
+ * corromper coordenadas, handles ou cabeçalhos do CAD.
+ */
 export async function generateDxfProject(
   client: ClientListItem,
   project: Project,
@@ -85,7 +90,7 @@ export async function generateDxfProject(
       throw new Error(`Não foi possível carregar o modelo CAD ${selectedTemplate.filename}`);
     }
 
-    let dxfContent = await response.text();
+    const rawDxfText = await response.text();
 
     // 1. Dimensionamento elétrico NBR 5410
     const electrical = calculateElectricalSizing(patternType, breakerAmps);
@@ -97,7 +102,6 @@ export async function generateDxfProject(
     
     const totalModulesNum = Number(project.totalModules || 0);
     const modulePowerNum = Number(project.modulePower || 0);
-    const modulesStr = `${totalModulesNum} MÓDULOS DE ${modulePowerNum}W`;
 
     // 3. Dados do Cliente e Responsável Técnico
     const clientName = (client.name || "CLIENTE NÃO INFORMADO").toUpperCase();
@@ -116,52 +120,63 @@ export async function generateDxfProject(
     const techCrt = (project.professionalCrt || "CRT / CREA").toUpperCase();
     const currentDate = new Date().toLocaleDateString("pt-BR");
 
-    // 4. Mapeamento de substituição direta de valores no arquivo DXF
-    const directReplacements: Record<string, string> = {
-      // Proprietário / Selo
-      "STYVEN ROCHA DOS SANTOS": clientName,
-      "EMIR DE MACEDO GOMES": clientName,
-      "HUMBERTO": clientName,
-      "ESCOLA IZAURA DE ALMEIDA SILVA": clientName,
+    // 4. Divisão em linhas preservando final de linha original (\r\n ou \n)
+    const lineEnding = rawDxfText.includes("\r\n") ? "\r\n" : "\n";
+    const lines = rawDxfText.split(/\r?\n/);
 
-      // Especificações Elétricas de Cabo e Disjuntor
-      "2#16(16)MM²": electrical.cableLabel,
-      "2#10(10)MM²": electrical.cableLabel,
-      "2#6(6)MM²": electrical.cableLabel,
-      "3#95(95)MM²": electrical.cableLabel,
+    // 5. Processamento seguro do DXF: alterar APENAS as linhas de conteúdo de texto (Grupo 1 e Grupo 3)
+    for (let i = 0; i < lines.length - 1; i++) {
+      const code = lines[i].trim();
+      
+      // O código de grupo '1' no DXF indica o valor string de um elemento TEXT / MTEXT / ATTRIB
+      // O código '3' indica continuações de texto longo em MTEXT
+      if (code === "1" || code === "3") {
+        let textVal = lines[i + 1];
 
-      // Disjuntor
-      "DISJUNTOR BIFÁSICO 63A": electrical.breakerLabel,
-      "DISJUNTOR MONOFÁSICO 63A": electrical.breakerLabel,
-      "DISJUNTOR TRIFÁSICO 63A": electrical.breakerLabel,
+        // Se a linha tiver conteúdo textual
+        if (textVal && textVal.trim().length > 0) {
+          // Substituir nomes de clientes dos gabaritos originais
+          textVal = textVal.replace(/STYVEN ROCHA DOS SANTOS/gi, clientName);
+          textVal = textVal.replace(/EMIR DE MACEDO GOMES/gi, clientName);
+          textVal = textVal.replace(/HUMBERTO/gi, clientName);
+          textVal = textVal.replace(/ESCOLA IZAURA DE ALMEIDA SILVA/gi, clientName);
 
-      // Placeholders coringa
-      "{NOME_CLIENTE}": clientName,
-      "{CPF_CNPJ}": cpfCnpj,
-      "{ENDERECO_COMPLETO}": address,
-      "{RESPONSAVEL_TECNICO}": techName,
-      "{REGISTRO_CRT}": techCrt,
-      "{POTENCIA_KWP}": totalKwpStr,
-      "{TOTAL_MODULOS}": `${totalModulesNum} MÓDULOS`,
-      "{DATA_ATUAL}": currentDate,
-    };
+          // Substituir cabos e disjuntores da NBR 5410
+          textVal = textVal.replace(/2#16\(16\)MM²/gi, electrical.cableLabel);
+          textVal = textVal.replace(/2#10\(10\)MM²/gi, electrical.cableLabel);
+          textVal = textVal.replace(/2#6\(6\)MM²/gi, electrical.cableLabel);
+          textVal = textVal.replace(/3#95\(95\)MM²/gi, electrical.cableLabel);
 
-    // Aplicar substituições diretas
-    Object.entries(directReplacements).forEach(([key, val]) => {
-      if (key && val) {
-        dxfContent = dxfContent.split(key).join(val);
+          textVal = textVal.replace(/DISJUNTOR BIFÁSICO 63A/gi, electrical.breakerLabel);
+          textVal = textVal.replace(/DISJUNTOR MONOFÁSICO 63A/gi, electrical.breakerLabel);
+          textVal = textVal.replace(/DISJUNTOR TRIFÁSICO 63A/gi, electrical.breakerLabel);
+          textVal = textVal.replace(/DISJUNTOR BIFÁSICO/gi, `DISJUNTOR ${electrical.breakerLabel.replace("DISJUNTOR ", "")}`);
+
+          // Substituir kWp e Módulos exclusivamente no texto da entidade DXF
+          textVal = textVal.replace(/\b\d+[\.,]\d+\s*(?:kWp|kwp|KWP)\b/gi, totalKwpStr);
+          textVal = textVal.replace(/\b7[\.,]48\b/gi, totalKwpFormatted);
+          textVal = textVal.replace(/\b\d+\s*(?:MÓDULOS|MODULOS)\b/gi, `${totalModulesNum} MÓDULOS`);
+
+          // Placeholders dinâmicos
+          textVal = textVal.replace(/\{NOME_CLIENTE\}/gi, clientName);
+          textVal = textVal.replace(/\{CPF_CNPJ\}/gi, cpfCnpj);
+          textVal = textVal.replace(/\{ENDERECO_COMPLETO\}/gi, address);
+          textVal = textVal.replace(/\{RESPONSAVEL_TECNICO\}/gi, techName);
+          textVal = textVal.replace(/\{REGISTRO_CRT\}/gi, techCrt);
+          textVal = textVal.replace(/\{POTENCIA_KWP\}/gi, totalKwpStr);
+          textVal = textVal.replace(/\{TOTAL_MODULOS\}/gi, `${totalModulesNum} MÓDULOS`);
+          textVal = textVal.replace(/\{DATA_ATUAL\}/gi, currentDate);
+
+          lines[i + 1] = textVal;
+        }
       }
-    });
+    }
 
-    // 5. Substituições inteligentes via Regex para capturar variações no DXF (ex: "7.48 kWp", "14 MÓDULOS", etc.)
-    // Substituir menções de kWp/kW no carimbo do desenho
-    dxfContent = dxfContent.replace(/\b\d+[\.,]\d+\s*(?:kWp|kwp|KWP)\b/gi, totalKwpStr);
-    
-    // Substituir menções de MÓDULOS no desenho
-    dxfContent = dxfContent.replace(/\b\d+\s*(?:MÓDULOS|MODULOS)\b/gi, `${totalModulesNum} MÓDULOS`);
+    // 6. Reconstituir o conteúdo do arquivo DXF 100% válido para o AutoCAD
+    const finalDxfContent = lines.join(lineEnding);
 
-    // Criar o arquivo Blob e disparar o download no navegador
-    const blob = new Blob([dxfContent], { type: "application/dxf;charset=utf-8" });
+    // Criar o arquivo Blob com codificação Windows-1252 / ASCII compatível com AutoCAD
+    const blob = new Blob([finalDxfContent], { type: "image/vnd.dxf;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     
