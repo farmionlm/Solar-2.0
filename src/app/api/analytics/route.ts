@@ -50,8 +50,8 @@ export async function GET() {
       select: { totalKwp: true, estimatedCost: true, createdAt: true, status: true }
     });
 
-    const totalKwp = projects.reduce((acc, curr) => acc + (curr.totalKwp || 0), 0);
-    const totalEstimatedRevenue = projects.reduce((acc, curr) => acc + (curr.estimatedCost || ((curr.totalKwp || 0) * 3800)), 0);
+    const openProjects = projects.filter(p => p.status === 'SIMULATION' || p.status === 'NEGOTIATION');
+    const openEstimatedRevenue = openProjects.reduce((acc, curr) => acc + (curr.estimatedCost || ((curr.totalKwp || 0) * 3800)), 0);
 
     const closedCount = projects.filter(p => p.status === 'CLOSED' || p.status === 'INSTALLATION' || p.status === 'COMPLETED').length;
     const conversionRatePercent = totalProjects > 0 ? Math.round((closedCount / totalProjects) * 100) : 0;
@@ -88,8 +88,10 @@ export async function GET() {
 
     return NextResponse.json({
       totalProjects,
+      closedProjects: closedCount,
       totalKwp: Number(totalKwp.toFixed(2)),
       totalEstimatedRevenue: Math.round(totalEstimatedRevenue),
+      openEstimatedRevenue: Math.round(openEstimatedRevenue),
       conversionRatePercent,
       averageTicket,
       statusData,

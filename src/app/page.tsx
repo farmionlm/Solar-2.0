@@ -71,10 +71,10 @@ function DashboardContent() {
             <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group">
               <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-1">Faturamento Orçado</h3>
               <div className="text-2xl md:text-3xl font-black text-emerald-400 mb-1">
-                {(metrics.totalEstimatedRevenue || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                {(metrics.openEstimatedRevenue || metrics.totalEstimatedRevenue || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
               </div>
-              <p className="text-[11px] text-muted-foreground font-medium">
-                Valor total de projetos em orçamento
+              <p className="text-[11px] text-muted-foreground font-medium truncate" title="Projetos ativos em Simulação e Negociação">
+                Em projetos abertos (Simulação / Negociação)
               </p>
             </div>
 
@@ -83,8 +83,8 @@ function DashboardContent() {
               <div className="text-2xl md:text-3xl font-black text-foreground mb-1 flex items-baseline gap-1">
                 {metrics.totalKwp} <span className="text-sm text-muted-foreground font-bold">kWp</span>
               </div>
-              <p className="text-[11px] text-muted-foreground font-medium">
-                Em {metrics.totalProjects || 0} simulação(ões) ativas
+              <p className="text-[11px] text-muted-foreground font-medium truncate">
+                Acumulado de {metrics.totalProjects || 0} proposta(s)
               </p>
             </div>
 
@@ -93,8 +93,8 @@ function DashboardContent() {
               <div className="text-2xl md:text-3xl font-black text-primary mb-1">
                 {metrics.conversionRatePercent || 0}%
               </div>
-              <p className="text-[11px] text-muted-foreground font-medium">
-                Projetos fechados / instalados
+              <p className="text-[11px] text-muted-foreground font-semibold truncate">
+                {metrics.closedProjects || 0} de {metrics.totalProjects || 0} projetos fechados
               </p>
             </div>
 
@@ -103,8 +103,8 @@ function DashboardContent() {
               <div className="text-2xl md:text-3xl font-black text-foreground mb-1">
                 {(metrics.averageTicket || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
               </div>
-              <p className="text-[11px] text-muted-foreground font-medium">
-                Média estimada por projeto
+              <p className="text-[11px] text-muted-foreground font-medium truncate" title="Média geral por projeto orçado">
+                Média geral por projeto
               </p>
             </div>
           </div>
@@ -112,9 +112,12 @@ function DashboardContent() {
           {/* Gráficos do Dashboard */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Evolução Mensal */}
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-xl">
-              <h3 className="text-base font-black mb-6 text-foreground">Evolução de Projetos (Últimos 6 Meses)</h3>
-              <div className="h-[280px] w-full">
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+              <div>
+                <h3 className="text-base font-black mb-1 text-foreground">Evolução de Projetos</h3>
+                <p className="text-xs text-muted-foreground mb-6">Quantidade de novos orçamentos nos últimos 6 meses</p>
+              </div>
+              <div className="h-[240px] w-full">
                 {metrics.monthlyData?.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={metrics.monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -134,34 +137,54 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* Distribuição de Status */}
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-xl">
-              <h3 className="text-base font-black mb-6 text-foreground">Distribuição de Projetos por Status</h3>
-              <div className="h-[280px] w-full">
-                {metrics.statusData?.some((d: any) => d.value > 0) ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={metrics.statusData.filter((d: any) => d.value > 0)}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={55}
-                        outerRadius={95}
-                        paddingAngle={4}
-                        dataKey="value"
-                      >
-                        {metrics.statusData.map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip contentStyle={{backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '12px', fontSize: '12px'}} />
-                      <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm font-medium">Nenhum projeto registrado.</div>
-                )}
+            {/* Distribuição de Status com Legenda Detalhada */}
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+              <div>
+                <h3 className="text-base font-black mb-1 text-foreground">Distribuição de Projetos por Status</h3>
+                <p className="text-xs text-muted-foreground mb-4">Proporção de simulações e vendas no funil CRM</p>
               </div>
+
+              {metrics.statusData?.some((d: any) => d.value > 0) ? (
+                <div className="space-y-4">
+                  <div className="h-[180px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={metrics.statusData.filter((d: any) => d.value > 0)}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={45}
+                          outerRadius={75}
+                          paddingAngle={4}
+                          dataKey="value"
+                        >
+                          {metrics.statusData.filter((d: any) => d.value > 0).map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip contentStyle={{backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '12px', fontSize: '12px'}} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Legenda Customizada Explicativa e Colorida */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t border-border/50">
+                    {metrics.statusData.filter((d: any) => d.value > 0).map((item: any, idx: number) => {
+                      const total = metrics.statusData.reduce((a: number, b: any) => a + b.value, 0);
+                      const pct = total > 0 ? Math.round((item.value / total) * 100) : 0;
+                      return (
+                        <div key={item.name} className="flex items-center gap-1.5 text-xs font-semibold">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                          <span className="text-foreground truncate">{item.name}:</span>
+                          <span className="text-primary font-bold ml-auto">{item.value} ({pct}%)</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm font-medium">Nenhum projeto registrado.</div>
+              )}
             </div>
           </div>
         </>
