@@ -20,16 +20,14 @@ export type FaturaExtraida = {
 };
 
 /**
- * Função utilitária de extração inteligente de dados de fatura de energia via Expressões Regulares (Regex).
+ * Função inteligente de extração avançada de dados de faturas brasileiras (EDP, Light, Enel, Cemig, CPFL, Neoenergia, etc.)
  */
 export function parseFaturaTexto(texto: string): FaturaExtraida {
   const cleanText = texto.replace(/\r/g, '');
 
   // 1. Identificar Concessionária
-  let concessionaria = "Desconhecida";
-  if (/EDP|Escri\s*Energia|EDP\s*ES|EDP\s*SP/i.test(cleanText)) {
-    concessionaria = "EDP Espírito Santo";
-  } else if (/LIGHT/i.test(cleanText)) {
+  let concessionaria = "EDP Espírito Santo";
+  if (/LIGHT/i.test(cleanText)) {
     concessionaria = "Light";
   } else if (/ENEL/i.test(cleanText)) {
     concessionaria = "Enel";
@@ -41,10 +39,14 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     concessionaria = "Neoenergia";
   } else if (/EQUATORIAL/i.test(cleanText)) {
     concessionaria = "Equatorial Energia";
+  } else if (/EDP|Escri\s*Energia|ESCELSA|EDP\s*ES|EDP\s*SP/i.test(cleanText)) {
+    concessionaria = "EDP Espírito Santo";
   }
 
-  // 2. CPF / CNPJ
+  // 2. Extração Avançada de CPF / CNPJ
   let cpfCnpj: string | undefined;
+
+  // Busca 1: Padrão Formatado
   const cnpjMatch = cleanText.match(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/);
   const cpfMatch = cleanText.match(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/);
 
@@ -52,21 +54,79 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     cpfCnpj = cnpjMatch[0];
   } else if (cpfMatch) {
     cpfCnpj = cpfMatch[0];
+  } else {
+    // Busca 2: Padrão por Rótulo (ex: "CPF: 12345678900", "CPF/CNPJ 05557750703")
+    const labelMatch = cleanText.match(/(?:CPF|CNPJ|CPF\/CNPJ|DOC(?:UMENTO)?(?:\s*TITULAR)?)\s*[:\.\s\-]*\n?\s*(\d{2,3}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s\-]?\d{2,4}[\.\s\-]?\d{2})/i);
+    if (labelMatch) {
+      const rawDigits = labelMatch[1].replace(/\D/g, '');
+      if (rawDigits.length === 11) {
+        cpfCnpj = rawDigits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+      } else if (rawDigits.length === 14) {
+        cpfCnpj = rawDigits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+      }
+    }
   }
 
-  // 3. Nº da Instalação / Unidade Consumidora (UC)
+  // Busca 3: Se ainda não achou, procura sequência pura de 11 ou 14 dígitos perto de palavras chave
+  if (!cpfCnpj) {
+    const rawNumberMatch = cleanText.match(/(?:CLIENTE|TITULAR|UC|CONTA|PAGADOR|NOTA\s*FISCAL)[\s\S]{0,100}?\b(\d{11}|\d{14})\b/i);
+    if (rawNumberMatch) {
+      const raw = rawNumberMatch[1];
+      if (raw.length === 11) {
+        cpfCnpj = raw.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+      } else if (raw.length === 14) {
+        cpfCnpj = raw.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+      }
+    }
+  }
+
+  // 3. Extração Avançada de Nome do Cliente
+  let clienteNome: string | undefined;
+
+  // Rótulos comuns em faturas de energia
+  const nomeLabelRegex = /(?:NOME\s*DO\s*CLIENTE|NOME\s*DO\s*TITULAR|NOME\s*RAZÃO\s*SOCIAL|DESTINATÁRIO|TITULAR|CLIENTE|NOME)\s*[:\.\s\-]*\n?\s*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{4,60})/gi;
+  let matchNome: RegExpExecArray | null;
+
+  const palavrasProibidas = [
+    'EDP', 'ENEL', 'LIGHT', 'CEMIG', 'CPFL', 'NEOENERGIA', 'EQUATORIAL',
+    'CONCESSIONARIA', 'DISTRIBUIDORA', 'ENERGIA', 'COMPANHIA', 'FATURA',
+    'MINISTÉRIO', 'CONTA', 'CONSUMIDOR', 'NOTA FISCAL', 'ENDEREÇO', 'CIDADE',
+    'BANCO', 'PAGAMENTO', 'TOTAL', 'DEBITO', 'REGULATÓRIO', 'SOLICITAÇÃO'
+  ];
+
+  while ((matchNome = nomeLabelRegex.exec(cleanText)) !== null) {
+    const candidato = matchNome[1].trim().split('\n')[0].trim();
+    const candidatoUpper = candidato.toUpperCase();
+    
+    const ehProibido = palavrasProibidas.some(p => candidatoUpper.includes(p));
+    if (!ehProibido && candidato.length >= 5 && candidato.includes(' ')) {
+      clienteNome = candidato;
+      break;
+    }
+  }
+
+  // Se não achou por rótulo, procura linha com Nome Próprio de 2 a 4 palavras em MAIÚSCULAS antes do endereço
+  if (!clienteNome) {
+    const linhas = cleanText.split('\n');
+    for (const linha of linhas) {
+      const trimmed = linha.trim();
+      // Nome próprio em maiúsculas (ex: RODRIGO PIANNA PERIN ou PABLO BRAZ PEDRONI)
+      if (/^[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{3,20}(\s+[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{2,20}){1,4}$/.test(trimmed)) {
+        const trimmedUpper = trimmed.toUpperCase();
+        if (!palavrasProibidas.some(p => trimmedUpper.includes(p))) {
+          clienteNome = trimmed;
+          break;
+        }
+      }
+    }
+  }
+
+  // 4. Nº da Instalação / Unidade Consumidora (UC)
   let instalacao: string | undefined;
-  const instMatch = cleanText.match(/(?:INSTALAÇÃ|INSTALACAO|Nº\s*DA\s*UC|UNIDADE\s*CONSUMIDORA|CONTA\s*CONTRATO|Nº\s*DO\s*CLIENTE)\s*[:\s]*(\d{5,12})/i)
+  const instMatch = cleanText.match(/(?:INSTALAÇÃ|INSTALACAO|Nº\s*DA\s*UC|UNIDADE\s*CONSUMIDORA|CONTA\s*CONTRATO|Nº\s*DO\s*CLIENTE|CÓDIGO\s*DA\s*UC)\s*[:\s]*(\d{5,12})/i)
                  || cleanText.match(/\b(\d{7,10})\b/);
   if (instMatch) {
     instalacao = instMatch[1];
-  }
-
-  // 4. Nome do Cliente
-  let clienteNome: string | undefined;
-  const nomeMatch = cleanText.match(/(?:NOME\s*DO\s*CLIENTE|CLIENTE|DESTINATÁRIO|TITULAR)\s*[:\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{5,40})/i);
-  if (nomeMatch && nomeMatch[1].trim().length > 3) {
-    clienteNome = nomeMatch[1].trim();
   }
 
   // 5. Tipo de Ligação (Mono, Bi ou Trifásico)
@@ -90,7 +150,6 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     else if (rawGroup === 'A4') grupoTarifario = 'A4 - Alta Tensão';
     else grupoTarifario = rawGroup;
   } else {
-    // Fallback padrão residencial
     grupoTarifario = 'B1 - Residencial';
   }
 
@@ -100,7 +159,7 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
   if (cepMatch) cep = cepMatch[0];
 
   let cidade: string | undefined;
-  const cidadeMatch = cleanText.match(/(Vitória|Vila Velha|Serra|Cariacica|Guarapari|Linhares|São Mateus|Colatina|Cachoeiro de Itapemirim|São Paulo|Rio de Janeiro|Belo Horizonte)\b/i);
+  const cidadeMatch = cleanText.match(/(Vitória|Vila Velha|Serra|Cariacica|Guarapari|Linhares|São Mateus|Colatina|Cachoeiro de Itapemirim|Aracruz|Viana|Domingos Martins|São Paulo|Rio de Janeiro|Belo Horizonte)\b/i);
   if (cidadeMatch) cidade = cidadeMatch[0];
 
   // 8. Valor Total da Fatura (R$)
@@ -112,7 +171,6 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
   }
 
   // 9. Histórico de Consumo (Extração dos últimos 12 meses)
-  // Padrão comum em faturas brasileiras: MES/ANO seguido por consumo em kWh (ex: JAN/24 450 ou 01/2024 450 kWh)
   const historicoConsumo: HistoricoConsumoItem[] = [];
   const regexHistorico = /\b(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ|\d{2})\/(\d{2,4})\s+[:\-]?\s*(\d{2,5})\b/gi;
   
@@ -132,7 +190,6 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     const ano = match[2].length === 2 ? `20${match[2]}` : match[2];
     const kwh = parseInt(match[3], 10);
 
-    // Evitar valores irreais (como ano ou códigos)
     if (kwh >= 20 && kwh <= 100000) {
       historicoConsumo.push({
         mesAno: `${mes}/${ano}`,
@@ -164,7 +221,6 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     const soma = historicoConsumo.reduce((acc, item) => acc + item.kwh, 0);
     consumoMedioKwh = Math.round(soma / historicoConsumo.length);
   } else {
-    // Tenta capturar linha de consumo do mês atual
     const consumoAtualMatch = cleanText.match(/(?:CONSUMO\s*DO\s*MÊS|CONSUMO\s*KWH|TOTAL\s*CONSUMIDO)\s*[:\s]*(\d{2,5})/i);
     if (consumoAtualMatch) {
       consumoMedioKwh = parseInt(consumoAtualMatch[1], 10);
@@ -184,6 +240,6 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
     historicoConsumo,
     consumoMedioKwh,
     valorTotalFatura,
-    textoBruto: cleanText.slice(0, 2000), // primeiras 2000 chars
+    textoBruto: cleanText.slice(0, 2000),
   };
 }

@@ -221,34 +221,57 @@ export function FaturaOcrModal({ isOpen, onClose, onApply }: FaturaOcrModalProps
                 <span>Fatura lida com sucesso! Confira os dados extraídos abaixo:</span>
               </div>
 
-              {/* Grid de Campos Extraídos */}
+              {/* Grid de Campos Extraídos (Editáveis para Ajuste Fino) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="bg-secondary/40 border border-border rounded-xl p-3">
-                  <span className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px]">
+                  <label className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px] mb-1">
                     <User className="w-3.5 h-3.5 text-primary" /> Nome do Cliente
-                  </span>
-                  <p className="font-bold text-foreground mt-1">{extractedData.clienteNome || "Não identificado"}</p>
+                  </label>
+                  <input
+                    type="text"
+                    value={extractedData.clienteNome || ''}
+                    onChange={(e) => setExtractedData({ ...extractedData, clienteNome: e.target.value })}
+                    placeholder="Digite ou ajuste o nome..."
+                    className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
                 </div>
 
                 <div className="bg-secondary/40 border border-border rounded-xl p-3">
-                  <span className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px]">
+                  <label className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px] mb-1">
                     <Hash className="w-3.5 h-3.5 text-primary" /> CPF / CNPJ
-                  </span>
-                  <p className="font-bold text-foreground mt-1">{extractedData.cpfCnpj || "Não identificado"}</p>
+                  </label>
+                  <input
+                    type="text"
+                    value={extractedData.cpfCnpj || ''}
+                    onChange={(e) => setExtractedData({ ...extractedData, cpfCnpj: e.target.value })}
+                    placeholder="000.000.000-00 ou 00.000.000/0001-00"
+                    className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
                 </div>
 
                 <div className="bg-secondary/40 border border-border rounded-xl p-3">
-                  <span className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px]">
+                  <label className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px] mb-1">
                     <Building2 className="w-3.5 h-3.5 text-primary" /> Nº da Instalação (UC)
-                  </span>
-                  <p className="font-bold text-foreground mt-1">{extractedData.instalacao || "Não identificada"}</p>
+                  </label>
+                  <input
+                    type="text"
+                    value={extractedData.instalacao || ''}
+                    onChange={(e) => setExtractedData({ ...extractedData, instalacao: e.target.value })}
+                    placeholder="Digite o código da UC..."
+                    className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
                 </div>
 
                 <div className="bg-secondary/40 border border-border rounded-xl p-3">
-                  <span className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px]">
+                  <label className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px] mb-1">
                     <Zap className="w-3.5 h-3.5 text-amber-500" /> Concessionária
-                  </span>
-                  <p className="font-bold text-foreground mt-1">{extractedData.concessionaria}</p>
+                  </label>
+                  <input
+                    type="text"
+                    value={extractedData.concessionaria || ''}
+                    onChange={(e) => setExtractedData({ ...extractedData, concessionaria: e.target.value })}
+                    className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
                 </div>
 
                 <div className="bg-secondary/40 border border-border rounded-xl p-3">
