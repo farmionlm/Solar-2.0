@@ -53,12 +53,20 @@ export const generateFormularioAcessoPDF = (client: ClientDetail, project: Proje
     doc.text(label, x, y);
 
     const labelWidth = doc.getTextWidth(label);
+    const valueX = x + labelWidth + 2;
+    const maxValueWidth = 200 - valueX; // Margem direita em 200
+
     doc.setFont("helvetica", "normal");
     doc.setTextColor(15, 23, 42);
-    doc.text(value || "-", x + labelWidth + 2, y);
 
-    y += 6;
+    const valueText = value || "-";
+    const valueLines = doc.splitTextToSize(valueText, maxValueWidth);
+    doc.text(valueLines, valueX, y);
+
+    // Avança proporcionalmente ao número de linhas do valor
+    y += 6 * (valueLines.length || 1);
   };
+
 
   drawHeader();
 

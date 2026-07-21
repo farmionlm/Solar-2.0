@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType } from "docx";
 import { saveAs } from "file-saver";
 import { Project, ClientDetail } from "@/types";
 
@@ -120,12 +120,12 @@ export const generateFormularioAcessoDocx = async (client: ClientDetail, project
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             borders: {
-              top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              insideHorizontal: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              insideVertical: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              top: { style: "none" as const, size: 0, color: "FFFFFF" },
+              bottom: { style: "none" as const, size: 0, color: "FFFFFF" },
+              left: { style: "none" as const, size: 0, color: "FFFFFF" },
+              right: { style: "none" as const, size: 0, color: "FFFFFF" },
+              insideHorizontal: { style: "none" as const, size: 0, color: "FFFFFF" },
+              insideVertical: { style: "none" as const, size: 0, color: "FFFFFF" },
             },
             rows: [
               new TableRow({
