@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { generateMemorialPDF } from "@/utils/generateMemorial";
 import { generateMemorialDocx } from "@/utils/generateMemorialDocx";
-import { generateDxfProject, DXF_TEMPLATES, DxfTemplateType, calculateElectricalSizing, PatternType } from "@/utils/generateDxf";
+import { generateDxfProject, DXF_TEMPLATES, DxfTemplateType, calculateElectricalSizing, PatternType, calculateMpptDistribution } from "@/utils/generateDxf";
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 
 import { formatUnidadeConsumidora, formatCpfCnpj, formatPhone, formatCep } from "@/utils/formatters";
@@ -59,6 +59,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [selectedDxfTemplate, setSelectedDxfTemplate] = useState<DxfTemplateType>("unifilar");
   const [dxfPatternType, setDxfPatternType] = useState<PatternType>("BIFASICO");
   const [dxfBreakerAmps, setDxfBreakerAmps] = useState<number>(63);
+  const [dxfNumMppts, setDxfNumMppts] = useState<number>(2);
+  const [dxfStringLayout, setDxfStringLayout] = useState<string>("");
 
   const resetManualModal = () => {
     setShowNewProjectModal(false);
@@ -971,6 +973,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           onClick={(e) => {
                             e.stopPropagation();
                             setDxfModalProject(proj);
+                            setDxfNumMppts(proj.inverters?.[0]?.numMppts || 2);
+                            setDxfStringLayout(proj.inverters?.[0]?.stringLayout || "");
                           }}
                           className="text-cyan-400 bg-cyan-950/30 hover:bg-cyan-900/50 border border-cyan-500/20"
                           title="Gerar Desenho e Diagrama CAD (.DXF)"
@@ -2221,6 +2225,59 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                   );
                 })()}
               </div>
+
+              {/* 3. Arranjo de MPPTs e Strings do Inversor */}
+              <div className="bg-secondary/20 p-4 rounded-2xl border border-border space-y-4">
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  3. Arranjo de MPPTs e Strings do Inversor
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted-foreground mb-1">Número de MPPTs Ativas</label>
+                    <select
+                      value={dxfNumMppts}
+                      onChange={(e) => {
+                        const newMppts = Number(e.target.value);
+                        setDxfNumMppts(newMppts);
+                        const dist = calculateMpptDistribution(dxfModalProject.totalModules, newMppts);
+                        setDxfStringLayout(dist.join(","));
+                      }}
+                      className="w-full bg-background border border-border text-foreground font-bold text-xs rounded-xl h-10 px-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value={1}>1 MPPT</option>
+                      <option value={2}>2 MPPTs</option>
+                      <option value={3}>3 MPPTs</option>
+                      <option value={4}>4 MPPTs</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted-foreground mb-1">Divisão por String (ex: 6,5)</label>
+                    <Input
+                      type="text"
+                      value={dxfStringLayout}
+                      onChange={(e) => setDxfStringLayout(e.target.value)}
+                      placeholder="Ex: 6,5 ou 7,7"
+                      className="h-10 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Resumo da Distribuição por Ramo MPPT */}
+                {(() => {
+                  const dist = calculateMpptDistribution(dxfModalProject.totalModules, dxfNumMppts, dxfStringLayout);
+                  return (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {dist.map((modCount, idx) => (
+                        <span key={idx} className="bg-background border border-border text-foreground px-2.5 py-1 rounded-lg text-xs font-medium">
+                          <strong>MPPT {idx + 1}:</strong> {modCount} módulos
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
 
             <div className="p-6 border-t border-border flex justify-end gap-3 bg-secondary/10">
@@ -2239,7 +2296,9 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                     dxfModalProject,
                     selectedDxfTemplate,
                     dxfPatternType,
-                    dxfBreakerAmps
+                    dxfBreakerAmps,
+                    dxfNumMppts,
+                    dxfStringLayout
                   );
                   setDxfModalProject(null);
                 }}

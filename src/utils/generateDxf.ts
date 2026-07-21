@@ -48,6 +48,32 @@ export function calculateElectricalSizing(
   };
 }
 
+export function calculateMpptDistribution(
+  totalModules: number,
+  numMppts: number = 2,
+  customStringLayout?: string | null
+): number[] {
+  if (customStringLayout && customStringLayout.trim()) {
+    const parts = customStringLayout
+      .split(",")
+      .map((p) => parseInt(p.trim(), 10))
+      .filter((n) => !isNaN(n) && n > 0);
+    if (parts.length > 0) {
+      return parts;
+    }
+  }
+
+  const activeMppts = Math.max(1, Math.min(numMppts, 4));
+  const baseCount = Math.floor(totalModules / activeMppts);
+  const remainder = totalModules % activeMppts;
+
+  const distribution: number[] = [];
+  for (let i = 0; i < activeMppts; i++) {
+    distribution.push(baseCount + (i < remainder ? 1 : 0));
+  }
+  return distribution;
+}
+
 export const DXF_TEMPLATES = [
   {
     id: "unifilar" as DxfTemplateType,
@@ -70,21 +96,17 @@ export const DXF_TEMPLATES = [
 ];
 
 /**
- * Parser DXF estruturado por grupos (Grupo 1 e 3) que preserva 100% da integridade do arquivo para o AutoCAD.
- * Substitui dinamicamente todos os 6 locais apontados:
- * - 1. Padrão de Proteção da Concessionária (Dispositivo de Proteção)
- * - 2. Dispositivo de Seccionamento Visível (Disjuntor)
- * - 3. Quadro de Distribuição Interna / Cargas Internas (Disjuntor)
- * - 4. Inversor Marca e Modelo (Fluxograma e Unifilar)
- * - 5. Tabela de Equipamentos do Projeto (Módulos e Inversores)
- * - 6. Diagrama de Blocos / Gerador e Cabos
+ * Parser DXF estruturado por grupos (Grupo 1 e 3) com prevenção de sobreposição de textos
+ * e distribuição dinâmica por MPPT.
  */
 export async function generateDxfProject(
   client: ClientListItem,
   project: Project,
   templateType: DxfTemplateType = "unifilar",
   patternType: PatternType = "BIFASICO",
-  breakerAmps: number = 63
+  breakerAmps: number = 63,
+  customMpptsCount?: number,
+  customStringLayout?: string
 ): Promise<void> {
   const selectedTemplate = DXF_TEMPLATES.find((t) => t.id === templateType) || DXF_TEMPLATES[0];
   const templateUrl = `/templates/dxf/${selectedTemplate.filename}`;
@@ -107,11 +129,27 @@ export async function generateDxfProject(
     
     const totalModulesNum = Number(project.totalModules || 0);
     const modulePowerNum = Number(project.modulePower || 0);
-    const modulePowerStr = `${modulePowerNum} W`;
 
-    // 3. Dados dos Equipamentos (Módulos e Inversores do Cliente)
+    // 3. Distribuição de MPPTs e Strings
+    const numMppts = customMpptsCount || project.inverters?.[0]?.numMppts || 2;
+    const layoutStr = customStringLayout || project.inverters?.[0]?.stringLayout;
+    const mpptDistribution = calculateMpptDistribution(totalModulesNum, numMppts, layoutStr);
+
+    const mppt1Count = mpptDistribution[0] || totalModulesNum;
+    const mppt2Count = numMppts >= 2 ? mpptDistribution[1] || 0 : 0;
+    const mppt3Count = numMppts >= 3 ? mpptDistribution[2] || 0 : 0;
+    const mppt4Count = numMppts >= 4 ? mpptDistribution[3] || 0 : 0;
+
+    const mppt1CountStr = String(mppt1Count).padStart(2, "0");
+    const mppt2CountStr = mppt2Count > 0 ? String(mppt2Count).padStart(2, "0") : "  ";
+
+    // 4. Dados dos Equipamentos (Formatação concisa sem sobreposição no CAD)
+    const rawModuleModel = project.moduleModel || "Módulo Fotovoltaico";
+    const cleanModuleModel = (
+      rawModuleModel.length > 28 ? rawModuleModel.substring(0, 28) : rawModuleModel
+    ).toUpperCase();
+
     const moduleManufacturer = (project.moduleManufacturer || "SOLAR").toUpperCase();
-    const moduleModel = (project.moduleModel || "Módulo Fotovoltaico").toUpperCase();
     
     const inverterManufacturer = (
       project.inverterManufacturer ||
@@ -119,18 +157,15 @@ export async function generateDxfProject(
       "GROWATT"
     ).toUpperCase();
 
+    const rawInverterModel = project.inverterModel || project.inverters?.[0]?.model || "INVERSOR SOLAR";
     const inverterModel = (
-      project.inverterModel ||
-      project.inverters?.[0]?.model ||
-      "INVERSOR SOLAR"
+      rawInverterModel.length > 25 ? rawInverterModel.substring(0, 25) : rawInverterModel
     ).toUpperCase();
 
     const inverterPower = project.inverterOutputPower || project.inverters?.[0]?.outputPower || 5000;
-    const inverterPowerStr = `${inverterPower} W`;
     const inverterQty = project.inverters?.length || 1;
-    const inverterQtyStr = String(inverterQty).padStart(2, "0");
 
-    // 4. Dados do Cliente e Responsável Técnico
+    // 5. Dados do Cliente e Responsável Técnico
     const clientName = (client.name || "CLIENTE NÃO INFORMADO").toUpperCase();
     const cpfCnpj = (client.cpfCnpj || "-").toUpperCase();
     const address = [
@@ -147,77 +182,111 @@ export async function generateDxfProject(
     const techCrt = (project.professionalCrt || "CRT / CREA").toUpperCase();
     const currentDate = new Date().toLocaleDateString("pt-BR");
 
-    // 5. Divisão em linhas preservando final de linha original (\r\n ou \n)
+    // 6. Divisão em linhas do DXF
     const lineEnding = rawDxfText.includes("\r\n") ? "\r\n" : "\n";
     const lines = rawDxfText.split(/\r?\n/);
 
-    // 6. Processamento seguro do DXF: alterar APENAS as linhas de conteúdo de texto (Grupo 1 e Grupo 3)
+    // 7. Processamento em passagem única para prevenir sobreposição de substituições
     for (let i = 0; i < lines.length - 1; i++) {
       const code = lines[i].trim();
       
-      // O código de grupo '1' no DXF indica o valor string de um elemento TEXT / MTEXT / ATTRIB
-      // O código '3' indica continuações de texto longo em MTEXT
       if (code === "1" || code === "3") {
         let textVal = lines[i + 1];
 
-        // Se a linha tiver conteúdo textual
         if (textVal && textVal.trim().length > 0) {
-          // A. Substituir nomes de clientes dos gabaritos originais
-          textVal = textVal.replace(/STYVEN ROCHA DOS SANTOS/gi, clientName);
-          textVal = textVal.replace(/EMIR DE MACEDO GOMES/gi, clientName);
-          textVal = textVal.replace(/HUMBERTO/gi, clientName);
-          textVal = textVal.replace(/ESCOLA IZAURA DE ALMEIDA SILVA/gi, clientName);
+          let updated = false;
 
-          // B. Substituir condutores e fiação da NBR 5410
-          textVal = textVal.replace(/2#16\(16\)MM²/gi, electrical.cableLabel);
-          textVal = textVal.replace(/2#10\(10\)MM²/gi, electrical.cableLabel);
-          textVal = textVal.replace(/2#6\(6\)MM²/gi, electrical.cableLabel);
-          textVal = textVal.replace(/3#95\(95\)MM²/gi, electrical.cableLabel);
+          // A. Nomes de Proprietário e Selo
+          if (/STYVEN ROCHA DOS SANTOS|EMIR DE MACEDO GOMES|HUMBERTO|ESCOLA IZAURA DE ALMEIDA SILVA/i.test(textVal)) {
+            textVal = clientName;
+            updated = true;
+          }
 
-          // C. Dispositivo de Proteção e Disjuntores dos 3 Locais (Entrada, Seccionamento e Cargas Internas)
-          textVal = textVal.replace(/Dispositivo de Proteção\s*\d*A?/gi, `Dispositivo de Proteção ${breakerAmps}A`);
-          textVal = textVal.replace(/\bDISJUNTOR\s+\d+A\b/gi, `DISJUNTOR ${breakerAmps}A`);
-          textVal = textVal.replace(/DISJUNTOR BIFÁSICO 63A/gi, electrical.breakerLabel);
-          textVal = textVal.replace(/DISJUNTOR MONOFÁSICO 63A/gi, electrical.breakerLabel);
-          textVal = textVal.replace(/DISJUNTOR TRIFÁSICO 63A/gi, electrical.breakerLabel);
-          textVal = textVal.replace(/DISJUNTOR BIFÁSICO/gi, `DISJUNTOR ${electrical.breakerLabel.replace("DISJUNTOR ", "")}`);
+          // B. Fiação NBR 5410
+          if (!updated && /2#16\(16\)MM²|2#10\(10\)MM²|2#6\(6\)MM²|3#95\(95\)MM²/i.test(textVal)) {
+            textVal = electrical.cableLabel;
+            updated = true;
+          }
 
-          // D. Marca e Modelo do Inversor (Locais 4, 5 e 6)
-          textVal = textVal.replace(/CSI-5K-S2203A-E\s*\(220V\)/gi, inverterModel);
-          textVal = textVal.replace(/CSI-5K-S2203A-E/gi, inverterModel);
-          textVal = textVal.replace(/CANADIANSOLAR/gi, inverterManufacturer);
-          textVal = textVal.replace(/CANADIAN/gi, inverterManufacturer);
+          // C. Disjuntores dos 3 Locais (Entrada, Seccionamento, Cargas Internas)
+          if (!updated && /DISJUNTOR BIFÁSICO 63A|DISJUNTOR MONOFÁSICO 63A|DISJUNTOR TRIFÁSICO 63A|DISJUNTOR BIFÁSICO/i.test(textVal)) {
+            textVal = electrical.breakerLabel;
+            updated = true;
+          }
 
-          // E. Marca, Modelo e Tabela de Módulos (Locais 5 e 6)
-          textVal = textVal.replace(/HMB132T12R\s*-\s*Bifacial N-Type\s*-\s*620\s*Wp/gi, moduleModel);
-          textVal = textVal.replace(/HMB132T12R/gi, moduleModel);
-          textVal = textVal.replace(/HELIUS/gi, moduleManufacturer);
+          if (!updated && /Dispositivo de Proteção\s*\d*A?/i.test(textVal)) {
+            textVal = `Dispositivo de Proteção ${breakerAmps}A`;
+            updated = true;
+          }
 
-          // F. Substituir kWp, Módulos e Potência Nominal nas tabelas e diagramas
-          textVal = textVal.replace(/\b\d+[\.,]\d+\s*(?:kWp|kwp|KWP)\b/gi, totalKwpStr);
-          textVal = textVal.replace(/\b7[\.,]48\b/gi, totalKwpFormatted);
-          textVal = textVal.replace(/\b13[\.,]02\b/gi, totalKwpFormatted);
-          textVal = textVal.replace(/\b\d+\s*(?:MÓDULOS|MODULOS)\b/gi, `${totalModulesNum} MÓDULOS`);
+          if (!updated && /\bDISJUNTOR\s+\d+A\b/i.test(textVal)) {
+            textVal = `DISJUNTOR ${breakerAmps}A`;
+            updated = true;
+          }
 
-          // G. Placeholders coringa
-          textVal = textVal.replace(/\{NOME_CLIENTE\}/gi, clientName);
-          textVal = textVal.replace(/\{CPF_CNPJ\}/gi, cpfCnpj);
-          textVal = textVal.replace(/\{ENDERECO_COMPLETO\}/gi, address);
-          textVal = textVal.replace(/\{RESPONSAVEL_TECNICO\}/gi, techName);
-          textVal = textVal.replace(/\{REGISTRO_CRT\}/gi, techCrt);
-          textVal = textVal.replace(/\{POTENCIA_KWP\}/gi, totalKwpStr);
-          textVal = textVal.replace(/\{TOTAL_MODULOS\}/gi, `${totalModulesNum} MÓDULOS`);
-          textVal = textVal.replace(/\{DATA_ATUAL\}/gi, currentDate);
+          // D. Marca e Modelo de Inversores
+          if (!updated && /CSI-5K-S2203A-E/i.test(textVal)) {
+            textVal = inverterModel;
+            updated = true;
+          }
+
+          if (!updated && /CANADIANSOLAR|CANADIAN/i.test(textVal)) {
+            textVal = inverterManufacturer;
+            updated = true;
+          }
+
+          // E. Marca e Modelo de Módulos (Formatação Concisa Sem Sobreposição)
+          if (!updated && /HMB132T12R/i.test(textVal)) {
+            textVal = cleanModuleModel;
+            updated = true;
+          }
+
+          if (!updated && /HELIUS/i.test(textVal)) {
+            textVal = moduleManufacturer;
+            updated = true;
+          }
+
+          // F. Distribuição MÓDULOS por MPPT no Fluxograma (Gerador P1 vs P2)
+          if (!updated && /\b06\b/.test(textVal) && i > 8250 && i < 19500) {
+            textVal = textVal.replace(/\b06\b/, mppt1CountStr);
+            updated = true;
+          }
+          if (!updated && /\b05\b/.test(textVal) && i > 8250 && i < 19500) {
+            textVal = textVal.replace(/\b05\b/, mppt2CountStr);
+            updated = true;
+          }
+
+          // G. Substituir kWp e Totais gerais
+          if (!updated && /\b\d+[\.,]\d+\s*(?:kWp|kwp|KWP)\b/i.test(textVal)) {
+            textVal = totalKwpStr;
+            updated = true;
+          }
+
+          if (!updated && /\b7[\.,]48\b|\b13[\.,]02\b/i.test(textVal)) {
+            textVal = totalKwpFormatted;
+            updated = true;
+          }
+
+          // H. Placeholders genéricos
+          if (!updated) {
+            textVal = textVal.replace(/\{NOME_CLIENTE\}/gi, clientName);
+            textVal = textVal.replace(/\{CPF_CNPJ\}/gi, cpfCnpj);
+            textVal = textVal.replace(/\{ENDERECO_COMPLETO\}/gi, address);
+            textVal = textVal.replace(/\{RESPONSAVEL_TECNICO\}/gi, techName);
+            textVal = textVal.replace(/\{REGISTRO_CRT\}/gi, techCrt);
+            textVal = textVal.replace(/\{POTENCIA_KWP\}/gi, totalKwpStr);
+            textVal = textVal.replace(/\{TOTAL_MODULOS\}/gi, `${totalModulesNum} MÓDULOS`);
+            textVal = textVal.replace(/\{DATA_ATUAL\}/gi, currentDate);
+          }
 
           lines[i + 1] = textVal;
         }
       }
     }
 
-    // 7. Reconstituir o conteúdo do arquivo DXF 100% válido para o AutoCAD
+    // 8. Reconstituir arquivo DXF
     const finalDxfContent = lines.join(lineEnding);
 
-    // Criar o arquivo Blob com codificação Windows-1252 / ASCII compatível com AutoCAD
     const blob = new Blob([finalDxfContent], { type: "image/vnd.dxf;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
