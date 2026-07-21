@@ -5,7 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { fetcher } from "@/utils/fetcher";
 import * as XLSX from "xlsx";
-import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X, Trash2, RefreshCw, Upload, Eye } from "lucide-react";
+import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X, Trash2, RefreshCw, Upload, Eye, Compass } from "lucide-react";
 
 import { Project, ClientDetail, Inverter } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { generateMemorialPDF } from "@/utils/generateMemorial";
 import { generateMemorialDocx } from "@/utils/generateMemorialDocx";
+import { generateDxfProject, DXF_TEMPLATES, DxfTemplateType } from "@/utils/generateDxf";
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 
 import { formatUnidadeConsumidora, formatCpfCnpj, formatPhone, formatCep } from "@/utils/formatters";
@@ -53,6 +54,9 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [manualRows, setManualRows] = useState<ManualRow[]>([emptyRow()]);
   const [manualSaving, setManualSaving] = useState(false);
   const [manualError, setManualError] = useState("");
+
+  const [dxfModalProject, setDxfModalProject] = useState<Project | null>(null);
+  const [selectedDxfTemplate, setSelectedDxfTemplate] = useState<DxfTemplateType>("unifilar");
 
   const resetManualModal = () => {
     setShowNewProjectModal(false);
@@ -958,6 +962,18 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           title="Exportar Planilha Excel"
                         >
                           <Download className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDxfModalProject(proj);
+                          }}
+                          className="text-cyan-400 bg-cyan-950/30 hover:bg-cyan-900/50 border border-cyan-500/20"
+                          title="Gerar Desenho e Diagrama CAD (.DXF)"
+                        >
+                          <Compass className="w-4 h-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -2066,6 +2082,86 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                   </Button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Gerador de Arquivos CAD (.DXF) */}
+      {dxfModalProject && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-border flex justify-between items-center bg-secondary/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-xl">
+                  <Compass className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-foreground">Gerador de Arquivos CAD (.DXF)</h3>
+                  <p className="text-xs text-muted-foreground">Projeto: {dxfModalProject.name || "Projeto Solar"}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setDxfModalProject(null)}
+                className="text-muted-foreground hover:text-foreground p-2 rounded-xl transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-muted-foreground font-medium">
+                Selecione o modelo de gabarito técnico que deseja exportar. Os dados do cliente, endereço, potência em kWp e responsável técnico serão aplicados automaticamente ao carimbo do desenho CAD:
+              </p>
+
+              <div className="space-y-3">
+                {DXF_TEMPLATES.map((tmpl) => {
+                  const isSelected = selectedDxfTemplate === tmpl.id;
+                  return (
+                    <div
+                      key={tmpl.id}
+                      onClick={() => setSelectedDxfTemplate(tmpl.id)}
+                      className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                        isSelected
+                          ? "bg-cyan-950/20 border-cyan-500/50 shadow-md shadow-cyan-500/5"
+                          : "bg-secondary/20 border-border hover:bg-secondary/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? "border-cyan-400 bg-cyan-400" : "border-muted-foreground"}`}>
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-foreground">{tmpl.title}</h4>
+                            <p className="text-xs text-muted-foreground">{tmpl.description}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-border flex justify-end gap-3 bg-secondary/10">
+              <Button
+                variant="outline"
+                onClick={() => setDxfModalProject(null)}
+                className="rounded-xl h-11 px-6 font-bold"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!dxfModalProject || !client) return;
+                  await generateDxfProject(client, dxfModalProject, selectedDxfTemplate);
+                  setDxfModalProject(null);
+                }}
+                className="bg-cyan-500 hover:bg-cyan-600 text-black font-black rounded-xl h-11 px-6 shadow-lg shadow-cyan-500/20"
+              >
+                <Download className="w-4 h-4 mr-2" /> Baixar Arquivo CAD (.DXF)
+              </Button>
             </div>
           </div>
         </div>
