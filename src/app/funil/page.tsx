@@ -119,7 +119,8 @@ export default function KanbanPage() {
     NEGOTIATION: [],
     CLOSED: [],
     INSTALLATION: [],
-    COMPLETED: []
+    COMPLETED: [],
+    CANCELED: []
   });
 
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -127,7 +128,14 @@ export default function KanbanPage() {
   // Initialize board state when data loads
   useEffect(() => {
     if (projectsData && Array.isArray(projectsData)) {
-      const newItems: Record<string, any[]> = { SIMULATION: [], NEGOTIATION: [], CLOSED: [], INSTALLATION: [], COMPLETED: [] };
+      const newItems: Record<string, any[]> = {
+        SIMULATION: [],
+        NEGOTIATION: [],
+        CLOSED: [],
+        INSTALLATION: [],
+        COMPLETED: [],
+        CANCELED: []
+      };
       projectsData.forEach(p => {
         if (newItems[p.status]) {
           newItems[p.status].push(p);
@@ -168,18 +176,18 @@ export default function KanbanPage() {
     }
 
     setItems((prev) => {
-      const activeItems = prev[activeContainer];
-      const overItems = prev[overContainer];
+      const activeItems = prev[activeContainer] || [];
+      const overItems = prev[overContainer] || [];
       const activeIndex = activeItems.findIndex((item) => item.id === activeId);
       const overIndex = overId in prev ? overItems.length : overItems.findIndex((item) => item.id === overId);
 
       return {
         ...prev,
-        [activeContainer]: [...prev[activeContainer].filter((item) => item.id !== activeId)],
+        [activeContainer]: [...activeItems.filter((item) => item.id !== activeId)],
         [overContainer]: [
-          ...prev[overContainer].slice(0, overIndex),
+          ...overItems.slice(0, overIndex),
           activeItems[activeIndex],
-          ...prev[overContainer].slice(overIndex, prev[overContainer].length),
+          ...overItems.slice(overIndex, overItems.length),
         ],
       };
     });
@@ -194,14 +202,11 @@ export default function KanbanPage() {
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Usa os dados originais do banco para saber a coluna real do projeto
-    // já que o estado 'items' pode estar no meio de uma atualização visual do handleDragOver
     const originalProject = projectsData?.find((p: any) => p.id === activeId);
     if (!originalProject) return;
 
     const originalStatus = originalProject.status;
 
-    // Descobre para qual coluna o item foi solto
     let overContainer = overId;
     if (!(overContainer in items)) {
       overContainer = Object.keys(items).find(key => items[key].some(i => i.id === overId)) || overContainer;
@@ -210,17 +215,26 @@ export default function KanbanPage() {
     if (!(overContainer in items)) return;
 
     if (originalStatus !== overContainer) {
-      // Mudou de coluna! Atualiza optimisticamente o cache do SWR para evitar "flicker" visual
+      let lossReason: string | null = null;
+      if (overContainer === "CANCELED") {
+        const reasonInput = prompt(
+          "Qual o motivo da perda desta oportunidade?\n1. Preço Alto / Proposta Cara\n2. Prazo de Entrega\n3. Fechou com Concorrência\n4. Desistência / Sem Orçamento\n5. Reprovação de Crédito",
+          "Preço Alto"
+        );
+        lossReason = reasonInput ? reasonInput.trim() : "Outros";
+      }
+
+      // Mudou de coluna! Atualiza optimisticamente o cache do SWR
       mutate((currentData: any) => {
         if (!Array.isArray(currentData)) return currentData;
-        return currentData.map((p: any) => p.id === activeId ? { ...p, status: overContainer } : p);
+        return currentData.map((p: any) => p.id === activeId ? { ...p, status: overContainer, lossReason } : p);
       }, false);
 
       try {
         const res = await fetch(`/api/projects/${activeId}/status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: overContainer })
+          body: JSON.stringify({ status: overContainer, lossReason })
         });
         
         if (!res.ok) {
@@ -228,11 +242,11 @@ export default function KanbanPage() {
           throw new Error(errText);
         }
         
-        mutate(); // Revalida silenciosamente com o banco
+        mutate();
       } catch (err: any) {
         console.error("Failed to update status", err);
         alert("Erro na atualização do funil: " + err.message);
-        mutate(); // Em caso de erro, reverte
+        mutate();
       }
     } else {
       // Reordenação na mesma coluna
