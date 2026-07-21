@@ -21,7 +21,7 @@ import {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#6366f1', '#8b5cf6', '#ef4444'];
+const COLORS = ['#38bdf8', '#d97706', '#059669', '#6366f1', '#64748b', '#dc2626'];
 
 function DashboardContent() {
   const { data: metrics, error, isLoading } = useSWR('/api/analytics', fetcher);
@@ -70,7 +70,7 @@ function DashboardContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group">
               <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-1">Faturamento Orçado</h3>
-              <div className="text-2xl md:text-3xl font-black text-emerald-400 mb-1">
+              <div className="text-2xl md:text-3xl font-black text-emerald-500/90 mb-1">
                 {(metrics.openEstimatedRevenue || metrics.totalEstimatedRevenue || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
               </div>
               <p className="text-[11px] text-muted-foreground font-medium truncate" title="Projetos ativos em Simulação e Negociação">
