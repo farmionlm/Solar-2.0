@@ -70,6 +70,10 @@ model Client {
   procuracaoName      String?
   procuracaoUpdatedAt DateTime?
 
+  // Assinatura Eletrônica do Titular
+  signatureUrl        String?   // PNG em Base64 da assinatura digital
+  signatureUpdatedAt  DateTime?
+
   // SLA de Homologação junto à Concessionária (ANEEL 15 dias úteis)
   protocolDate        DateTime? // Data de protocolo junto à concessionária
   slaDueDate          DateTime? // Data limite calculada (15 dias úteis)

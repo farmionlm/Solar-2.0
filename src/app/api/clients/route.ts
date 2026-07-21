@@ -102,7 +102,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { id, name, cpfCnpj, phone, email, address, neighborhood, city, installationNumber, cep, procuracaoUrl, procuracaoName, concessionaria, protocolDate } = body;
+    const { id, name, cpfCnpj, phone, email, address, neighborhood, city, installationNumber, cep, procuracaoUrl, procuracaoName, concessionaria, protocolDate, signatureUrl } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'ID do cliente é obrigatório.' }, { status: 400 });
@@ -163,6 +163,10 @@ export async function PUT(request: Request) {
       } else {
         updateData.slaDueDate = null;
       }
+    }
+    if (signatureUrl !== undefined) {
+      updateData.signatureUrl = signatureUrl || null;
+      updateData.signatureUpdatedAt = signatureUrl ? new Date() : null;
     }
 
     const client = await prisma.client.update({

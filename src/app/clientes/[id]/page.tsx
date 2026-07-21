@@ -5,7 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { fetcher } from "@/utils/fetcher";
 import * as XLSX from "xlsx";
-import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X, Trash2, RefreshCw, Upload, Eye } from "lucide-react";
+import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X, Trash2, RefreshCw, Upload, Eye, PenTool } from "lucide-react";
 
 import { Project, ClientDetail, Inverter } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { generateMemorialDocx } from "@/utils/generateMemorialDocx";
 import { generateFormularioAcessoPDF } from "@/utils/generateFormularioAcesso";
 import { generateFormularioAcessoDocx } from "@/utils/generateFormularioAcessoDocx";
 import { SlaCountdownBadge } from "@/components/SlaCountdownBadge";
+import { SignatureCanvasModal } from "@/components/SignatureCanvasModal";
 
 import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMath";
 
@@ -58,7 +59,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [manualSaving, setManualSaving] = useState(false);
   const [manualError, setManualError] = useState("");
 
-
+  // Estado do modal de Assinatura Eletrônica
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
 
   const resetManualModal = () => {
     setShowNewProjectModal(false);
@@ -800,7 +802,63 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                 {client.procuracaoUrl ? "Substituir Procuração" : "Anexar Procuração (.PDF)"}
               </Button>
             </div>
+            <Button
+              onClick={() => setShowSignatureModal(true)}
+              className="bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs rounded-xl h-10 px-4 gap-1.5 shadow-md shadow-violet-500/20"
+            >
+              <PenTool className="w-4 h-4" />
+              {client.signatureUrl ? "Atualizar Assinatura" : "Coletar Assinatura Digital"}
+            </Button>
           </div>
+
+          {/* Assinatura Eletrônica Salva */}
+          {client.signatureUrl && (
+            <div className="mb-4 p-4 bg-violet-950/20 border border-violet-500/20 rounded-2xl">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <PenTool className="w-4 h-4 text-violet-400" />
+                  <span className="text-xs font-bold text-violet-400 uppercase tracking-wider">Assinatura Digital Coletada</span>
+                  {client.signatureUpdatedAt && (
+                    <span className="text-[10px] text-muted-foreground">
+                      em {new Date(client.signatureUpdatedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!confirm("Remover assinatura digital deste cliente?")) return;
+                    setIsSaving(true);
+                    try {
+                      const res = await fetch("/api/clients", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id, signatureUrl: null }),
+                      });
+                      if (!res.ok) throw new Error();
+                      await mutate();
+                      setSaveMsg("Assinatura removida.");
+                      setTimeout(() => setSaveMsg(""), 3000);
+                    } catch {
+                      alert("Erro ao remover assinatura.");
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
+                  className="p-1.5 text-red-400 hover:bg-red-950/40 rounded-lg transition-colors"
+                  title="Remover assinatura"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="bg-white rounded-xl p-3 border border-violet-500/10">
+                <img
+                  src={client.signatureUrl}
+                  alt="Assinatura eletrônica do cliente"
+                  className="max-h-20 mx-auto object-contain"
+                />
+              </div>
+            </div>
+          )}
 
           {client.procuracaoUrl ? (
             <div className="bg-secondary/30 rounded-xl p-4 border border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -2210,6 +2268,31 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         </div>
       )}
 
+      {/* Modal de Assinatura Eletrônica */}
+      <SignatureCanvasModal
+        isOpen={showSignatureModal}
+        onClose={() => setShowSignatureModal(false)}
+        title="Assinatura Eletrônica do Cliente"
+        subtitle={`Coletando assinatura de ${client?.name || "cliente"}`}
+        onConfirm={async (signatureDataUrl: string) => {
+          setIsSaving(true);
+          try {
+            const res = await fetch("/api/clients", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id, signatureUrl: signatureDataUrl }),
+            });
+            if (!res.ok) throw new Error("Erro ao salvar assinatura.");
+            await mutate();
+            setSaveMsg("✅ Assinatura digital coletada e salva com sucesso!");
+            setTimeout(() => setSaveMsg(""), 4000);
+          } catch {
+            alert("Erro ao salvar a assinatura. Tente novamente.");
+          } finally {
+            setIsSaving(false);
+          }
+        }}
+      />
 
     </div>
   );

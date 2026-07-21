@@ -21,6 +21,8 @@ export type ClientData = {
   concessionaria?: string;
   procuracaoUrl?: string | null;
   procuracaoName?: string | null;
+  signatureUrl?: string | null;
+  signatureUpdatedAt?: string | null;
   protocolDate?: string | null;
   slaDueDate?: string | null;
 };
@@ -40,6 +42,8 @@ export type ClientListItem = {
   procuracaoUrl?: string | null;
   procuracaoName?: string | null;
   procuracaoUpdatedAt?: string | null;
+  signatureUrl?: string | null;
+  signatureUpdatedAt?: string | null;
   protocolDate?: string | null;
   slaDueDate?: string | null;
   createdAt?: string;
