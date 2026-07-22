@@ -48,7 +48,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
 
   return (
     <aside
-      className={`relative flex flex-col bg-card border-r border-border transition-all duration-300 ease-in-out z-30 shrink-0 ${
+      className={`dark relative flex flex-col bg-card border-r border-border transition-all duration-300 ease-in-out z-30 shrink-0 ${
         collapsed ? "w-20" : "w-64 md:w-72"
       }`}
     >

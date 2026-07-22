@@ -51,6 +51,34 @@
 }
 
 :root {
+  /* Tema Claro (Padrão quando não houver a classe .dark) */
+  --background: #f2f2f2;
+  --foreground: #555555;
+  --card: #ffffff;
+  --card-foreground: #444444;
+  --popover: #ffffff;
+  --popover-foreground: #444444;
+  --primary: oklch(0.55 0.12 240);
+  --primary-foreground: #ffffff;
+  --secondary: #e5e5e5;
+  --secondary-foreground: #333333;
+  --muted: #e8e8e8;
+  --muted-foreground: #777777;
+  --accent: #e2e8f0;
+  --accent-foreground: #333333;
+  --destructive: oklch(0.55 0.12 25);
+  --border: #e0e0e0;
+  --input: #e0e0e0;
+  --ring: oklch(0.55 0.12 240);
+  --radius: 0.75rem;
+  --accent-color: oklch(0.55 0.12 240);
+  --accent-color-dark: oklch(0.45 0.12 240);
+  --chart-1: oklch(0.55 0.12 240);
+  --chart-2: oklch(0.45 0.12 240);
+}
+
+.dark {
+  /* Tema Escuro (Ativo com a classe .dark no <html>) */
   --background: oklch(0.13 0.01 240);
   --foreground: oklch(0.92 0.01 240);
   --card: oklch(0.17 0.01 240);
@@ -69,21 +97,10 @@
   --border: oklch(0.24 0.01 240);
   --input: oklch(0.24 0.01 240);
   --ring: oklch(0.62 0.09 240);
-  --radius: 0.75rem;
   --accent-color: oklch(0.62 0.09 240);
   --accent-color-dark: oklch(0.48 0.09 240);
   --chart-1: oklch(0.62 0.09 240);
   --chart-2: oklch(0.48 0.09 240);
-}
-
-.dark {
-  --background: oklch(0.11 0.01 240);
-  --foreground: oklch(0.95 0.01 240);
-  --card: oklch(0.15 0.01 240);
-  --card-foreground: oklch(0.95 0.01 240);
-  --primary: oklch(0.64 0.09 240);
-  --primary-foreground: oklch(0.98 0 0);
-  --border: oklch(0.22 0.01 240);
 }
 
 @layer base {

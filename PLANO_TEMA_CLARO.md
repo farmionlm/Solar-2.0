@@ -1,7 +1,7 @@
 # Plano de Implementação: Tema Claro (Light Mode) — Solar 2.0
 
-> **Status**: Salvo para acesso futuro (Não aplicar no momento).  
-> **Data de Criação**: 21 de Julho de 2026  
+> **Status**: Implementado com sucesso.  
+> **Data de Atualização**: 22 de Julho de 2026  
 
 Este documento descreve o plano detalhado para implementar o **Tema Claro (Light Mode)** e o alternador de temas (Dark/Light Switcher) no sistema **Solar 2.0**, seguindo rigorosamente as especificações visuais solicitadas.
 
@@ -15,6 +15,7 @@ Este documento descreve o plano detalhado para implementar o **Tema Claro (Light
 * **Bordas (`--border`)**: `#e2e8f0` ou `#e0e0e0` (Linhas de divisão sutis e limpas).
 * **Texto Secundário (`--muted-foreground`)**: `#777777` (Cinza médio para rótulos e legendas secundárias).
 * **Destaque Primário (`--primary`)**: `#2563eb` ou `#1e40af` (Azul corporativo sóbrio e elegante).
+* **Menu Lateral (`Sidebar`)**: **Mantém a cor escura atual** (`oklch(0.17 0.01 240)` / tom escuro original) em ambos os temas (Claro e Escuro).
 
 ---
 
@@ -33,6 +34,13 @@ Quando for implementar, atualize o bloco `:root` em `[src/app/globals.css](file:
   --card-foreground: #444444;
   --popover: #ffffff;
   --popover-foreground: #444444;
+  
+  /* Sidebar (Menu Lateral - Mantém a cor escura atual) */
+  --sidebar: oklch(0.17 0.01 240);
+  --sidebar-foreground: oklch(0.92 0.01 240);
+  --sidebar-border: oklch(0.24 0.01 240);
+  --sidebar-accent: oklch(0.22 0.01 240);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
   
   /* Cores de Ação e Destaque */
   --primary: oklch(0.55 0.12 240); /* Azul sóbrio */
@@ -60,6 +68,11 @@ Quando for implementar, atualize o bloco `:root` em `[src/app/globals.css](file:
   --primary: oklch(0.62 0.09 240);
   --primary-foreground: oklch(0.98 0 0);
   --border: oklch(0.24 0.01 240);
+
+  /* Sidebar no tema escuro (idêntico ao tema claro) */
+  --sidebar: oklch(0.17 0.01 240);
+  --sidebar-foreground: oklch(0.92 0.01 240);
+  --sidebar-border: oklch(0.24 0.01 240);
 }
 ```
 
@@ -114,9 +127,10 @@ export function ThemeToggle() {
 ## 🔍 4. Passos de Revisão de Código na Execução Futura
 
 Quando for aplicar este plano no futuro, atente-se para:
-1. **Classes Tailwind Hardcoded**: Substituir classes puras como `text-white` por `text-foreground` e `bg-black` por `bg-card` em páginas com fundo fixo escuro.
-2. **Gráficos Recharts**: Garantir que as linhas de grade (`CartesianGrid`) e textos de eixos do Recharts (`XAxis`, `YAxis`) utilizem a cor da variável `var(--muted-foreground)` para manter alta legibilidade em ambos os temas.
-3. **Logotipos / Assinaturas**: Garantir contraste dos ícones e marcas tanto no fundo claro (`#f2f2f2`) quanto no fundo escuro.
+1. **Menu Lateral (`Sidebar.tsx`)**: Utilizar tokens de sidebar (`bg-sidebar`, `text-sidebar-foreground`, `border-sidebar-border`) para garantir que o menu lateral mantenha o fundo escuro original em ambos os temas.
+2. **Classes Tailwind Hardcoded**: Substituir classes puras como `text-white` por `text-foreground` e `bg-black` por `bg-card` em páginas com fundo fixo escuro.
+3. **Gráficos Recharts**: Garantir que as linhas de grade (`CartesianGrid`) e textos de eixos do Recharts (`XAxis`, `YAxis`) utilizem a cor da variável `var(--muted-foreground)` para manter alta legibilidade em ambos os temas.
+4. **Logotipos / Assinaturas**: Garantir contraste dos ícones e marcas tanto no fundo claro (`#f2f2f2`) quanto no fundo escuro.
 
 ---
 

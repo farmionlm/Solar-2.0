@@ -17,6 +17,7 @@ import {
   Check
 } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { calculateConcessionariaSla } from "@/utils/slaMath";
 import { AppNotification } from "@/types";
 
@@ -108,17 +109,21 @@ export function Navbar({ onOpenMobileSidebar }: NavbarProps) {
   const allNotifications = [...slaAlerts, ...notifications];
   const unreadCount = allNotifications.filter(n => !n.read).length;
 
+  useEffect(() => {
+    fetchNotificationsAndSla();
+  }, [session?.user?.id]);
+
   const handleMarkAllAsRead = async () => {
     try {
       await fetch('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ all: true }),
+        body: JSON.stringify({ action: 'markAllRead' }),
       });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setSlaAlerts(prev => prev.map(n => ({ ...n, read: true })));
     } catch (err) {
-      console.error(err);
+      console.error("Erro ao marcar notificações como lidas:", err);
     }
   };
 
@@ -128,15 +133,15 @@ export function Navbar({ onOpenMobileSidebar }: NavbarProps) {
         await fetch('/api/notifications', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: notif.id }),
+          body: JSON.stringify({ id: notif.id, action: 'markRead' }),
         });
         setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
       } catch (err) {
-        console.error(err);
+        console.error("Erro ao marcar notificação como lida:", err);
       }
     }
+    setShowNotifications(false);
     if (notif.link) {
-      setShowNotifications(false);
       router.push(notif.link);
     }
   };
@@ -144,9 +149,9 @@ export function Navbar({ onOpenMobileSidebar }: NavbarProps) {
   const getIconComponent = (type: string) => {
     switch (type) {
       case 'CRITICAL':
-        return <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />;
+        return <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />;
       case 'WARNING':
-        return <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />;
+        return <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />;
       case 'SUCCESS':
         return <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />;
       default:
@@ -178,6 +183,9 @@ export function Navbar({ onOpenMobileSidebar }: NavbarProps) {
 
       {/* Direita: Controles de Utilidade + Notificações + UserMenu */}
       <div className="flex items-center gap-2 md:gap-3 shrink-0">
+        {/* Alternador de Tema (Dark / Light) */}
+        <ThemeToggle />
+
         {/* Botão de Ajuda */}
         <button
           onClick={() => alert("Central de Suporte Solar 2.0:\nDúvidas ou assistência técnica? Entre em contato com suporte@solarcalc.pro")}
