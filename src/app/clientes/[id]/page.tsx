@@ -1964,8 +1964,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         </div>
       {/* Modal de Novo Projeto */}
       {showNewProjectModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-card rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh] border border-border">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] border border-border">
 
             {/* Header */}
             <div className="bg-primary p-6 text-primary-foreground flex justify-between items-center flex-shrink-0">
@@ -2168,8 +2168,8 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
 
       {/* Modal de Re-Simulação */}
       {reSimProject && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className={`bg-card border border-border rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh] ${reSimMode === 'manual' ? 'w-full max-w-4xl' : 'w-full max-w-lg'}`}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className={`bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] ${reSimMode === 'manual' ? 'w-full max-w-4xl' : 'w-full max-w-lg'}`}>
             <div className="bg-primary p-6 text-primary-foreground flex justify-between items-center flex-shrink-0">
               <h2 className="text-xl font-black flex items-center gap-2">
                 <RefreshCw className="w-5 h-5" /> Refazer Simulação: {reSimProject.name}

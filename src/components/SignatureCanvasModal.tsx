@@ -154,7 +154,7 @@ export const SignatureCanvasModal: React.FC<SignatureCanvasModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="p-5 border-b border-border flex items-center justify-between bg-secondary/30">
           <div className="flex items-center gap-3">

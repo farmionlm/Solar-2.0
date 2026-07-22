@@ -292,76 +292,83 @@ export default function Clientes() {
 
       {/* Modal Novo Cliente */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-card rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-border">
-            <div className="bg-primary p-6 text-primary-foreground flex justify-between items-center">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <Users className="w-6 h-6" /> Novo Cliente
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 border border-border">
+            <div className="bg-primary px-5 py-4 text-primary-foreground flex justify-between items-center shadow-sm">
+              <h2 className="text-lg font-bold flex items-center gap-2 tracking-tight">
+                <Users className="w-5 h-5" /> Novo Cliente
               </h2>
-              <button onClick={() => setShowModal(false)} className="text-primary-foreground/80 hover:text-primary-foreground text-2xl font-bold">&times;</button>
+              <button 
+                onClick={() => setShowModal(false)} 
+                className="text-primary-foreground/80 hover:text-primary-foreground transition-opacity text-xl font-bold p-1 leading-none"
+              >
+                &times;
+              </button>
             </div>
-            <form onSubmit={handleSaveClient} className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <form onSubmit={handleSaveClient} className="p-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-bold text-muted-foreground mb-1">Nome Completo *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Nome Completo *</label>
                   <Input type="text" required value={newClient.name} onChange={(e) => setNewClient({...newClient, name: e.target.value})}
-                    placeholder="Ex: João da Silva" />
+                    placeholder="Ex: João da Silva" className="h-9 text-xs" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-muted-foreground mb-1">CPF / CNPJ</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">CPF / CNPJ</label>
                   <Input type="text" value={newClient.cpfCnpj} onChange={(e) => setNewClient({...newClient, cpfCnpj: formatCpfCnpj(e.target.value)})}
-                    placeholder="000.000.000-00 ou 00.000.000/0001-00" />
+                    placeholder="000.000.000-00 ou 00.000.000/0001-00" className="h-9 text-xs" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-muted-foreground mb-1">Telefone</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Telefone</label>
                   <Input type="text" value={newClient.phone} onChange={(e) => setNewClient({...newClient, phone: formatPhone(e.target.value)})}
-                    placeholder="(00) 00000-0000" />
+                    placeholder="(00) 00000-0000" className="h-9 text-xs" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-muted-foreground mb-1">E-mail</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">E-mail</label>
                   <Input type="email" value={newClient.email} onChange={(e) => setNewClient({...newClient, email: e.target.value})}
-                    placeholder="email@exemplo.com" />
+                    placeholder="email@exemplo.com" className="h-9 text-xs" />
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-bold text-muted-foreground mb-1 flex items-center justify-between">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1 flex items-center justify-between">
                     <span>CEP</span>
                     {isSearchingCep && (
-                      <span className="text-xs text-primary font-semibold flex items-center gap-1">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Buscando endereço...
+                      <span className="text-[10px] text-primary font-semibold flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Buscando...
                       </span>
                     )}
                   </label>
                   <Input type="text" value={newClient.cep} onChange={handleCepChange}
-                    placeholder="00000-000" />
-                  {cepStatusMessage && (
-                    <p className={`text-xs mt-1 font-medium ${cepStatusMessage.startsWith("✓") ? "text-emerald-500 dark:text-emerald-400" : cepStatusMessage.startsWith("⚠️") ? "text-amber-500" : "text-muted-foreground"}`}>
+                    placeholder="00000-000" className="h-9 text-xs" />
+                </div>
+                {cepStatusMessage && (
+                  <div className="md:col-span-2">
+                    <p className={`text-[11px] font-medium ${cepStatusMessage.startsWith("✓") ? "text-emerald-500 dark:text-emerald-400" : cepStatusMessage.startsWith("⚠️") ? "text-amber-500" : "text-muted-foreground"}`}>
                       {cepStatusMessage}
                     </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-muted-foreground mb-1">Endereço (Rua, Número)</label>
+                  </div>
+                )}
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Endereço (Rua, Número)</label>
                   <Input type="text" value={newClient.address} onChange={(e) => setNewClient({...newClient, address: e.target.value})}
-                    placeholder="Ex: Rua das Flores, 123" />
+                    placeholder="Ex: Rua das Flores, 123" className="h-9 text-xs" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-muted-foreground mb-1">Bairro</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Bairro</label>
                   <Input type="text" value={newClient.neighborhood} onChange={(e) => setNewClient({...newClient, neighborhood: e.target.value})}
-                    placeholder="Ex: Centro" />
+                    placeholder="Ex: Centro" className="h-9 text-xs" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-muted-foreground mb-1">Cidade / UF</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Cidade / UF</label>
                   <Input type="text" value={newClient.city} onChange={(e) => setNewClient({...newClient, city: e.target.value})}
-                    placeholder="Ex: São Paulo / SP" />
+                    placeholder="Ex: São Paulo / SP" className="h-9 text-xs" />
                 </div>
               </div>
-              <div className="flex gap-3 justify-end mt-8">
+              <div className="flex gap-2.5 justify-end pt-3 border-t border-border">
                 <Button variant="outline" type="button" onClick={() => setShowModal(false)}
-                  className="rounded-xl h-12 px-6 text-base border-border bg-card hover:bg-secondary">
+                  className="rounded-xl h-9 px-4 text-xs font-bold border-border bg-card hover:bg-secondary">
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={isSaving}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/20 disabled:opacity-50 h-12 px-8 text-base">
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md shadow-primary/20 disabled:opacity-50 h-9 px-5 text-xs font-bold">
                   {isSaving ? "Salvando..." : "Criar Cliente"}
                 </Button>
               </div>
