@@ -1133,7 +1133,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               clientName: client.name,
                               totalKwp: kwp,
                               monthlySavings: Math.round(kwp * 4.0 * 30 * 0.85 * 0.95),
-                              proposalUrl: `${window.location.origin}/proposta?projectId=${proj.id}&clientName=${encodeURIComponent(client.name)}`
+                              proposalUrl: `${window.location.origin}/p/${proj.id}`
                             });
                             openWhatsAppChat({ phone: client.phone || undefined, message: msg });
                           }}

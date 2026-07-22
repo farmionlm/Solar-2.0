@@ -59,7 +59,7 @@ export default function PublicProposalPage({ params }: { params: Promise<{ id: s
       clientName: project.client?.name || "Cliente",
       totalKwp,
       monthlySavings,
-      proposalUrl: typeof window !== "undefined" ? window.location.href : undefined
+      proposalUrl: typeof window !== "undefined" ? `${window.location.origin}/p/${id}` : undefined
     });
     openWhatsAppChat({ phone: project.client?.phone, message: msg });
   };
