@@ -15,8 +15,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Se estiver na tela de login, renderiza apenas o conteúdo original sem a shell de navegação
-  if (pathname === "/login") {
+  // Rotas sem shell de navegação (login, propostas públicas)
+  const isPublicRoute = pathname === "/login" || pathname.startsWith("/p/");
+  if (isPublicRoute) {
     return <>{children}</>;
   }
 

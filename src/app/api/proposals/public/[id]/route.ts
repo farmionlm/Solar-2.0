@@ -21,7 +21,6 @@ export async function GET(
             concessionaria: true,
           },
         },
-        units: true,
       },
     });
 
