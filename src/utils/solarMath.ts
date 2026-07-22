@@ -177,3 +177,39 @@ export function calculateAdvancedFinancials({
     annualCashflow
   };
 }
+
+export type BatteryRequirementResult = {
+  requiredKwh: number;
+  recommendedCapacityKwh: number;
+  suggestedModulesCount: number;
+  summaryText: string;
+};
+
+/**
+ * Calcula a necessidade de banco de baterias para backup/nobreak em sistemas híbridos
+ */
+export function calculateBatteryRequirement(
+  criticalLoadKw: number,
+  autonomyHours: number,
+  dod: number = 0.85
+): BatteryRequirementResult {
+  if (!criticalLoadKw || criticalLoadKw <= 0 || !autonomyHours || autonomyHours <= 0) {
+    return {
+      requiredKwh: 0,
+      recommendedCapacityKwh: 0,
+      suggestedModulesCount: 0,
+      summaryText: "Carga crítica e autonomia não especificadas.",
+    };
+  }
+
+  const requiredKwh = criticalLoadKw * autonomyHours;
+  const recommendedCapacityKwh = parseFloat((requiredKwh / dod).toFixed(2));
+  const suggestedModulesCount = Math.ceil(recommendedCapacityKwh / 5.12);
+
+  return {
+    requiredKwh: parseFloat(requiredKwh.toFixed(2)),
+    recommendedCapacityKwh,
+    suggestedModulesCount,
+    summaryText: `Banco recomendado: ${recommendedCapacityKwh} kWh (${suggestedModulesCount}x Módulos LiFePO4 5.12 kWh) para ${criticalLoadKw} kW por ${autonomyHours}h.`,
+  };
+}

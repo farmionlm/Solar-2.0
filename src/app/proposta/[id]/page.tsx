@@ -5,6 +5,7 @@ import useSWR from "swr";
 import Link from "next/link";
 import { Sun, CheckCircle2, DollarSign, Calendar, Zap, ShieldCheck, Download, MessageSquare, ArrowLeft, Award, Sparkles } from "lucide-react";
 import { FinanciamentoSolarCard } from "@/components/FinanciamentoSolarCard";
+import { PaybackChartCard } from "@/components/PaybackChartCard";
 import { openWhatsAppChat, generateProposalWhatsAppMessage } from "@/utils/whatsappHelper";
 import { calculateAdvancedFinancials } from "@/utils/solarMath";
 
@@ -179,6 +180,14 @@ export default function PublicProposalPage({ params }: { params: Promise<{ id: s
         <section>
           <FinanciamentoSolarCard
             estimatedProjectCost={estimatedCost}
+            monthlySavings={monthlySavings}
+          />
+        </section>
+
+        {/* Gráfico de Payback e Fluxo de Caixa 25 Anos */}
+        <section>
+          <PaybackChartCard
+            initialInvestment={estimatedCost}
             monthlySavings={monthlySavings}
           />
         </section>

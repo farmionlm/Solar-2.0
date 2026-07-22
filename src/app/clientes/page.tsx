@@ -114,10 +114,28 @@ export default function Clientes() {
     }
   };
 
+  const [procuracaoFilter, setProcuracaoFilter] = useState<'ALL' | 'OK' | 'MISSING'>('ALL');
+  const [concessionariaFilter, setConcessionariaFilter] = useState<string>('ALL');
+  const [cidadeFilter, setCidadeFilter] = useState<string>('ALL');
+
+  const availableConcessionarias = Array.from(
+    new Set((clients || []).map((c) => c.concessionaria).filter(Boolean))
+  ) as string[];
+
+  const availableCidades = Array.from(
+    new Set((clients || []).map((c) => c.city).filter(Boolean))
+  ) as string[];
+
   const filtered = (clients || []).filter((c) => {
     const isMine = c.userId === session?.user?.id;
     if (activeTab === 'MEUS' && !isMine) return false;
     if (activeTab === 'GERAIS' && isMine) return false;
+
+    if (procuracaoFilter === 'OK' && !c.procuracaoUrl) return false;
+    if (procuracaoFilter === 'MISSING' && c.procuracaoUrl) return false;
+
+    if (concessionariaFilter !== 'ALL' && c.concessionaria !== concessionariaFilter) return false;
+    if (cidadeFilter !== 'ALL' && c.city !== cidadeFilter) return false;
 
     const term = searchTerm.toLowerCase();
     return c.name.toLowerCase().includes(term) || 
@@ -150,32 +168,95 @@ export default function Clientes() {
         </div>
       </header>
 
-        {/* Barra de busca e Abas */}
-        <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between">
-          <div className="flex bg-card border border-border p-1 rounded-lg w-full md:w-auto">
-            <button 
-              onClick={() => setActiveTab('MEUS')}
-              className={`flex-1 md:px-5 py-1.5 rounded-md font-semibold text-xs transition-all ${activeTab === 'MEUS' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}`}
-            >
-              Meus Clientes
-            </button>
-            <button 
-              onClick={() => setActiveTab('GERAIS')}
-              className={`flex-1 md:px-5 py-1.5 rounded-md font-semibold text-xs transition-all ${activeTab === 'GERAIS' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}`}
-            >
-              Clientes Gerais
-            </button>
+        {/* Barra de busca, Abas e Filtros Avançados */}
+        <div className="space-y-3">
+          <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between">
+            <div className="flex bg-card border border-border p-1 rounded-lg w-full md:w-auto">
+              <button 
+                onClick={() => setActiveTab('MEUS')}
+                className={`flex-1 md:px-5 py-1.5 rounded-md font-semibold text-xs transition-all ${activeTab === 'MEUS' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}`}
+              >
+                Meus Clientes
+              </button>
+              <button 
+                onClick={() => setActiveTab('GERAIS')}
+                className={`flex-1 md:px-5 py-1.5 rounded-md font-semibold text-xs transition-all ${activeTab === 'GERAIS' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}`}
+              >
+                Clientes Gerais
+              </button>
+            </div>
+
+            <div className="relative w-full md:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por nome, CPF ou e-mail..."
+                className="w-full pl-9 h-9 text-xs bg-card border-border text-foreground rounded-lg"
+              />
+            </div>
           </div>
 
-          <div className="relative w-full md:max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por nome, CPF ou e-mail..."
-              className="w-full pl-9 h-9 text-xs bg-card border-border text-foreground rounded-lg"
-            />
+          {/* Filtros Rápidos (Procuração, Concessionária, Cidade) */}
+          <div className="flex flex-wrap items-center gap-2 text-xs pt-1">
+            <div className="flex items-center gap-1 bg-card border border-border px-2.5 py-1 rounded-lg">
+              <span className="text-muted-foreground font-semibold text-[11px]">Procuração:</span>
+              <select
+                value={procuracaoFilter}
+                onChange={(e) => setProcuracaoFilter(e.target.value as any)}
+                className="bg-transparent text-foreground font-bold focus:outline-none cursor-pointer text-xs"
+              >
+                <option value="ALL" className="bg-card">Todas</option>
+                <option value="OK" className="bg-card">✓ Procuração OK</option>
+                <option value="MISSING" className="bg-card">⚠️ Sem Procuração</option>
+              </select>
+            </div>
+
+            {availableConcessionarias.length > 0 && (
+              <div className="flex items-center gap-1 bg-card border border-border px-2.5 py-1 rounded-lg">
+                <span className="text-muted-foreground font-semibold text-[11px]">Concessionária:</span>
+                <select
+                  value={concessionariaFilter}
+                  onChange={(e) => setConcessionariaFilter(e.target.value)}
+                  className="bg-transparent text-foreground font-bold focus:outline-none cursor-pointer text-xs"
+                >
+                  <option value="ALL" className="bg-card">Todas</option>
+                  {availableConcessionarias.map((conc) => (
+                    <option key={conc} value={conc} className="bg-card">{conc}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {availableCidades.length > 0 && (
+              <div className="flex items-center gap-1 bg-card border border-border px-2.5 py-1 rounded-lg">
+                <span className="text-muted-foreground font-semibold text-[11px]">Cidade:</span>
+                <select
+                  value={cidadeFilter}
+                  onChange={(e) => setCidadeFilter(e.target.value)}
+                  className="bg-transparent text-foreground font-bold focus:outline-none cursor-pointer text-xs"
+                >
+                  <option value="ALL" className="bg-card">Todas</option>
+                  {availableCidades.map((cidade) => (
+                    <option key={cidade} value={cidade} className="bg-card">{cidade}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {(procuracaoFilter !== 'ALL' || concessionariaFilter !== 'ALL' || cidadeFilter !== 'ALL') && (
+              <button
+                onClick={() => {
+                  setProcuracaoFilter('ALL');
+                  setConcessionariaFilter('ALL');
+                  setCidadeFilter('ALL');
+                }}
+                className="text-primary hover:underline font-bold text-[11px] px-2 py-1"
+              >
+                Limpar Filtros
+              </button>
+            )}
           </div>
         </div>
 

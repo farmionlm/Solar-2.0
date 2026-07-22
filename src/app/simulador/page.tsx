@@ -4,13 +4,14 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import Link from "next/link";
-import { Sun, Upload, Save, Download, Users, ArrowLeft, RefreshCw, CheckCircle2, Zap } from "lucide-react";
+import { Sun, Upload, Save, Download, Users, ArrowLeft, RefreshCw, CheckCircle2, Zap, Battery } from "lucide-react";
 import { ProcessedUnit, ClientData, ClientListItem } from "@/types";
 import { ResultCards } from "@/components/ResultCards";
 import { SimulationTable } from "@/components/SimulationTable";
 import { ClientLinkingForm } from "@/components/ClientLinkingForm";
 import { ExcelParserService } from "@/services/ExcelParserService";
 import { HSP_BY_UF, DEFAULT_HSP } from "@/utils/solarIrradiation";
+import { calculateBatteryRequirement } from "@/utils/solarMath";
 import useSWR from "swr";
 
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,16 @@ function SimulatorContent() {
   const [irradiation, setIrradiation] = useState<number>(DEFAULT_HSP);
   const [isFetchingCep, setIsFetchingCep] = useState(false);
   const [rawExcelData, setRawExcelData] = useState<any[][] | null>(null);
+
+  // Estados de Dimensionamento de Baterias (Sistema Híbrido/Nobreak)
+  const [enableBatteryBackup, setEnableBatteryBackup] = useState(false);
+  const [criticalLoadKw, setCriticalLoadKw] = useState<number | "">(3);
+  const [autonomyHours, setAutonomyHours] = useState<number | "">(4);
+
+  const batteryCalc = useMemo(() => {
+    if (!enableBatteryBackup) return null;
+    return calculateBatteryRequirement(Number(criticalLoadKw) || 0, Number(autonomyHours) || 0);
+  }, [enableBatteryBackup, criticalLoadKw, autonomyHours]);
 
   const [error, setError] = useState<string>("");
   const [successMsg, setSuccessMsg] = useState<string>("");
@@ -364,6 +375,79 @@ function SimulatorContent() {
               className="w-full justify-between"
             />
           </div>
+        </div>
+
+        {/* Seção de Backup de Baterias (Sistema Híbrido) */}
+        <div className="mt-6 pt-5 border-t border-border/60">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Battery className="w-5 h-5 text-emerald-500" />
+              <div>
+                <h4 className="text-sm font-bold text-foreground">Backup de Baterias (Sistema Híbrido / Off-Grid)</h4>
+                <p className="text-xs text-muted-foreground">Calcule a reserva de energia para manter cargas essenciais durante quedas de luz.</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableBatteryBackup}
+                onChange={(e) => setEnableBatteryBackup(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-secondary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
+
+          {enableBatteryBackup && (
+            <div className="bg-secondary/30 border border-border p-4 rounded-2xl space-y-4 animate-in fade-in duration-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Carga Crítica Prioritária (kW)</label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    value={criticalLoadKw}
+                    onChange={(e) => setCriticalLoadKw(Number(e.target.value) || "")}
+                    placeholder="Ex: 3 kW (Geladeira, Lâmpadas, Roteador)"
+                    className="h-10 text-xs bg-card border-border"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Autonomia Desejada (Horas)</label>
+                  <select
+                    value={autonomyHours}
+                    onChange={(e) => setAutonomyHours(Number(e.target.value))}
+                    className="flex h-10 w-full rounded-xl border border-input bg-card px-3 py-2 text-xs font-bold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value={2}>2 Horas (Curta duração)</option>
+                    <option value={4}>4 Horas (Médio porte / Noturno)</option>
+                    <option value={8}>8 Horas (Pernoite completo)</option>
+                    <option value={12}>12 Horas (Semi off-grid)</option>
+                    <option value={24}>24 Horas (Totalmente autônomo)</option>
+                  </select>
+                </div>
+              </div>
+
+              {batteryCalc && batteryCalc.recommendedCapacityKwh > 0 && (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-xl flex items-center justify-between text-xs gap-3">
+                  <div className="flex items-center gap-2">
+                    <Battery className="w-5 h-5 text-emerald-500 shrink-0" />
+                    <div>
+                      <span className="font-extrabold text-foreground block">
+                        Capacidade Recomendada: {batteryCalc.recommendedCapacityKwh} kWh (LiFePO4)
+                      </span>
+                      <span className="text-muted-foreground font-medium block">
+                        {batteryCalc.suggestedModulesCount}x Módulos de Bateria (5.12 kWh 48V) — Profundidade de descarga 85%
+                      </span>
+                    </div>
+                  </div>
+                  <span className="bg-emerald-500 text-white font-black text-[10px] px-2.5 py-1 rounded-full shrink-0">
+                    HÍBRIDO OK
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </StepCard>
 
