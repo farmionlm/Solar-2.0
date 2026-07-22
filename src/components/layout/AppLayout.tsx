@@ -16,7 +16,12 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Rotas sem shell de navegação (login, propostas públicas)
-  const isPublicRoute = pathname === "/login" || pathname.startsWith("/p/");
+  const PUBLIC_EXACT_ROUTES = ["/login"];
+  const PUBLIC_PREFIXES = ["/p/"];
+  const isPublicRoute =
+    PUBLIC_EXACT_ROUTES.includes(pathname) ||
+    PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+
   if (isPublicRoute) {
     return <>{children}</>;
   }

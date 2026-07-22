@@ -40,7 +40,7 @@ export async function PATCH(request: Request) {
     const userId = session.user.id;
     const body = await request.json();
 
-    if (body.all) {
+    if (body.all || body.action === 'markAllRead') {
       // Marcar todas como lidas
       await prisma.notification.updateMany({
         where: { userId, read: false },
@@ -48,12 +48,12 @@ export async function PATCH(request: Request) {
       });
       return NextResponse.json({ success: true, message: 'Todas as notificações foram marcadas como lidas.' });
     } else if (body.id) {
-      // Marcar uma notificação específica
-      const notification = await prisma.notification.update({
-        where: { id: body.id },
+      // Marcar uma notificação específica do usuário logado (Proteção IDOR)
+      const updated = await prisma.notification.updateMany({
+        where: { id: body.id, userId },
         data: { read: true },
       });
-      return NextResponse.json(notification);
+      return NextResponse.json({ success: true, updatedCount: updated.count });
     }
 
     return NextResponse.json({ error: 'ID ou flag "all" não fornecido.' }, { status: 400 });
@@ -112,8 +112,9 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID da notificação é obrigatório.' }, { status: 400 });
     }
 
-    await prisma.notification.delete({
-      where: { id },
+    // Proteção IDOR: Garante que o usuário só deleta notificações dele mesmo
+    await prisma.notification.deleteMany({
+      where: { id, userId: session.user.id },
     });
 
     return NextResponse.json({ success: true });

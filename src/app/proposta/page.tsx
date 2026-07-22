@@ -16,12 +16,12 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+import { fetcher } from "@/lib/fetcher";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const TARIFF_KWH = 0.85;          // Avg Brazilian tariff R$/kWh
 const ANNUAL_TARIFF_INCREASE = 0.05; // 5% yearly increase
-const SYSTEM_LIFETIME_YEARS = 5;
+const SYSTEM_LIFETIME_YEARS = 25;
 const AVG_COST_PER_KWP = 4800;    // R$ per kWp (avg Brazilian market)
 const CO2_KG_PER_KWH = 0.1;       // CO2 offset per kWh (Brazilian grid avg)
 

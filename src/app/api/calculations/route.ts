@@ -89,7 +89,18 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
-    const whereClause = session.user.role === 'ADMIN' ? {} : { client: { userId: session.user.id } };
+    let whereClause: any = {};
+    if (session.user.role !== 'ADMIN') {
+      const companyId = session.user.role === 'PARTNER' ? session.user.id : session.user.companyId;
+      whereClause = {
+        client: {
+          OR: [
+            { userId: companyId },
+            { user: { companyId: companyId } }
+          ]
+        }
+      };
+    }
 
     const projects = await prisma.project.findMany({
       where: whereClause,

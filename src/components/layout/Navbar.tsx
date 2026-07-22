@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { 
@@ -46,7 +46,7 @@ export function Navbar({ onOpenMobileSidebar }: NavbarProps) {
   }, []);
 
   // Carregar Notificações do Banco + Calcular alertas de SLA
-  const fetchNotificationsAndSla = async () => {
+  const fetchNotificationsAndSla = useCallback(async () => {
     if (!session?.user) return;
     setLoading(true);
 
@@ -97,28 +97,24 @@ export function Navbar({ onOpenMobileSidebar }: NavbarProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [session]);
 
   useEffect(() => {
     fetchNotificationsAndSla();
     const interval = setInterval(fetchNotificationsAndSla, 30000); // Polling a cada 30s
     return () => clearInterval(interval);
-  }, [session]);
+  }, [fetchNotificationsAndSla]);
 
   // Lista unificada
   const allNotifications = [...slaAlerts, ...notifications];
   const unreadCount = allNotifications.filter(n => !n.read).length;
-
-  useEffect(() => {
-    fetchNotificationsAndSla();
-  }, [session?.user?.id]);
 
   const handleMarkAllAsRead = async () => {
     try {
       await fetch('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'markAllRead' }),
+        body: JSON.stringify({ all: true }),
       });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setSlaAlerts(prev => prev.map(n => ({ ...n, read: true })));

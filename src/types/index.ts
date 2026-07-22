@@ -108,7 +108,7 @@ export type Project = {
   artName?: string | null;
   certInversorUrl?: string | null;
   certInversorName?: string | null;
-  units: ProcessedUnit[];
+  units?: ProcessedUnit[];
   inverters?: Inverter[];
   _count?: { units: number };
   client?: ClientListItem | null;
