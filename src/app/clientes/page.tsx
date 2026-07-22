@@ -126,111 +126,111 @@ export default function Clientes() {
   });
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-primary mb-1">
-            <Users className="w-4 h-4" /> Cadastro de Clientes & Equipamentos
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary mb-0.5 uppercase tracking-wider">
+            <Users className="w-3.5 h-3.5" /> Cadastro de Clientes & Equipamentos
           </div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">Clientes</h1>
-          <p className="text-sm text-muted-foreground font-medium mt-0.5">Gerencie sua base de clientes, equipamentos e histórico de projetos</p>
+          <h1 className="text-xl md:text-2xl font-black tracking-tight text-foreground">Clientes</h1>
+          <p className="text-xs text-muted-foreground font-medium mt-0.5">Gerencie sua base de clientes, equipamentos e histórico de projetos</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setIsOcrModalOpen(true)}
-            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md active:scale-95">
-            <Sparkles className="w-4 h-4" /> Importar Fatura (OCR)
+            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg font-bold text-xs transition-all shadow-sm active:scale-95">
+            <Sparkles className="w-3.5 h-3.5" /> Importar Fatura (OCR)
           </button>
-          <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md shadow-primary/20 active:scale-95 h-11 px-5 font-bold text-xs">
-            <Users className="w-4 h-4 mr-2" /> Novo Cliente
+          <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg shadow-sm shadow-primary/20 active:scale-95 h-9 px-4 font-bold text-xs">
+            <Users className="w-3.5 h-3.5 mr-1.5" /> Novo Cliente
           </Button>
-          <Link href="/simulador" className="flex items-center gap-2 bg-card border border-border hover:border-primary/50 text-foreground px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm">
-            <Sun className="w-4 h-4 text-primary" /> Nova Simulação
+          <Link href="/simulador" className="flex items-center gap-1.5 bg-card border border-border hover:border-primary/50 text-foreground px-3 py-2 rounded-lg font-bold text-xs transition-all shadow-sm">
+            <Sun className="w-3.5 h-3.5 text-primary" /> Nova Simulação
           </Link>
         </div>
       </header>
 
         {/* Barra de busca e Abas */}
-        <div className="mb-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-          <div className="flex bg-card border border-border p-1 rounded-xl w-full md:w-auto">
+        <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between">
+          <div className="flex bg-card border border-border p-1 rounded-lg w-full md:w-auto">
             <button 
               onClick={() => setActiveTab('MEUS')}
-              className={`flex-1 md:px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'MEUS' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}`}
+              className={`flex-1 md:px-5 py-1.5 rounded-md font-semibold text-xs transition-all ${activeTab === 'MEUS' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}`}
             >
               Meus Clientes
             </button>
             <button 
               onClick={() => setActiveTab('GERAIS')}
-              className={`flex-1 md:px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'GERAIS' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}`}
+              className={`flex-1 md:px-5 py-1.5 rounded-md font-semibold text-xs transition-all ${activeTab === 'GERAIS' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}`}
             >
               Clientes Gerais
             </button>
           </div>
 
-          <div className="relative w-full md:max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <div className="relative w-full md:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por nome, CPF/CNPJ ou e-mail..."
-              className="w-full pl-12 h-11 shadow-sm bg-card border-border text-foreground rounded-xl"
+              placeholder="Buscar por nome, CPF ou e-mail..."
+              className="w-full pl-9 h-9 text-xs bg-card border-border text-foreground rounded-lg"
             />
           </div>
         </div>
 
         {isLoading && !clients ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <div className="flex justify-center items-center py-16">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : swrError ? (
-          <div className="bg-red-900/20 text-red-400 p-8 rounded-2xl text-center font-medium border border-red-900/50 mb-8">
+          <div className="bg-red-900/20 text-red-400 p-6 rounded-xl text-center text-xs font-medium border border-red-900/50 mb-6">
             Ocorreu um erro ao carregar os clientes.
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-card rounded-2xl shadow-xl border border-border p-12 text-center">
-            <Users className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-foreground mb-2">
+          <div className="bg-card rounded-xl shadow-md border border-border p-10 text-center">
+            <Users className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+            <h3 className="text-base font-bold text-foreground mb-1">
               {(!clients || clients.length === 0) ? "Nenhum cliente cadastrado" : "Nenhum resultado encontrado"}
             </h3>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-xs text-muted-foreground mb-4">
               {(!clients || clients.length === 0)
                 ? "Vincule um cliente ao salvar sua próxima simulação."
                 : "Tente buscar por outro termo."}
             </p>
             {(!clients || clients.length === 0) && (
-              <Link href="/simulador" className="inline-block bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20">
+              <Link href="/simulador" className="inline-block bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-md shadow-primary/20">
                 Criar Simulação
               </Link>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((client) => (
-              <div key={client.id} className="bg-card rounded-2xl shadow-xl hover:shadow-black/50 transition-all border border-border flex flex-col h-full group">
-                <div className="p-6 flex-grow">
-                  <div className="flex justify-between items-start mb-3">
+              <div key={client.id} className="bg-card rounded-xl shadow-sm hover:shadow-md transition-all border border-border flex flex-col h-full group">
+                <div className="p-4 flex-grow space-y-2">
+                  <div className="flex justify-between items-start">
                     <Link href={`/clientes/${client.id}`} className="block group/name">
-                      <h3 className="text-xl font-bold text-foreground line-clamp-1 group-hover/name:text-primary transition-colors cursor-pointer">
+                      <h3 className="text-base font-bold text-foreground line-clamp-1 group-hover/name:text-primary transition-colors cursor-pointer">
                         {client.name}
                       </h3>
                     </Link>
                     <button onClick={() => deleteClient(client.id)} title="Apagar Cliente"
-                      className="p-1.5 text-red-400 bg-red-950/30 hover:bg-red-900/50 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                      <Trash2 className="w-4 h-4" />
+                      className="p-1 text-red-400 bg-red-950/30 hover:bg-red-900/50 rounded transition-colors opacity-0 group-hover:opacity-100">
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
                   {client.cpfCnpj && (
-                    <p className="text-sm text-slate-500 mb-3 flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5" /> {client.cpfCnpj}
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
+                      <FileText className="w-3 h-3 text-primary/70" /> {client.cpfCnpj}
                     </p>
                   )}
 
-                  <div className="space-y-1.5 text-sm text-slate-500">
-                    {client.phone && <p className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> {client.phone}</p>}
-                    {client.email && <p className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {client.email}</p>}
-                    {client.address && <p className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {client.address}</p>}
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    {client.phone && <p className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-primary/70" /> {client.phone}</p>}
+                    {client.email && <p className="flex items-center gap-1.5"><Mail className="w-3 h-3 text-primary/70" /> {client.email}</p>}
+                    {client.address && <p className="flex items-center gap-1.5"><MapPin className="w-3 h-3 text-primary/70" /> {client.address}</p>}
                   </div>
 
                   {/* Badge de Procuração */}
@@ -277,12 +277,12 @@ export default function Clientes() {
                 </div>
 
                 <Link href={`/clientes/${client.id}`}
-                  className="flex items-center justify-between p-4 border-t border-border text-sm hover:bg-primary/5 transition-colors rounded-b-2xl">
+                  className="flex items-center justify-between p-3 px-4 border-t border-border text-xs hover:bg-primary/5 transition-colors rounded-b-xl">
                   <span className="text-muted-foreground font-medium">
                   {client._count?.projects || 0} {client._count?.projects === 1 ? "projeto" : "projetos"}
                 </span>
                   <span className="flex items-center gap-1 text-primary font-bold">
-                    Ver Detalhes <ChevronRight className="w-4 h-4" />
+                    Ver Detalhes <ChevronRight className="w-3.5 h-3.5" />
                   </span>
                 </Link>
               </div>

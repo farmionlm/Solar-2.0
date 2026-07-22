@@ -160,7 +160,7 @@ export function Navbar({ onOpenMobileSidebar }: NavbarProps) {
   };
 
   return (
-    <header className="h-16 md:h-20 bg-card border-b border-border px-4 md:px-8 flex items-center justify-between gap-4 sticky top-0 z-20 shadow-sm">
+    <header className="h-14 md:h-16 bg-card border-b border-border px-4 md:px-6 flex items-center justify-between gap-4 sticky top-0 z-20 shadow-sm">
       {/* Esquerda: Botão Menu Mobile + Busca / Título */}
       <div className="flex items-center gap-3 md:gap-4 flex-1 max-w-md">
         <button

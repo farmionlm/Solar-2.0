@@ -49,29 +49,29 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
   return (
     <aside
       className={`dark relative flex flex-col bg-card border-r border-border transition-all duration-300 ease-in-out z-30 shrink-0 ${
-        collapsed ? "w-20" : "w-64 md:w-72"
+        collapsed ? "w-16" : "w-56 md:w-60"
       }`}
     >
       {/* Botão de recolher/expandir no limite direito da sidebar */}
       <button
         onClick={onToggleCollapse}
-        className="absolute -right-3.5 top-7 z-40 bg-card border border-border text-foreground hover:text-primary hover:border-primary p-1.5 rounded-full shadow-md transition-all active:scale-90"
+        className="absolute -right-3.5 top-6 z-40 bg-card border border-border text-foreground hover:text-primary hover:border-primary p-1 rounded-full shadow-md transition-all active:scale-90"
         title={collapsed ? "Expandir menu" : "Recolher menu"}
       >
-        {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
       </button>
 
       {/* Header da Sidebar com Identidade da Marca */}
-      <div className={`p-4 md:p-6 flex items-center border-b border-border/60 ${collapsed ? "justify-center" : "gap-3"}`}>
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent-color-dark flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 shrink-0">
-          <Sun className="w-6 h-6 animate-pulse" />
+      <div className={`p-3 md:p-4 flex items-center border-b border-border/60 ${collapsed ? "justify-center" : "gap-2.5"}`}>
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent-color-dark flex items-center justify-center text-primary-foreground shadow-md shadow-primary/20 shrink-0">
+          <Sun className="w-4 h-4 animate-pulse" />
         </div>
         {!collapsed && (
           <div className="overflow-hidden transition-all">
-            <h2 className="font-black text-lg text-foreground tracking-tight whitespace-nowrap">
+            <h2 className="font-bold text-base text-foreground tracking-tight whitespace-nowrap">
               Solar 2.0
             </h2>
-            <p className="text-[11px] font-bold text-muted-foreground truncate">
+            <p className="text-[10px] font-semibold text-muted-foreground truncate">
               Dimensionamento Inteligente
             </p>
           </div>
@@ -79,7 +79,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
       </div>
 
       {/* Lista de navegação principal */}
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1.5 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto py-3 px-2.5 space-y-1 custom-scrollbar">
         {navigationItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
           const Icon = item.icon;
@@ -89,20 +89,20 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
               key={item.href}
               href={item.href}
               title={collapsed ? item.label : undefined}
-              className={`group relative flex items-center gap-3 px-3.5 py-3 rounded-xl font-bold text-sm transition-all ${
+              className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-lg font-semibold text-xs transition-all ${
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                  ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
               } ${collapsed ? "justify-center px-0" : ""}`}
             >
-              <Icon className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-110 ${isActive ? "text-primary-foreground" : "text-primary/80"}`} />
+              <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-105 ${isActive ? "text-primary-foreground" : "text-primary/80"}`} />
               
               {!collapsed && (
-                <span className="truncate flex-1 font-semibold">{item.label}</span>
+                <span className="truncate flex-1">{item.label}</span>
               )}
 
               {!collapsed && item.badge && (
-                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
                   isActive ? "bg-white/20 text-white" : "bg-primary/10 text-primary"
                 }`}>
                   {item.badge}
@@ -111,7 +111,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
 
               {/* Tooltip quando a sidebar está recolhida */}
               {collapsed && (
-                <div className="absolute left-full ml-3 px-3 py-1.5 bg-secondary text-foreground text-xs font-bold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 border border-border">
+                <div className="absolute left-full ml-2.5 px-2.5 py-1 bg-secondary text-foreground text-xs font-bold rounded-md shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 border border-border">
                   {item.label}
                 </div>
               )}
