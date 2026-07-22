@@ -10,6 +10,7 @@ export async function POST(
 
     const project = await prisma.project.findUnique({
       where: { id },
+      include: { client: true },
     });
 
     if (!project) {
@@ -24,16 +25,23 @@ export async function POST(
       },
     });
 
-    // Registra log de auditoria
-    try {
-      await prisma.auditLog.create({
-        data: {
-          action: "PROPOSAL_APPROVED_BY_CLIENT",
-          details: `Proposta ${project.name || id} foi aprovada online pelo cliente final.`,
-        },
-      });
-    } catch {
-      // Ignore se auditoria falhar por conta de userId opcional
+    // Notificar o consultor responsável se o cliente estiver vinculado a um usuário
+    if (project.client?.userId) {
+      try {
+        await prisma.notification.create({
+          data: {
+            title: "Proposta Aprovada!",
+            message: `A proposta "${project.name || id}" foi aprovada online pelo cliente ${project.client.name}.`,
+            type: "SUCCESS",
+            userId: project.client.userId,
+            clientId: project.client.id,
+            clientName: project.client.name,
+            link: `/clientes/${project.client.id}`,
+          },
+        });
+      } catch {
+        // Ignorar se falhar criação de notificação
+      }
     }
 
     return NextResponse.json({ success: true, project: updated });
