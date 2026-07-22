@@ -1133,7 +1133,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               clientName: client.name,
                               totalKwp: kwp,
                               monthlySavings: Math.round(kwp * 4.0 * 30 * 0.85 * 0.95),
-                              proposalUrl: `${window.location.origin}/proposta/${proj.id}`
+                              proposalUrl: `${window.location.origin}/proposta?projectId=${proj.id}&clientName=${encodeURIComponent(client.name)}`
                             });
                             openWhatsAppChat({ phone: client.phone || undefined, message: msg });
                           }}
@@ -1143,11 +1143,11 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                           <MessageSquare className="w-4 h-4" />
                         </Button>
                         <Link
-                          href={`/proposta/${proj.id}`}
+                          href={`/proposta?projectId=${proj.id}&clientName=${encodeURIComponent(client.name)}`}
                           target="_blank"
                           onClick={(e) => e.stopPropagation()}
                           className="p-2 text-primary bg-primary/10 hover:bg-primary/20 rounded-xl transition-colors flex items-center justify-center border border-primary/20"
-                          title="Abrir Proposta Comercial Interativa deste Projeto"
+                          title="Abrir Proposta Comercial deste Projeto"
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Link>
