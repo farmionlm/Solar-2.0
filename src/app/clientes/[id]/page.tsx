@@ -300,14 +300,14 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
         ["Código", "Unidade", "Média Mensal (kWh)", "Consumo Diário (kWh/dia)", "kWp Necessário", "Qtd. Módulos"],
       ];
 
-      proj.units.forEach((u) => {
+      (proj.units || []).forEach((u) => {
         projData.push([u.code, u.name, u.monthlyCons, u.dailyCons, u.requiredKwp, u.requiredModules]);
       });
 
       projData.push([
         "TOTAL", "-",
-        proj.units.reduce((a, u) => a + u.monthlyCons, 0),
-        proj.units.reduce((a, u) => a + u.dailyCons, 0),
+        (proj.units || []).reduce((a, u) => a + u.monthlyCons, 0),
+        (proj.units || []).reduce((a, u) => a + u.dailyCons, 0),
         proj.totalKwp, proj.totalModules,
       ]);
 
@@ -359,14 +359,14 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
       ["Código de Instalação", "Nome da Unidade", "Média Mensal (kWh)", "Consumo Diário (kWh/dia)", "kWp Necessário", "Qtd. Módulos"]
     ];
 
-    proj.units.forEach((u) => {
+    (proj.units || []).forEach((u) => {
       exportData.push([u.code, u.name, u.monthlyCons, u.dailyCons, u.requiredKwp, u.requiredModules]);
     });
 
     exportData.push([
       "TOTAL CONSOLIDADO", "-",
-      proj.units.reduce((a, u) => a + u.monthlyCons, 0),
-      proj.units.reduce((a, u) => a + u.dailyCons, 0),
+      (proj.units || []).reduce((a, u) => a + u.monthlyCons, 0),
+      (proj.units || []).reduce((a, u) => a + u.dailyCons, 0),
       proj.totalKwp, proj.totalModules,
     ]);
 
@@ -1246,7 +1246,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                             setReSimModulePower(proj.modulePower); 
                             setReSimError(""); 
                             setReSimMode('choice');
-                            setReSimRows(proj.units.map(u => ({ 
+                            setReSimRows((proj.units || []).map(u => ({ 
                               code: u.code, 
                               name: u.name, 
                               kWp: u.requiredKwp, 

@@ -49,7 +49,7 @@ export default function Historico() {
     // Captura o índice da 1ª linha de dados (base-0) ANTES de inserir as unidades
     const dataStartRow = exportData.length;
 
-    project.units.forEach(u => {
+    (project.units || []).forEach(u => {
       exportData.push([
         u.code, 
         u.name, 
@@ -63,8 +63,8 @@ export default function Historico() {
     exportData.push([
       "TOTAL CONSOLIDADO", 
       "-", 
-      project.units.reduce((acc, u) => acc + u.monthlyCons, 0),
-      project.units.reduce((acc, u) => acc + u.dailyCons, 0),
+      (project.units || []).reduce((acc, u) => acc + u.monthlyCons, 0),
+      (project.units || []).reduce((acc, u) => acc + u.dailyCons, 0),
       project.totalKwp,
       project.totalModules
     ]);
