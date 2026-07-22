@@ -13,9 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import { formatCpfCnpj, formatPhone, formatCep } from "@/utils/formatters";
+import { fetchAddressByCep } from "@/utils/cepApi";
 import { FaturaOcrModal } from "@/components/FaturaOcrModal";
 import { FaturaExtraida } from "@/utils/faturaParser";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 
 export default function Clientes() {
   const { data: session } = useSession();
@@ -25,9 +26,43 @@ export default function Clientes() {
   const [showModal, setShowModal] = useState(false);
   const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSearchingCep, setIsSearchingCep] = useState(false);
+  const [cepStatusMessage, setCepStatusMessage] = useState("");
   const [newClient, setNewClient] = useState({
     name: "", cpfCnpj: "", phone: "", email: "", address: "", cep: "", neighborhood: "", city: ""
   });
+
+  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCep(e.target.value);
+    setNewClient(prev => ({ ...prev, cep: formatted }));
+    setCepStatusMessage("");
+
+    const clean = formatted.replace(/\D/g, "");
+    if (clean.length === 8) {
+      setIsSearchingCep(true);
+      setCepStatusMessage("Buscando endereço...");
+      try {
+        const addressData = await fetchAddressByCep(clean);
+        if (addressData) {
+          if (addressData.erro) {
+            setCepStatusMessage("⚠️ CEP não encontrado. Preencha o endereço manualmente.");
+          } else {
+            setNewClient(prev => ({
+              ...prev,
+              address: addressData.logradouro || prev.address,
+              neighborhood: addressData.bairro || prev.neighborhood,
+              city: addressData.cityDisplay || prev.city,
+            }));
+            setCepStatusMessage("✓ Endereço preenchido automaticamente! Você pode editar qualquer campo se necessário.");
+          }
+        }
+      } catch {
+        setCepStatusMessage("⚠️ Erro ao buscar CEP. Preencha o endereço manualmente.");
+      } finally {
+        setIsSearchingCep(false);
+      }
+    }
+  };
 
   const handleApplyOcrData = (data: FaturaExtraida) => {
     const cityDisplay = data.cidade ? (data.uf ? `${data.cidade} / ${data.uf}` : data.cidade) : "";
@@ -57,6 +92,7 @@ export default function Clientes() {
       if (!res.ok) throw new Error("Erro ao salvar");
       setShowModal(false);
       setNewClient({ name: "", cpfCnpj: "", phone: "", email: "", address: "", cep: "", neighborhood: "", city: "" });
+      setCepStatusMessage("");
       mutate();
     } catch {
       alert("Erro ao criar cliente.");
@@ -286,10 +322,22 @@ export default function Clientes() {
                   <Input type="email" value={newClient.email} onChange={(e) => setNewClient({...newClient, email: e.target.value})}
                     placeholder="email@exemplo.com" />
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-muted-foreground mb-1">CEP</label>
-                  <Input type="text" value={newClient.cep} onChange={(e) => setNewClient({...newClient, cep: formatCep(e.target.value)})}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-muted-foreground mb-1 flex items-center justify-between">
+                    <span>CEP</span>
+                    {isSearchingCep && (
+                      <span className="text-xs text-primary font-semibold flex items-center gap-1">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Buscando endereço...
+                      </span>
+                    )}
+                  </label>
+                  <Input type="text" value={newClient.cep} onChange={handleCepChange}
                     placeholder="00000-000" />
+                  {cepStatusMessage && (
+                    <p className={`text-xs mt-1 font-medium ${cepStatusMessage.startsWith("✓") ? "text-emerald-500 dark:text-emerald-400" : cepStatusMessage.startsWith("⚠️") ? "text-amber-500" : "text-muted-foreground"}`}>
+                      {cepStatusMessage}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-muted-foreground mb-1">Endereço (Rua, Número)</label>

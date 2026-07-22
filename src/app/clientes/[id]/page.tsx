@@ -23,6 +23,8 @@ import { calculateUnitSolarData, calculateProjectTotals } from "@/utils/solarMat
 import { generateProposalWhatsAppMessage, openWhatsAppChat } from "@/utils/whatsappHelper";
 
 import { formatUnidadeConsumidora, formatCpfCnpj, formatPhone, formatCep } from "@/utils/formatters";
+import { fetchAddressByCep } from "@/utils/cepApi";
+import { Loader2 } from "lucide-react";
 
 export default function ClienteDetalhe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -36,9 +38,43 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
   const [saveMsg, setSaveMsg] = useState("");
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
   const [isEditingClient, setIsEditingClient] = useState(false);
+  const [isSearchingCep, setIsSearchingCep] = useState(false);
+  const [cepStatusMsg, setCepStatusMsg] = useState("");
   const [editClientData, setEditClientData] = useState({
     name: "", cpfCnpj: "", phone: "", email: "", address: "", neighborhood: "", city: "", cep: ""
   });
+
+  const handleEditCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCep(e.target.value);
+    setEditClientData(prev => ({ ...prev, cep: formatted }));
+    setCepStatusMsg("");
+
+    const clean = formatted.replace(/\D/g, "");
+    if (clean.length === 8) {
+      setIsSearchingCep(true);
+      setCepStatusMsg("Buscando endereço...");
+      try {
+        const addressData = await fetchAddressByCep(clean);
+        if (addressData) {
+          if (addressData.erro) {
+            setCepStatusMsg("⚠️ CEP não encontrado.");
+          } else {
+            setEditClientData(prev => ({
+              ...prev,
+              address: addressData.logradouro || prev.address,
+              neighborhood: addressData.bairro || prev.neighborhood,
+              city: addressData.cityDisplay || prev.city,
+            }));
+            setCepStatusMsg("✓ Endereço preenchido!");
+          }
+        }
+      } catch {
+        setCepStatusMsg("⚠️ Erro ao buscar CEP.");
+      } finally {
+        setIsSearchingCep(false);
+      }
+    }
+  };
 
   // Definições para tabelas manuais
   type ManualRow = { code: string; name: string; kWp: number | ""; modules: number | "" };
@@ -759,8 +795,20 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                 <Input type="email" value={editClientData.email} onChange={(e) => setEditClientData({...editClientData, email: e.target.value})} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">CEP</label>
-                <Input type="text" value={editClientData.cep} onChange={(e) => setEditClientData({...editClientData, cep: formatCep(e.target.value)})} placeholder="00000-000" />
+                <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase flex items-center justify-between">
+                  <span>CEP</span>
+                  {isSearchingCep && (
+                    <span className="text-[10px] text-primary flex items-center gap-1 font-semibold">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Buscando...
+                    </span>
+                  )}
+                </label>
+                <Input type="text" value={editClientData.cep} onChange={handleEditCepChange} placeholder="00000-000" />
+                {cepStatusMsg && (
+                  <p className={`text-[10px] mt-0.5 font-medium ${cepStatusMsg.startsWith("✓") ? "text-emerald-400" : cepStatusMsg.startsWith("⚠️") ? "text-amber-400" : "text-muted-foreground"}`}>
+                    {cepStatusMsg}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Endereço (Rua, Número)</label>

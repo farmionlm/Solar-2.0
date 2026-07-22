@@ -1,9 +1,10 @@
-import React from 'react';
-import { Users, ChevronDown, ChevronUp, Search, ChevronRight, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, ChevronDown, ChevronUp, Search, ChevronRight, X, Loader2 } from 'lucide-react';
 import { ClientData, ClientListItem } from '@/types';
 import { Input } from '@/components/ui/input';
 
 import { formatCpfCnpj, formatPhone, formatCep } from "@/utils/formatters";
+import { fetchAddressByCep } from '@/utils/cepApi';
 
 interface ClientLinkingFormProps {
   showClientForm: boolean;
@@ -32,6 +33,41 @@ export const ClientLinkingForm: React.FC<ClientLinkingFormProps> = ({
   clientData,
   setClientData,
 }) => {
+  const [isSearchingCep, setIsSearchingCep] = useState(false);
+  const [cepStatusMessage, setCepStatusMessage] = useState("");
+
+  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCep(e.target.value);
+    setClientData({ ...clientData, cep: formatted });
+    setCepStatusMessage("");
+
+    const clean = formatted.replace(/\D/g, "");
+    if (clean.length === 8) {
+      setIsSearchingCep(true);
+      setCepStatusMessage("Buscando endereço...");
+      try {
+        const addressData = await fetchAddressByCep(clean);
+        if (addressData) {
+          if (addressData.erro) {
+            setCepStatusMessage("⚠️ CEP não encontrado. Preencha o endereço manualmente.");
+          } else {
+            setClientData({
+              ...clientData,
+              cep: formatted,
+              address: addressData.logradouro || clientData.address || "",
+              neighborhood: addressData.bairro || clientData.neighborhood || "",
+              city: addressData.cityDisplay || clientData.city || "",
+            });
+            setCepStatusMessage("✓ Endereço preenchido automaticamente!");
+          }
+        }
+      } catch {
+        setCepStatusMessage("⚠️ Erro ao buscar CEP. Preencha o endereço manualmente.");
+      } finally {
+        setIsSearchingCep(false);
+      }
+    }
+  };
   return (
     <div className="mb-6 border border-border rounded-2xl overflow-hidden">
       <button
@@ -154,9 +190,21 @@ export const ClientLinkingForm: React.FC<ClientLinkingFormProps> = ({
                       placeholder="email@exemplo.com" />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-bold text-muted-foreground mb-1">CEP</label>
-                    <Input type="text" value={clientData.cep || ""} onChange={(e) => setClientData({...clientData, cep: formatCep(e.target.value)})}
+                    <label className="block text-sm font-bold text-muted-foreground mb-1 flex items-center justify-between">
+                      <span>CEP</span>
+                      {isSearchingCep && (
+                        <span className="text-xs text-primary font-semibold flex items-center gap-1">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Buscando endereço...
+                        </span>
+                      )}
+                    </label>
+                    <Input type="text" value={clientData.cep || ""} onChange={handleCepChange}
                       placeholder="00000-000" />
+                    {cepStatusMessage && (
+                      <p className={`text-xs mt-1 font-medium ${cepStatusMessage.startsWith("✓") ? "text-emerald-500 dark:text-emerald-400" : cepStatusMessage.startsWith("⚠️") ? "text-amber-500" : "text-muted-foreground"}`}>
+                        {cepStatusMessage}
+                      </p>
+                    )}
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-bold text-muted-foreground mb-1">Endereço (Rua, Número)</label>
