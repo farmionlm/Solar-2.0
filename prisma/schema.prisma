@@ -77,8 +77,10 @@ model Client {
   signatureUpdatedAt  DateTime?
 
   // SLA de Homologação junto à Concessionária (ANEEL 15 dias úteis)
-  protocolDate        DateTime? // Data de protocolo junto à concessionária
-  slaDueDate          DateTime? // Data limite calculada (15 dias úteis)
+  protocolDate          DateTime? // Data de protocolo junto à concessionária
+  slaDueDate            DateTime? // Data limite calculada (15 dias úteis)
+  approvalDate          DateTime? // Data real de aprovação da concessionária (H2)
+  actualSlaBusinessDays Int?      // Dias úteis reais decorridos até a aprovação (H2)
 
   userId             String?
   user               User?    @relation(fields: [userId], references: [id])
@@ -102,6 +104,9 @@ model Project {
   // Motivo de Perda (caso status seja CANCELED / Perdido)
   lossReason         String?  // Ex: "Preço Alto", "Concorrência", "Prazo de Entrega", "Financiamento", "Desistência"
   lossDetails        String?  // Observações adicionais sobre o cancelamento
+  
+  // Histórico de Alterações de Status (D1)
+  statusHistory      ProjectStatusHistory[]
   
   // Valores e Orçamento
   estimatedCost      Float?
@@ -245,4 +250,16 @@ enum NotificationType {
   SUCCESS
   WARNING
   CRITICAL
+}
+
+model ProjectStatusHistory {
+  id         String        @id @default(cuid())
+  projectId  String
+  fromStatus ProjectStatus?
+  toStatus   ProjectStatus
+  changedAt  DateTime      @default(now())
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([changedAt])
 }

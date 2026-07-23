@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
-import { Sun, Users, Activity, BarChart3, PlusCircle, ArrowRight } from 'lucide-react';
+import { Sun, Users, Activity, BarChart3, PlusCircle, ArrowRight, Building2, UserCheck, XCircle, Award, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   BarChart,
@@ -22,79 +22,75 @@ import {
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const COLORS = ['#38bdf8', '#d97706', '#059669', '#6366f1', '#64748b', '#dc2626'];
+const LOSS_COLORS = ['#ef4444', '#f97316', '#f59e0b', '#8b5cf6', '#64748b'];
 
 function DashboardContent() {
   const { data: metrics, error, isLoading } = useSWR('/api/analytics', fetcher);
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      {/* Cabeçalho do Dashboard */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      {/* Top Banner & Ações Rápidas */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 bg-card border border-border p-6 rounded-2xl shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-primary mb-1">
-            <Activity className="w-4 h-4" /> Visão Geral de Vendas & Engenharia
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
-            Painel de Controle
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
+            <Sun className="w-8 h-8 text-primary animate-pulse" />
+            Visão Geral do Negócio
           </h1>
-          <p className="text-sm font-medium text-muted-foreground mt-1">
-            Acompanhe o desempenho de simulações, potência orçada e distribuição do funil CRM.
+          <p className="text-muted-foreground text-sm mt-1">
+            Acompanhe a performance de vendas, projetos em andamento e homologações.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+        <div className="flex flex-wrap gap-3">
           <Link href="/simulador">
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md shadow-primary/20 active:scale-95 h-11 px-5 font-bold text-xs">
-              <PlusCircle className="w-4 h-4 mr-2" /> Nova Simulação
-            </Button>
-          </Link>
-          <Link href="/clientes">
-            <Button variant="outline" className="border-border bg-card hover:bg-secondary rounded-xl h-11 px-5 font-bold text-xs">
-              <Users className="w-4 h-4 mr-2" /> Meus Clientes
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg flex items-center gap-2">
+              <PlusCircle className="w-4 h-4" />
+              Novo Orçamento / Simulador
             </Button>
           </Link>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="p-12 text-center text-foreground font-medium flex flex-col items-center justify-center gap-3">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          Carregando métricas em tempo real...
         </div>
       ) : error ? (
-        <div className="bg-red-900/20 text-red-400 p-8 rounded-2xl text-center font-medium border border-red-900/50">
-          Ocorreu um erro ao carregar os dados do painel de controle.
+        <div className="p-6 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-center text-sm font-semibold">
+          Falha ao carregar dados do dashboard. Verifique sua conexão.
         </div>
-      ) : !metrics ? null : (
+      ) : (
         <>
-          {/* Cards de KPIs Principais de Vendas & Engenharia */}
+          {/* Cards de Métricas Principais (KPIs) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group">
-              <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-1">Faturamento Orçado</h3>
-              <div className="text-2xl md:text-3xl font-black text-emerald-500/90 mb-1">
-                {(metrics.openEstimatedRevenue || metrics.totalEstimatedRevenue || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+              <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-1">Total em Aberto</h3>
+              <div className="text-2xl md:text-3xl font-black text-foreground mb-1">
+                {(metrics.openEstimatedRevenue || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
               </div>
-              <p className="text-[11px] text-muted-foreground font-medium truncate" title="Projetos ativos em Simulação e Negociação">
-                Em projetos abertos (Simulação / Negociação)
+              <p className="text-[11px] text-muted-foreground font-medium truncate" title="Projetos em Simulação e Negociação">
+                Simulação + Negociação
               </p>
             </div>
 
             <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group">
-              <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-1">Potência Total Orçada</h3>
-              <div className="text-2xl md:text-3xl font-black text-foreground mb-1 flex items-baseline gap-1">
-                {metrics.totalKwp} <span className="text-sm text-muted-foreground font-bold">kWp</span>
+              <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-1">Potência Orçada</h3>
+              <div className="text-2xl md:text-3xl font-black text-primary mb-1">
+                {metrics.totalKwp || 0} <span className="text-base font-bold">kWp</span>
               </div>
-              <p className="text-[11px] text-muted-foreground font-medium truncate">
-                Acumulado de {metrics.totalProjects || 0} proposta(s)
+              <p className="text-[11px] text-muted-foreground font-medium truncate" title="Soma de todos os projetos">
+                {metrics.totalProjects || 0} projetos no sistema
               </p>
             </div>
 
             <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group">
               <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-1">Taxa de Conversão</h3>
-              <div className="text-2xl md:text-3xl font-black text-primary mb-1">
+              <div className="text-2xl md:text-3xl font-black text-emerald-500 mb-1">
                 {metrics.conversionRatePercent || 0}%
               </div>
-              <p className="text-[11px] text-muted-foreground font-semibold truncate">
-                {metrics.closedProjects || 0} de {metrics.totalProjects || 0} projetos fechados
+              <p className="text-[11px] text-muted-foreground font-medium truncate" title="Projetos fechados vs total">
+                {metrics.closedProjects || 0} projetos fechados
               </p>
             </div>
 
@@ -110,7 +106,7 @@ function DashboardContent() {
           </div>
 
           {/* Gráficos do Dashboard */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* Evolução Mensal */}
             <div className="bg-card border border-border rounded-2xl p-6 shadow-xl flex flex-col justify-between">
               <div>
@@ -137,27 +133,18 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* Distribuição de Status com Legenda Detalhada */}
+            {/* Distribuição de Status */}
             <div className="bg-card border border-border rounded-2xl p-6 shadow-xl flex flex-col justify-between">
               <div>
                 <h3 className="text-base font-black mb-1 text-foreground">Distribuição de Projetos por Status</h3>
                 <p className="text-xs text-muted-foreground mb-4">Proporção de simulações e vendas no funil CRM</p>
               </div>
-
               {metrics.statusData?.some((d: any) => d.value > 0) ? (
                 <div className="space-y-4">
                   <div className="h-[180px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie
-                          data={metrics.statusData.filter((d: any) => d.value > 0)}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={45}
-                          outerRadius={75}
-                          paddingAngle={4}
-                          dataKey="value"
-                        >
+                        <Pie data={metrics.statusData.filter((d: any) => d.value > 0)} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={4} dataKey="value">
                           {metrics.statusData.filter((d: any) => d.value > 0).map((entry: any, index: number) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
@@ -166,27 +153,179 @@ function DashboardContent() {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-
-                  {/* Legenda Customizada Explicativa e Colorida */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t border-border/50">
-                    {metrics.statusData.filter((d: any) => d.value > 0).map((item: any, idx: number) => {
-                      const total = metrics.statusData.reduce((a: number, b: any) => a + b.value, 0);
-                      const pct = total > 0 ? Math.round((item.value / total) * 100) : 0;
-                      return (
-                        <div key={item.name} className="flex items-center gap-1.5 text-xs font-semibold">
-                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                          <span className="text-foreground truncate">{item.name}:</span>
-                          <span className="text-primary font-bold ml-auto">{item.value} ({pct}%)</span>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
               ) : (
                 <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm font-medium">Nenhum projeto registrado.</div>
               )}
             </div>
           </div>
+
+          {/* NOVAS SEÇÕES: C2 (Motivos de Perda) + H1 (Concessionárias) + D2 (Desempenho da Equipe) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            
+            {/* C2 — Motivos de Perda */}
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center">
+                    <XCircle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">Motivos de Perda</h3>
+                    <p className="text-[11px] text-muted-foreground">Projetos cancelados/perdidos</p>
+                  </div>
+                </div>
+              </div>
+
+              {metrics.lossReasonData?.length > 0 ? (
+                <div className="space-y-3">
+                  {metrics.lossReasonData.map((item: any, idx: number) => {
+                    const totalLoss = metrics.lossReasonData.reduce((a: number, b: any) => a + b.value, 0);
+                    const pct = totalLoss > 0 ? Math.round((item.value / totalLoss) * 100) : 0;
+                    return (
+                      <div key={item.name} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-foreground flex items-center gap-1.5 truncate">
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: LOSS_COLORS[idx % LOSS_COLORS.length] }} />
+                            {item.name}
+                          </span>
+                          <span className="text-muted-foreground font-bold">{item.value} ({pct}%)</span>
+                        </div>
+                        <div className="w-full bg-secondary/50 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${pct}%`,
+                              backgroundColor: LOSS_COLORS[idx % LOSS_COLORS.length]
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-muted-foreground font-medium">
+                  Nenhum projeto registrado como perdido até o momento. 🎉
+                </div>
+              )}
+            </div>
+
+            {/* H1 — Status por Concessionária */}
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-xl space-y-4 lg:col-span-2">
+              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-500 flex items-center justify-center">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">Painel por Concessionária</h3>
+                    <p className="text-[11px] text-muted-foreground">Distribuição de processos por distribuidora de energia</p>
+                  </div>
+                </div>
+              </div>
+
+              {metrics.concessionariaData?.length > 0 ? (
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-xs text-left">
+                    <thead>
+                      <tr className="border-b border-border text-muted-foreground font-bold">
+                        <th className="py-2 px-2">Concessionária</th>
+                        <th className="py-2 px-2 text-center">Total</th>
+                        <th className="py-2 px-2 text-center">Simulação</th>
+                        <th className="py-2 px-2 text-center">Negociação</th>
+                        <th className="py-2 px-2 text-center">Homologação</th>
+                        <th className="py-2 px-2 text-center">Concluído</th>
+                        <th className="py-2 px-2 text-right">Potência</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40 font-medium">
+                      {metrics.concessionariaData.map((item: any) => (
+                        <tr key={item.name} className="hover:bg-secondary/30 transition-colors">
+                          <td className="py-2.5 px-2 font-bold text-foreground truncate max-w-[140px]">{item.name}</td>
+                          <td className="py-2.5 px-2 text-center font-extrabold text-foreground">{item.total}</td>
+                          <td className="py-2.5 px-2 text-center text-sky-400 font-bold">{item.simulacao}</td>
+                          <td className="py-2.5 px-2 text-center text-amber-400 font-bold">{item.negociacao}</td>
+                          <td className="py-2.5 px-2 text-center text-indigo-400 font-bold">{item.homologacao}</td>
+                          <td className="py-2.5 px-2 text-center text-emerald-400 font-bold">{item.concluido}</td>
+                          <td className="py-2.5 px-2 text-right font-bold text-primary">{item.kwpTotal} kWp</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-muted-foreground font-medium">
+                  Nenhuma concessionária vinculada a clientes ainda.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* D2 — Performance por Técnico / Responsável */}
+          {metrics.teamPerformance?.length > 0 && (
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-xl space-y-4 mb-8">
+              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">Performance da Equipe & Técnicos</h3>
+                    <p className="text-[11px] text-muted-foreground">Ranking de fechamentos e volume por responsável</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="border-b border-border text-muted-foreground font-bold">
+                      <th className="py-2.5 px-3">Responsável</th>
+                      <th className="py-2.5 px-3 text-center">Papel</th>
+                      <th className="py-2.5 px-3 text-center">Projetos Totais</th>
+                      <th className="py-2.5 px-3 text-center">Projetos Fechados</th>
+                      <th className="py-2.5 px-3 text-center">Conversão</th>
+                      <th className="py-2.5 px-3 text-center">Potência Acumulada</th>
+                      <th className="py-2.5 px-3 text-right">Volume Orçado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40 font-medium">
+                    {metrics.teamPerformance.map((member: any) => (
+                      <tr key={member.id} className="hover:bg-secondary/30 transition-colors">
+                        <td className="py-3 px-3 font-extrabold text-foreground flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center text-[10px] font-black">
+                            {member.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <span>{member.name}</span>
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            member.role === 'Admin' 
+                              ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                              : member.role === 'Parceiro'
+                              ? 'bg-primary/10 text-primary border border-primary/20'
+                              : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          }`}>
+                            {member.role}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-center font-bold text-foreground">{member.totalProjects}</td>
+                        <td className="py-3 px-3 text-center font-extrabold text-emerald-400">{member.closedProjects}</td>
+                        <td className="py-3 px-3 text-center">
+                          <span className="font-extrabold text-foreground">{member.conversionRate}%</span>
+                        </td>
+                        <td className="py-3 px-3 text-center font-bold text-primary">{member.totalKwp} kWp</td>
+                        <td className="py-3 px-3 text-right font-extrabold text-foreground">
+                          {member.totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

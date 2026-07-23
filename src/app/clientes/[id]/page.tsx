@@ -717,8 +717,26 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
     );
   }
 
+  const logDocumentAudit = async (projectId: string, documentType: string, clientName?: string, projectName?: string) => {
+    try {
+      await fetch('/api/audit/document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          documentType,
+          clientName,
+          projectName: projectName || 'Projeto Solar',
+          templateVersion: '2.0.0',
+        }),
+      });
+    } catch (err) {
+      console.error('Erro ao registrar auditoria documental:', err);
+    }
+  };
+
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
         <div className="w-full lg:w-auto">
           <div className="flex items-center gap-2 mb-2">
@@ -1160,6 +1178,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               const currentEquip = projectEquipments[proj.id] || {};
                               const mergedProject = { ...proj, ...currentEquip };
                               generateMemorialPDF(client, mergedProject);
+                              logDocumentAudit(proj.id, 'MEMORIAL_PDF', client.name, proj.name || undefined);
                             } catch (err) {
                               console.error("Erro ao gerar PDF:", err);
                               alert("Ocorreu um erro ao gerar o PDF. Verifique os dados.");
@@ -1179,6 +1198,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               const currentEquip = projectEquipments[proj.id] || {};
                               const mergedProject = { ...proj, ...currentEquip };
                               generateMemorialDocx(client, mergedProject);
+                              logDocumentAudit(proj.id, 'MEMORIAL_DOCX', client.name, proj.name || undefined);
                             } catch (err) {
                               console.error("Erro ao gerar DOCX:", err);
                               alert("Ocorreu um erro ao gerar o Word. Verifique os dados.");
@@ -1207,6 +1227,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               const currentEquip = projectEquipments[proj.id] || {};
                               const mergedProject = { ...proj, ...currentEquip };
                               generateFormularioAcessoPDF(client, mergedProject);
+                              logDocumentAudit(proj.id, 'FORMULARIO_PDF', client.name, proj.name || undefined);
                             } catch (err) {
                               console.error("Erro ao gerar Formulário de Acesso PDF:", err);
                               alert("Ocorreu um erro ao gerar o Formulário em PDF.");
@@ -1226,6 +1247,7 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                               const currentEquip = projectEquipments[proj.id] || {};
                               const mergedProject = { ...proj, ...currentEquip };
                               generateFormularioAcessoDocx(client, mergedProject);
+                              logDocumentAudit(proj.id, 'FORMULARIO_DOCX', client.name, proj.name || undefined);
                             } catch (err) {
                               console.error("Erro ao gerar Formulário de Acesso DOCX:", err);
                               alert("Ocorreu um erro ao gerar o Formulário em Word.");

@@ -11,7 +11,8 @@ import { SimulationTable } from "@/components/SimulationTable";
 import { ClientLinkingForm } from "@/components/ClientLinkingForm";
 import { ExcelParserService } from "@/services/ExcelParserService";
 import { HSP_BY_UF, DEFAULT_HSP } from "@/utils/solarIrradiation";
-import { calculateBatteryRequirement } from "@/utils/solarMath";
+import { calculateBatteryRequirement, validateDisjuntorCompatibility } from "@/utils/solarMath";
+import { validateRegulatoryLimits } from "@/utils/regulatoryLimits";
 import useSWR from "swr";
 
 import { Button } from "@/components/ui/button";
@@ -34,10 +35,12 @@ function SimulatorContent() {
   const [modulePower, setModulePower] = useState<number | "">("");
   const [projectName, setProjectName] = useState<string>("");
   const [connectionType, setConnectionType] = useState<string>("Bifásico");
+  const [padraoAmps, setPadraoAmps] = useState<number | "">(50);
   
   const [cep, setCep] = useState("");
   const [uf, setUf] = useState("");
   const [irradiation, setIrradiation] = useState<number>(DEFAULT_HSP);
+  const [lossFactorPercent, setLossFactorPercent] = useState<number>(15);
   const [isFetchingCep, setIsFetchingCep] = useState(false);
   const [rawExcelData, setRawExcelData] = useState<any[][] | null>(null);
 
@@ -45,6 +48,12 @@ function SimulatorContent() {
   const [enableBatteryBackup, setEnableBatteryBackup] = useState(false);
   const [criticalLoadKw, setCriticalLoadKw] = useState<number | "">(3);
   const [autonomyHours, setAutonomyHours] = useState<number | "">(4);
+
+  // Estados de Comparação de Múltiplos Cenários (S3 — Cenário A vs Cenário B)
+  const [enableCompareScenarios, setEnableCompareScenarios] = useState(false);
+  const [selectedModuleIdB, setSelectedModuleIdB] = useState<string>("");
+  const [modulePowerB, setModulePowerB] = useState<number | "">("");
+  const [lossFactorPercentB, setLossFactorPercentB] = useState<number>(15);
 
   const batteryCalc = useMemo(() => {
     if (!enableBatteryBackup) return null;
@@ -69,14 +78,26 @@ function SimulatorContent() {
   const results = useMemo(() => {
     if (rawExcelData && modulePower && Number(modulePower) > 0) {
       try {
-        return ExcelParserService.calculateUnits(rawExcelData, Number(modulePower), irradiation);
+        return ExcelParserService.calculateUnits(rawExcelData, Number(modulePower), irradiation, lossFactorPercent);
       } catch (err) {
-        console.error("Erro ao recalcular:", err);
+        console.error("Erro ao recalcular Cenário A:", err);
         return null;
       }
     }
     return null;
-  }, [modulePower, irradiation, rawExcelData]);
+  }, [modulePower, irradiation, lossFactorPercent, rawExcelData]);
+
+  const resultsB = useMemo(() => {
+    if (enableCompareScenarios && rawExcelData && modulePowerB && Number(modulePowerB) > 0) {
+      try {
+        return ExcelParserService.calculateUnits(rawExcelData, Number(modulePowerB), irradiation, lossFactorPercentB);
+      } catch (err) {
+        console.error("Erro ao recalcular Cenário B:", err);
+        return null;
+      }
+    }
+    return null;
+  }, [enableCompareScenarios, modulePowerB, irradiation, lossFactorPercentB, rawExcelData]);
 
   useEffect(() => {
     fetch("/api/clients")
@@ -323,7 +344,7 @@ function SimulatorContent() {
         title="EQUIPAMENTOS & DIMENSIONAMENTO TÉCNICO"
         subtitle="Confira os módulos, inversores e o padrão de ligação da rede elétrica da distribuidora."
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">Módulo Fotovoltaico *</label>
             <select 
@@ -363,18 +384,139 @@ function SimulatorContent() {
           </div>
 
           <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">Disjuntor / Padrão (A)</label>
+            <Input
+              type="number"
+              placeholder="Ex: 50A, 63A"
+              value={padraoAmps}
+              onChange={(e) => setPadraoAmps(Number(e.target.value) || "")}
+              className="h-11 text-sm font-bold bg-card border-border"
+            />
+          </div>
+
+          <div>
             <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">Ligação da Saída (Rede)</label>
             <SegmentedControl
               options={[
-                { value: "Monofásico", label: "Monofásico" },
-                { value: "Bifásico", label: "Bifásico" },
-                { value: "Trifásico", label: "Trifásico" },
+                { value: "Monofásico", label: "Mono" },
+                { value: "Bifásico", label: "Bi" },
+                { value: "Trifásico", label: "Tri" },
               ]}
               value={connectionType}
               onChange={setConnectionType}
               className="w-full justify-between"
             />
           </div>
+        </div>
+
+        {/* Indicador de Validação de Disjuntor (S2) */}
+        {(() => {
+          const selectedInverter = dbInverters?.find((i: any) => i.id === selectedInverterId);
+          const inverterKw = selectedInverter ? (selectedInverter.powerW / 1000) : (results ? results.totalKwp : 0);
+          if (!inverterKw || inverterKw <= 0) return null;
+          const disjValidation = validateDisjuntorCompatibility(inverterKw, connectionType, Number(padraoAmps) || 0);
+          return (
+            <div className={`mt-3 p-3 rounded-xl border text-xs font-semibold flex items-center justify-between gap-2 ${
+              !disjValidation.isCompatible
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+            }`}>
+              <span>{disjValidation.message}</span>
+              <span className="font-extrabold px-2 py-0.5 rounded bg-card border border-border text-[10px] whitespace-nowrap">
+                Corrente CA: {disjValidation.estimatedCurrentAmps}A
+              </span>
+            </div>
+          );
+        })()}
+
+        {/* Fator de Perdas Globais (Sombreamento/Orientação) */}
+        <div className="mt-5 p-4 rounded-xl bg-secondary/30 border border-border/60">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase">
+              Fator de Perdas Globais (Sombreamento, Inclinação & Sujidade)
+            </label>
+            <span className="text-xs font-extrabold text-primary px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+              {lossFactorPercent}% de perdas
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <input
+              type="range"
+              min={5}
+              max={35}
+              step={1}
+              value={lossFactorPercent}
+              onChange={(e) => setLossFactorPercent(Number(e.target.value))}
+              className="flex-1 h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+            />
+            <Input
+              type="number"
+              min={5}
+              max={50}
+              value={lossFactorPercent}
+              onChange={(e) => setLossFactorPercent(Math.min(50, Math.max(0, Number(e.target.value) || 0)))}
+              className="w-20 h-9 text-xs font-bold text-center bg-card border-border"
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            Margem padrão recomendada: 15%. Aumente para locais com sombreamento parcial ou orientação não-ideal (ex: Leste/Oeste).
+          </p>
+        </div>
+
+        {/* Seção de Comparação de Múltiplos Cenários (S3 — Cenário A vs Cenário B) */}
+        <div className="mt-5 pt-5 border-t border-border/60">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h4 className="text-sm font-bold text-foreground">Comparação de Múltiplos Cenários (Cenário A vs Cenário B)</h4>
+              <p className="text-xs text-muted-foreground">Simule 2 configurações técnicas (ex: painéis de potências diferentes) para comparar resultados lado a lado.</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableCompareScenarios}
+                onChange={(e) => setEnableCompareScenarios(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-secondary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+
+          {enableCompareScenarios && (
+            <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-4 animate-in fade-in duration-200">
+              <div className="flex items-center gap-2 text-xs font-extrabold text-primary uppercase">
+                <span>⚡ Configuração do Cenário B (Alternativa)</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Módulo do Cenário B</label>
+                  <select
+                    className="flex h-10 w-full rounded-xl border border-input bg-card px-3 py-2 text-xs font-bold shadow-sm"
+                    value={selectedModuleIdB}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedModuleIdB(id);
+                      const mod = dbModules?.find((m: any) => m.id === id);
+                      setModulePowerB(mod ? mod.powerW : "");
+                    }}
+                  >
+                    <option value="">Selecione o módulo do Cenário B...</option>
+                    {dbModules?.map((m: any) => (
+                      <option key={m.id} value={m.id}>{m.manufacturer} {m.model} ({m.powerW}W)</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Fator de Perdas do Cenário B (%)</label>
+                  <Input
+                    type="number"
+                    value={lossFactorPercentB}
+                    onChange={(e) => setLossFactorPercentB(Number(e.target.value) || 15)}
+                    className="h-10 text-xs font-bold bg-card border-border"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Seção de Backup de Baterias (Sistema Híbrido) */}
@@ -489,12 +631,88 @@ function SimulatorContent() {
         </div>
 
         {results && (
-          <div className="animate-in fade-in duration-500 pt-4 border-t border-border/60">
+          <div className="animate-in fade-in duration-500 pt-4 border-t border-border/60 space-y-4">
+            {/* Alertas de Enquadramento Regulatório ANEEL (S4) */}
+            {(() => {
+              const regAlerts = validateRegulatoryLimits(results.totalKwp);
+              if (regAlerts.length === 0) return null;
+              return (
+                <div className="space-y-2">
+                  {regAlerts.map((alert, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3.5 rounded-xl border text-xs font-semibold flex items-start gap-2.5 ${
+                        alert.level === 'CRITICAL'
+                          ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                          : alert.level === 'WARNING'
+                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                          : 'bg-sky-500/10 border-sky-500/30 text-sky-400'
+                      }`}
+                    >
+                      <span className="font-extrabold text-sm shrink-0">
+                        {alert.level === 'CRITICAL' ? '🚨' : alert.level === 'WARNING' ? '⚠️' : 'ℹ️'}
+                      </span>
+                      <div>
+                        <strong className="block font-bold text-foreground mb-0.5">{alert.title}</strong>
+                        <span>{alert.message}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
             <ResultCards 
               modulePower={modulePower} 
               totalKwp={results.totalKwp} 
               totalModules={results.totalModules} 
             />
+
+            {/* Quadro Comparativo de Cenários (S3 — Cenário A vs B) */}
+            {enableCompareScenarios && resultsB && (
+              <div className="p-4 bg-secondary/30 border border-primary/30 rounded-2xl space-y-3 animate-in fade-in duration-200">
+                <h4 className="font-extrabold text-sm text-primary flex items-center gap-2">
+                  <Zap className="w-4 h-4" /> Comparativo Lado a Lado: Cenário A vs Cenário B
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div className="bg-card border border-border p-4 rounded-xl space-y-2">
+                    <span className="font-extrabold text-sky-400 block border-b border-border pb-1">
+                      Cenário A ({modulePower}W — {lossFactorPercent}% perdas)
+                    </span>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Potência Total:</span>
+                      <span className="font-bold text-foreground">{results.totalKwp} kWp</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total de Módulos:</span>
+                      <span className="font-bold text-foreground">{results.totalModules} placas</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-card border border-primary/40 p-4 rounded-xl space-y-2">
+                    <span className="font-extrabold text-primary block border-b border-border pb-1">
+                      Cenário B ({modulePowerB}W — {lossFactorPercentB}% perdas)
+                    </span>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Potência Total:</span>
+                      <span className="font-bold text-primary">{resultsB.totalKwp} kWp</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total de Módulos:</span>
+                      <span className="font-bold text-primary">{resultsB.totalModules} placas</span>
+                    </div>
+                    <div className="flex justify-between text-[11px] pt-1 border-t border-border/50 text-muted-foreground">
+                      <span>Diferença no arranjo:</span>
+                      <span className="font-bold text-foreground">
+                        {resultsB.totalModules - results.totalModules > 0
+                          ? `+${resultsB.totalModules - results.totalModules} placas no Cenário B`
+                          : `${resultsB.totalModules - results.totalModules} placas no Cenário B`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <ClientLinkingForm 
               showClientForm={showClientForm}

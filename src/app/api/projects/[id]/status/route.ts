@@ -49,12 +49,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       data: { status }
     });
 
+    // Registra a transição no histórico do funil (D1)
+    await prisma.projectStatusHistory.create({
+      data: {
+        projectId: id,
+        fromStatus: project.status,
+        toStatus: status,
+      }
+    });
+
     // Log the action
     const companyIdForLog = session.user.role === 'PARTNER' ? session.user.id : (session.user.companyId || 'ADMIN');
     await prisma.auditLog.create({
       data: {
         action: 'STATUS_ALTERADO',
-        details: `Projeto "${updatedProject.name || 'Sem nome'}" movido para ${status}.`,
+        details: `Projeto "${updatedProject.name || 'Sem nome'}" movido de ${project.status} para ${status}.`,
         userId: session.user.id,
         companyId: companyIdForLog
       }

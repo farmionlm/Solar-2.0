@@ -1,18 +1,20 @@
 "use client";
 
 import React from "react";
-import { Clock, AlertTriangle, CheckCircle2, AlertOctagon } from "lucide-react";
-import { calculateConcessionariaSla } from "@/utils/slaMath";
+import { Clock, AlertTriangle, CheckCircle2, AlertOctagon, TrendingUp } from "lucide-react";
+import { calculatePredictiveConcessionariaSla } from "@/utils/slaMath";
 
 interface SlaCountdownBadgeProps {
   protocolDate?: string | Date | null;
   targetDays?: number;
+  historicalAverageDays?: number;
   className?: string;
 }
 
 export const SlaCountdownBadge: React.FC<SlaCountdownBadgeProps> = ({
   protocolDate,
   targetDays = 15,
+  historicalAverageDays,
   className = "",
 }) => {
   if (!protocolDate) {
@@ -23,7 +25,7 @@ export const SlaCountdownBadge: React.FC<SlaCountdownBadgeProps> = ({
     );
   }
 
-  const sla = calculateConcessionariaSla(protocolDate, targetDays);
+  const sla = calculatePredictiveConcessionariaSla(protocolDate, historicalAverageDays || targetDays);
 
   if (sla.statusLevel === "OVERDUE") {
     return (

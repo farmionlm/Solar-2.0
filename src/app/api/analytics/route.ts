@@ -47,7 +47,30 @@ export async function GET() {
     // 2. Total kWp, Faturamento e Status
     const projects = await prisma.project.findMany({
       where: projectWhereClause,
-      select: { totalKwp: true, estimatedCost: true, createdAt: true, status: true }
+      select: {
+        id: true,
+        totalKwp: true,
+        estimatedCost: true,
+        createdAt: true,
+        status: true,
+        lossReason: true,
+        lossDetails: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            concessionaria: true,
+            protocolDate: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                role: true,
+              }
+            }
+          }
+        }
+      }
     });
 
     const totalKwp = projects.reduce((acc, curr) => acc + (curr.totalKwp || 0), 0);
@@ -89,6 +112,103 @@ export async function GET() {
 
     const monthlyData = Object.values(monthlyDataMap);
 
+    // 5. C2 — Analytics de Motivos de Perda (CANCELED)
+    const canceledProjects = projects.filter(p => p.status === 'CANCELED');
+    const lossReasonMap: Record<string, number> = {};
+    canceledProjects.forEach(p => {
+      const reason = p.lossReason?.trim() || 'Outros / Não informado';
+      lossReasonMap[reason] = (lossReasonMap[reason] || 0) + 1;
+    });
+    const lossReasonData = Object.entries(lossReasonMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+
+    // 6. H1 — Painel por Concessionária
+    const concessionariaMap: Record<string, {
+      name: string;
+      total: number;
+      simulacao: number;
+      negociacao: number;
+      homologacao: number;
+      concluido: number;
+      cancelado: number;
+      kwpTotal: number;
+    }> = {};
+
+    projects.forEach(p => {
+      const concName = p.client?.concessionaria?.trim() || 'Não informada';
+      if (!concessionariaMap[concName]) {
+        concessionariaMap[concName] = {
+          name: concName,
+          total: 0,
+          simulacao: 0,
+          negociacao: 0,
+          homologacao: 0,
+          concluido: 0,
+          cancelado: 0,
+          kwpTotal: 0,
+        };
+      }
+      const item = concessionariaMap[concName];
+      item.total += 1;
+      item.kwpTotal += p.totalKwp || 0;
+      if (p.status === 'SIMULATION') item.simulacao += 1;
+      else if (p.status === 'NEGOTIATION') item.negociacao += 1;
+      else if (p.status === 'CLOSED' || p.status === 'INSTALLATION') item.homologacao += 1;
+      else if (p.status === 'COMPLETED') item.concluido += 1;
+      else if (p.status === 'CANCELED') item.cancelado += 1;
+    });
+
+    const concessionariaData = Object.values(concessionariaMap)
+      .map(c => ({ ...c, kwpTotal: Number(c.kwpTotal.toFixed(2)) }))
+      .sort((a, b) => b.total - a.total);
+
+    // 7. D2 — Performance por Técnico / Responsável
+    const teamMap: Record<string, {
+      id: string;
+      name: string;
+      role: string;
+      totalProjects: number;
+      closedProjects: number;
+      totalKwp: number;
+      totalRevenue: number;
+      conversionRate: number;
+    }> = {};
+
+    projects.forEach(p => {
+      const u = p.client?.user;
+      const userId = u?.id || 'unassigned';
+      const userName = u?.name || 'Sem responsável';
+      const userRole = u?.role || 'N/A';
+
+      if (!teamMap[userId]) {
+        teamMap[userId] = {
+          id: userId,
+          name: userName,
+          role: userRole === 'ADMIN' ? 'Admin' : userRole === 'PARTNER' ? 'Parceiro' : 'Técnico',
+          totalProjects: 0,
+          closedProjects: 0,
+          totalKwp: 0,
+          totalRevenue: 0,
+          conversionRate: 0,
+        };
+      }
+      const member = teamMap[userId];
+      member.totalProjects += 1;
+      member.totalKwp += p.totalKwp || 0;
+      member.totalRevenue += p.estimatedCost || ((p.totalKwp || 0) * 3800);
+      if (['CLOSED', 'INSTALLATION', 'COMPLETED'].includes(p.status)) {
+        member.closedProjects += 1;
+      }
+    });
+
+    const teamPerformance = Object.values(teamMap).map(member => ({
+      ...member,
+      totalKwp: Number(member.totalKwp.toFixed(2)),
+      totalRevenue: Math.round(member.totalRevenue),
+      conversionRate: member.totalProjects > 0 ? Math.round((member.closedProjects / member.totalProjects) * 100) : 0,
+    })).sort((a, b) => b.closedProjects - a.closedProjects);
+
     return NextResponse.json({
       totalProjects,
       closedProjects: closedCount,
@@ -98,7 +218,10 @@ export async function GET() {
       conversionRatePercent,
       averageTicket,
       statusData,
-      monthlyData
+      monthlyData,
+      lossReasonData,
+      concessionariaData,
+      teamPerformance
     });
 
   } catch (error) {

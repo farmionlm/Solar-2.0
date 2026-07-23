@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import { 
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, ResponsiveContainer, Cell } from 'recharts';
+import {
   X, 
   Upload, 
   FileText, 
@@ -23,6 +24,29 @@ interface FaturaOcrModalProps {
   isOpen: boolean;
   onClose: () => void;
   onApply: (data: FaturaExtraida) => void;
+}
+
+// Badge de nível de confiança reutilizável
+function ConfidenceBadge({ score }: { score?: 'HIGH' | 'MEDIUM' | 'LOW' }) {
+  if (!score || score === 'HIGH') {
+    return (
+      <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold whitespace-nowrap">
+        ✓ Alta Confiança
+      </span>
+    );
+  }
+  if (score === 'MEDIUM') {
+    return (
+      <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold whitespace-nowrap">
+        ⚠ Verificar
+      </span>
+    );
+  }
+  return (
+    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-bold whitespace-nowrap">
+      ✗ Baixa Certeza
+    </span>
+  );
 }
 
 export function FaturaOcrModal({ isOpen, onClose, onApply }: FaturaOcrModalProps) {
@@ -231,15 +255,15 @@ export function FaturaOcrModal({ isOpen, onClose, onApply }: FaturaOcrModalProps
 
               {/* Grid de Campos Extraídos (Editáveis para Ajuste Fino) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="bg-secondary/40 border border-border rounded-xl p-3">
+                {/* Campo: Nome do Cliente */}
+                <div className={`bg-secondary/40 border rounded-xl p-3 ${
+                  extractedData.confidenceScore?.clienteNome === 'LOW'
+                    ? 'border-red-500/40 bg-red-500/5'
+                    : 'border-border'
+                }`}>
                   <label className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px] mb-1">
                     <User className="w-3.5 h-3.5 text-primary" /> Nome do Cliente
-                    {extractedData.confidenceScore?.clienteNome === 'HIGH' && (
-                      <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold">Alta Confiança</span>
-                    )}
-                    {extractedData.confidenceScore?.clienteNome === 'MEDIUM' && (
-                      <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold">Verificar</span>
-                    )}
+                    <ConfidenceBadge score={extractedData.confidenceScore?.clienteNome} />
                   </label>
                   <input
                     type="text"
@@ -250,9 +274,15 @@ export function FaturaOcrModal({ isOpen, onClose, onApply }: FaturaOcrModalProps
                   />
                 </div>
 
-                <div className="bg-secondary/40 border border-border rounded-xl p-3">
+                {/* Campo: CPF / CNPJ */}
+                <div className={`bg-secondary/40 border rounded-xl p-3 ${
+                  extractedData.confidenceScore?.cpfCnpj === 'LOW'
+                    ? 'border-red-500/40 bg-red-500/5'
+                    : 'border-border'
+                }`}>
                   <label className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px] mb-1">
                     <Hash className="w-3.5 h-3.5 text-primary" /> CPF / CNPJ do Cliente
+                    <ConfidenceBadge score={extractedData.confidenceScore?.cpfCnpj} />
                   </label>
                   <input
                     type="text"
@@ -263,9 +293,15 @@ export function FaturaOcrModal({ isOpen, onClose, onApply }: FaturaOcrModalProps
                   />
                 </div>
 
-                <div className="bg-secondary/40 border border-border rounded-xl p-3">
+                {/* Campo: Nº da Instalação */}
+                <div className={`bg-secondary/40 border rounded-xl p-3 ${
+                  extractedData.confidenceScore?.instalacao === 'LOW'
+                    ? 'border-red-500/40 bg-red-500/5'
+                    : 'border-border'
+                }`}>
                   <label className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px] mb-1">
                     <Building2 className="w-3.5 h-3.5 text-primary" /> Nº da Instalação (UC)
+                    <ConfidenceBadge score={extractedData.confidenceScore?.instalacao} />
                   </label>
                   <input
                     type="text"
@@ -288,9 +324,15 @@ export function FaturaOcrModal({ isOpen, onClose, onApply }: FaturaOcrModalProps
                   />
                 </div>
 
-                <div className="bg-secondary/40 border border-border rounded-xl p-3 sm:col-span-2 space-y-2">
+                {/* Campo: Endereço Completo */}
+                <div className={`bg-secondary/40 border rounded-xl p-3 sm:col-span-2 space-y-2 ${
+                  extractedData.confidenceScore?.endereco === 'LOW'
+                    ? 'border-red-500/40 bg-red-500/5'
+                    : 'border-border'
+                }`}>
                   <label className="text-muted-foreground flex items-center gap-1 font-semibold text-[11px]">
                     <MapPin className="w-3.5 h-3.5 text-primary" /> Endereço Completo do Cliente
+                    <ConfidenceBadge score={extractedData.confidenceScore?.endereco} />
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                     <div className="sm:col-span-2">
@@ -354,34 +396,101 @@ export function FaturaOcrModal({ isOpen, onClose, onApply }: FaturaOcrModalProps
                   </p>
                 </div>
 
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
-                  <span className="text-amber-500 flex items-center gap-1 font-bold text-[11px]">
+                {/* Campo: Consumo Médio */}
+                <div className={`border rounded-xl p-3 ${
+                  extractedData.confidenceScore?.consumoMedioKwh === 'LOW'
+                    ? 'border-red-500/40 bg-red-500/10'
+                    : 'bg-amber-500/10 border-amber-500/20'
+                }`}>
+                  <span className={`flex items-center gap-1 font-bold text-[11px] ${
+                    extractedData.confidenceScore?.consumoMedioKwh === 'LOW' ? 'text-red-400' : 'text-amber-500'
+                  }`}>
                     <Zap className="w-3.5 h-3.5" /> Consumo Médio Calculado
+                    <ConfidenceBadge score={extractedData.confidenceScore?.consumoMedioKwh} />
                   </span>
-                  <p className="font-black text-amber-500 text-sm mt-1">{extractedData.consumoMedioKwh} kWh/mês</p>
+                  <p className={`font-black text-sm mt-1 ${
+                    extractedData.confidenceScore?.consumoMedioKwh === 'LOW' ? 'text-red-400' : 'text-amber-500'
+                  }`}>{extractedData.consumoMedioKwh} kWh/mês</p>
                 </div>
               </div>
 
-              {/* Tabela do Histórico de Consumo */}
+              {/* Gráfico de Sazonalidade do Consumo */}
               {extractedData.historicoConsumo.length > 0 && (
                 <div className="border border-border rounded-2xl overflow-hidden bg-card">
                   <div className="px-4 py-2.5 bg-secondary/50 border-b border-border flex items-center justify-between">
                     <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      <ClipboardList className="w-3.5 h-3.5 text-primary" /> Histórico de Consumo Extraído ({extractedData.historicoConsumo.length} meses)
+                      <ClipboardList className="w-3.5 h-3.5 text-primary" />
+                      Sazonalidade do Consumo ({extractedData.historicoConsumo.length} meses)
                     </span>
                     <span className="text-[11px] font-bold text-amber-500">
                       Média: {extractedData.consumoMedioKwh} kWh/mês
                     </span>
                   </div>
-                  <div className="p-3 max-h-36 overflow-y-auto custom-scrollbar">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {extractedData.historicoConsumo.map((item, idx) => (
-                        <div key={idx} className="p-2 rounded-lg bg-secondary/30 border border-border/50 text-center">
-                          <span className="text-[10px] text-muted-foreground font-semibold block">{item.mesAno}</span>
-                          <span className="text-xs font-extrabold text-foreground">{item.kwh} kWh</span>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="p-3 h-44">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={extractedData.historicoConsumo}
+                        margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+                      >
+                        <XAxis
+                          dataKey="mesAno"
+                          tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const val = payload[0].value as number;
+                              const label = payload[0].payload.mesAno;
+                              const avg = extractedData.consumoMedioKwh;
+                              const diff = val - avg;
+                              return (
+                                <div className="bg-card border border-border p-2 rounded-xl shadow-xl text-xs">
+                                  <p className="font-bold text-foreground">{label}</p>
+                                  <p className="text-foreground font-extrabold">{val} kWh</p>
+                                  <p className={diff > 0 ? 'text-amber-400' : 'text-sky-400'}>
+                                    {diff > 0 ? '+' : ''}{diff.toFixed(0)} kWh vs média
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <ReferenceLine
+                          y={extractedData.consumoMedioKwh}
+                          stroke="#10b981"
+                          strokeDasharray="4 2"
+                          strokeWidth={1.5}
+                          label={{
+                            value: `Méd.`,
+                            fill: '#10b981',
+                            fontSize: 9,
+                            position: 'insideTopRight'
+                          }}
+                        />
+                        <Bar dataKey="kwh" radius={[4, 4, 0, 0]}>
+                          {extractedData.historicoConsumo.map((entry, i) => (
+                            <Cell
+                              key={i}
+                              fill={entry.kwh > extractedData.consumoMedioKwh ? '#f59e0b' : '#38bdf8'}
+                              fillOpacity={0.85}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="px-4 pb-2.5 flex items-center gap-4 text-[10px] font-semibold text-muted-foreground">
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400 inline-block" /> Acima da média</span>
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-sky-400 inline-block" /> Abaixo da média</span>
+                    <span className="flex items-center gap-1"><span className="w-4 border-t-2 border-emerald-500 border-dashed inline-block" /> Média ({extractedData.consumoMedioKwh} kWh)</span>
                   </div>
                 </div>
               )}

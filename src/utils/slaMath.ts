@@ -96,3 +96,41 @@ export function calculateConcessionariaSla(
     badgeText,
   };
 }
+
+export interface PredictiveSlaResult extends SlaStatusResult {
+  estimatedApprovalDate: Date;
+  historicalAverageDays: number;
+  predictiveBadgeText: string;
+}
+
+/**
+ * Utilitário de SLA Preditivo baseado no tempo histórico real da concessionária (H2).
+ * Compara os 15 dias regulatórios ANEEL com a média histórica real calculada dos processos.
+ */
+export function calculatePredictiveConcessionariaSla(
+  protocolDateInput: string | Date,
+  historicalAverageDays: number = 15
+): PredictiveSlaResult {
+  const baseSla = calculateConcessionariaSla(protocolDateInput, 15);
+  const protocolDate = new Date(protocolDateInput);
+  
+  // Usar a média histórica real (se houver pelo menos 1 processo concluído), ou 15 como fallback
+  const effectiveTargetDays = historicalAverageDays > 0 ? Math.round(historicalAverageDays) : 15;
+  const estimatedApprovalDate = addBusinessDays(protocolDate, effectiveTargetDays);
+  
+  const daysDiff = effectiveTargetDays - 15;
+  let predictiveBadgeText = `${baseSla.badgeText} (Média Histórica: ${effectiveTargetDays}d úteis)`;
+
+  if (daysDiff > 0) {
+    predictiveBadgeText = `⚠️ Histórico local: ~${effectiveTargetDays}d úteis (${daysDiff}d além do prazo ANEEL)`;
+  } else if (daysDiff < 0) {
+    predictiveBadgeText = `⚡ Concessionária rápida: responde em ~${effectiveTargetDays}d úteis`;
+  }
+
+  return {
+    ...baseSla,
+    estimatedApprovalDate,
+    historicalAverageDays: effectiveTargetDays,
+    predictiveBadgeText,
+  };
+}

@@ -74,6 +74,85 @@ export function calculateOversizingRatio(totalKwpCC: number, inverterOutputPower
   };
 }
 
+export type DisjuntorValidationResult = {
+  estimatedCurrentAmps: number;
+  isCompatible: boolean;
+  recommendedDisjuntorAmps: number;
+  message: string;
+  badgeColor: string;
+};
+
+/**
+ * Valida se o disjuntor/padrão de entrada da propriedade suporta a corrente CA máxima
+ * gerada pelo inversor.
+ */
+export function validateDisjuntorCompatibility(
+  inverterPowerKw: number,
+  connectionType: 'Monofásico' | 'Bifásico' | 'Trifásico' | string = 'Bifásico',
+  currentDisjuntorAmps: number = 0
+): DisjuntorValidationResult {
+  if (!inverterPowerKw || inverterPowerKw <= 0) {
+    return {
+      estimatedCurrentAmps: 0,
+      isCompatible: true,
+      recommendedDisjuntorAmps: 0,
+      message: 'Aguardando seleção de inversor.',
+      badgeColor: 'text-muted-foreground',
+    };
+  }
+
+  const powerWatts = inverterPowerKw * 1000;
+  let voltage = 220;
+  let phasesFactor = 1;
+
+  if (connectionType === 'Monofásico') {
+    voltage = 220;
+    phasesFactor = 1;
+  } else if (connectionType === 'Trifásico') {
+    voltage = 380;
+    phasesFactor = 1.732;
+  } else {
+    voltage = 220;
+    phasesFactor = 1.732;
+  }
+
+  const estimatedCurrentAmps = Math.ceil(powerWatts / (voltage * phasesFactor));
+  const recommendedDisjuntorAmps = Math.ceil(estimatedCurrentAmps * 1.25);
+
+  const standardBreakers = [15, 20, 25, 32, 40, 50, 63, 70, 80, 100, 125, 160, 200, 250];
+  const nextStandardBreaker = standardBreakers.find(b => b >= recommendedDisjuntorAmps) || recommendedDisjuntorAmps;
+
+  if (currentDisjuntorAmps <= 0) {
+    return {
+      estimatedCurrentAmps,
+      isCompatible: true,
+      recommendedDisjuntorAmps: nextStandardBreaker,
+      message: `Corrente injetada calculada: ${estimatedCurrentAmps}A CA. Disjuntor mínimo sugerido: ${nextStandardBreaker}A.`,
+      badgeColor: 'text-sky-400',
+    };
+  }
+
+  const isCompatible = currentDisjuntorAmps >= estimatedCurrentAmps;
+
+  if (isCompatible) {
+    return {
+      estimatedCurrentAmps,
+      isCompatible: true,
+      recommendedDisjuntorAmps: nextStandardBreaker,
+      message: `✓ Padrão de ${currentDisjuntorAmps}A é compatível (Corrente máxima injetada: ${estimatedCurrentAmps}A).`,
+      badgeColor: 'text-emerald-400',
+    };
+  } else {
+    return {
+      estimatedCurrentAmps,
+      isCompatible: false,
+      recommendedDisjuntorAmps: nextStandardBreaker,
+      message: `⚠️ ALERTA DE UPGRADE: Padrão atual de ${currentDisjuntorAmps}A é INSUFICIENTE para injeção de ${estimatedCurrentAmps}A. Necessário upgrade para disjuntor de ${nextStandardBreaker}A.`,
+      badgeColor: 'text-amber-400',
+    };
+  }
+}
+
 /**
  * Calcula os dados de dimensionamento para uma única unidade consumidora.
  * Suporta o parâmetro ajustável de perdas globais (%) por sombreamento e orientação.
