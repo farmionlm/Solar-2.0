@@ -82,6 +82,13 @@ function SortableItem({ id, project, onDelete }: { id: string, project: any, onD
           <span>{format(new Date(project.createdAt), "dd MMM, yyyy", { locale: ptBR })}</span>
           <span>{project.totalModules} módulos</span>
         </div>
+
+        {project.lossReason && (
+          <div className="mt-2.5 text-[11px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-red-400" />
+            <span>Motivo: <strong className="text-foreground">{project.lossReason}</strong></span>
+          </div>
+        )}
       </div>
 
       {/* Actions — NOT part of drag handle */}
