@@ -1,9 +1,9 @@
 "use client";
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
-import { Sun, Users, Activity, BarChart3, PlusCircle, ArrowRight, Building2, UserCheck, XCircle, Award, Zap } from 'lucide-react';
+import { Sun, Users, Activity, BarChart3, PlusCircle, ArrowRight, Building2, UserCheck, XCircle, Award, Zap, Search, X, ExternalLink, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   BarChart,
@@ -26,6 +26,8 @@ const LOSS_COLORS = ['#ef4444', '#f97316', '#f59e0b', '#8b5cf6', '#64748b'];
 
 function DashboardContent() {
   const { data: metrics, error, isLoading } = useSWR('/api/analytics', fetcher);
+  const [showCanceledModal, setShowCanceledModal] = useState(false);
+  const [canceledFilter, setCanceledFilter] = useState("");
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
@@ -63,7 +65,7 @@ function DashboardContent() {
       ) : (
         <>
           {/* Cards de Métricas Principais (KPIs) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
             <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group">
               <h3 className="text-muted-foreground font-bold text-xs uppercase tracking-wider mb-1">Total em Aberto</h3>
               <div className="text-2xl md:text-3xl font-black text-foreground mb-1">
@@ -103,6 +105,23 @@ function DashboardContent() {
                 Média geral por projeto
               </p>
             </div>
+
+            {/* CARD CLICÁVEL: PROJETOS CANCELADOS */}
+            <button
+              onClick={() => setShowCanceledModal(true)}
+              className="bg-card border border-red-500/30 rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:border-red-500/60 hover:bg-red-500/5 transition-all text-left cursor-pointer"
+            >
+              <div className="flex justify-between items-center mb-1">
+                <h3 className="text-red-400 font-bold text-xs uppercase tracking-wider">Cancelados / Perdidos</h3>
+                <ArrowRight className="w-4 h-4 text-red-400 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+              </div>
+              <div className="text-2xl md:text-3xl font-black text-red-500 mb-1">
+                {metrics.canceledProjectsCount || 0} <span className="text-xs font-bold text-muted-foreground">projetos</span>
+              </div>
+              <p className="text-[11px] text-red-400/90 font-bold truncate flex items-center gap-1">
+                <span>Clique para ver a lista e motivos</span>
+              </p>
+            </button>
           </div>
 
           {/* Gráficos do Dashboard */}
@@ -175,6 +194,15 @@ function DashboardContent() {
                     <p className="text-[11px] text-muted-foreground">Projetos cancelados/perdidos</p>
                   </div>
                 </div>
+
+                <button
+                  onClick={() => setShowCanceledModal(true)}
+                  className="text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2.5 py-1 rounded-lg transition-colors border border-red-500/20 flex items-center gap-1 shrink-0"
+                  title="Ver lista completa de projetos cancelados"
+                >
+                  <span>Ver Lista ({metrics.canceledProjectsCount || 0})</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
 
               {metrics.lossReasonData?.length > 0 ? (
@@ -281,42 +309,29 @@ function DashboardContent() {
                 <table className="w-full text-xs text-left">
                   <thead>
                     <tr className="border-b border-border text-muted-foreground font-bold">
-                      <th className="py-2.5 px-3">Responsável</th>
-                      <th className="py-2.5 px-3 text-center">Papel</th>
-                      <th className="py-2.5 px-3 text-center">Projetos Totais</th>
-                      <th className="py-2.5 px-3 text-center">Projetos Fechados</th>
-                      <th className="py-2.5 px-3 text-center">Conversão</th>
-                      <th className="py-2.5 px-3 text-center">Potência Acumulada</th>
-                      <th className="py-2.5 px-3 text-right">Volume Orçado</th>
+                      <th className="py-2 px-2">Responsável / Usuário</th>
+                      <th className="py-2 px-2 text-center">Perfil</th>
+                      <th className="py-2 px-2 text-center">Projetos Totais</th>
+                      <th className="py-2 px-2 text-center">Vendas Fechadas</th>
+                      <th className="py-2 px-2 text-center">Taxa de Conversão</th>
+                      <th className="py-2 px-2 text-right">kWp Vendido</th>
+                      <th className="py-2 px-2 text-right">Volume (R$)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40 font-medium">
                     {metrics.teamPerformance.map((member: any) => (
                       <tr key={member.id} className="hover:bg-secondary/30 transition-colors">
-                        <td className="py-3 px-3 font-extrabold text-foreground flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center text-[10px] font-black">
-                            {member.name.substring(0, 2).toUpperCase()}
-                          </div>
-                          <span>{member.name}</span>
-                        </td>
-                        <td className="py-3 px-3 text-center">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            member.role === 'Admin' 
-                              ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                              : member.role === 'Parceiro'
-                              ? 'bg-primary/10 text-primary border border-primary/20'
-                              : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          }`}>
+                        <td className="py-2.5 px-2 font-bold text-foreground truncate">{member.name}</td>
+                        <td className="py-2.5 px-2 text-center">
+                          <span className="bg-secondary text-muted-foreground px-2 py-0.5 rounded-full text-[10px] font-bold border border-border">
                             {member.role}
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-center font-bold text-foreground">{member.totalProjects}</td>
-                        <td className="py-3 px-3 text-center font-extrabold text-emerald-400">{member.closedProjects}</td>
-                        <td className="py-3 px-3 text-center">
-                          <span className="font-extrabold text-foreground">{member.conversionRate}%</span>
-                        </td>
-                        <td className="py-3 px-3 text-center font-bold text-primary">{member.totalKwp} kWp</td>
-                        <td className="py-3 px-3 text-right font-extrabold text-foreground">
+                        <td className="py-2.5 px-2 text-center font-bold text-foreground">{member.totalProjects}</td>
+                        <td className="py-2.5 px-2 text-center font-extrabold text-emerald-400">{member.closedProjects}</td>
+                        <td className="py-2.5 px-2 text-center font-bold text-sky-400">{member.conversionRate}%</td>
+                        <td className="py-2.5 px-2 text-right font-bold text-primary">{member.totalKwp} kWp</td>
+                        <td className="py-2.5 px-2 text-right font-black text-foreground">
                           {member.totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
                         </td>
                       </tr>
@@ -328,13 +343,130 @@ function DashboardContent() {
           )}
         </>
       )}
+
+      {/* MODAL DE PROJETOS CANCELADOS */}
+      {showCanceledModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-5 border-b border-border flex items-center justify-between bg-secondary/30">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center font-bold">
+                  <XCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-foreground">Projetos Cancelados / Perdidos</h3>
+                  <p className="text-xs text-muted-foreground">Lista completa com motivos de perda registrados</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCanceledModal(false)}
+                className="p-2 rounded-xl hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filtro de Busca */}
+            <div className="p-4 border-b border-border/60 bg-background/50">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={canceledFilter}
+                  onChange={(e) => setCanceledFilter(e.target.value)}
+                  placeholder="Buscar por cliente, projeto ou motivo de cancelamento..."
+                  className="w-full h-10 pl-9 pr-4 text-xs font-semibold bg-secondary/50 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+
+            {/* Lista de Projetos Cancelados */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              {(() => {
+                const list = (metrics?.canceledProjectsList || []).filter((p: any) => {
+                  if (!canceledFilter.trim()) return true;
+                  const term = canceledFilter.toLowerCase();
+                  return (
+                    p.name?.toLowerCase().includes(term) ||
+                    p.clientName?.toLowerCase().includes(term) ||
+                    p.lossReason?.toLowerCase().includes(term)
+                  );
+                });
+
+                if (list.length === 0) {
+                  return (
+                    <div className="py-12 text-center text-xs text-muted-foreground font-medium space-y-2">
+                      <AlertTriangle className="w-8 h-8 text-muted-foreground/40 mx-auto" />
+                      <p>Nenhum projeto cancelado encontrado com este filtro.</p>
+                    </div>
+                  );
+                }
+
+                return list.map((proj: any) => (
+                  <div
+                    key={proj.id}
+                    className="p-4 rounded-xl border border-border bg-card hover:bg-secondary/20 transition-all flex flex-col md:flex-row md:items-center justify-between gap-3"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-extrabold text-foreground text-sm">{proj.name}</h4>
+                        <span className="text-[10px] font-black bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                          {proj.totalKwp} kWp
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium">
+                        {proj.clientId ? (
+                          <Link href={`/clientes/${proj.clientId}`} className="text-muted-foreground hover:text-primary font-bold transition-colors underline">
+                            Cliente: {proj.clientName}
+                          </Link>
+                        ) : (
+                          <span>Cliente: {proj.clientName}</span>
+                        )}
+                        <span>•</span>
+                        <span>{new Date(proj.createdAt).toLocaleDateString("pt-BR")}</span>
+                      </div>
+                      <div className="mt-2 text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Motivo: <strong className="text-foreground">{proj.lossReason}</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {proj.clientId && (
+                        <Link
+                          href={`/clientes/${proj.clientId}`}
+                          className="px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground text-xs font-bold transition-all border border-border flex items-center gap-1"
+                        >
+                          <UserCheck className="w-3.5 h-3.5 text-primary" /> Ver Ficha
+                        </Link>
+                      )}
+                      <Link
+                        href={`/proposta?projectId=${proj.id}`}
+                        target="_blank"
+                        className="px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all border border-primary/20 flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> Proposta
+                      </Link>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-export default function Dashboard() {
+export default function DashboardPage() {
   return (
-    <Suspense fallback={<div className="p-12 text-center text-foreground font-medium">Carregando painel de controle...</div>}>
+    <Suspense fallback={
+      <div className="p-8 text-center text-foreground font-bold flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        Carregando Dashboard...
+      </div>
+    }>
       <DashboardContent />
     </Suspense>
   );

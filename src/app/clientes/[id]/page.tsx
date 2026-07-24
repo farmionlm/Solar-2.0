@@ -1138,6 +1138,19 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                             <span className="flex items-center gap-1 font-bold text-primary"><Zap className="w-3.5 h-3.5" /> {Number(currentEquip.totalKwp).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kWp</span>
                             <span className="flex items-center gap-1 font-bold text-primary-foreground/70"><LayoutGrid className="w-3.5 h-3.5" /> {currentEquip.totalModules} módulos</span>
                           </div>
+                          {(proj.status === 'CANCELED' || proj.lossReason) && (
+                            <div className="mt-2.5 p-2 px-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold flex flex-wrap items-center justify-between gap-2 max-w-xl">
+                              <div className="flex items-center gap-1.5">
+                                <XCircle className="w-4 h-4 text-red-400 shrink-0" />
+                                <span>Projeto Cancelado / Perdido</span>
+                              </div>
+                              {proj.lossReason && (
+                                <span className="bg-red-950/80 text-red-200 px-2 py-0.5 rounded-md border border-red-500/40 text-[11px] font-extrabold">
+                                  Motivo: {proj.lossReason}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </button>
                       <div className="flex items-center gap-2">

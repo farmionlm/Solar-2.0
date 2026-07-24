@@ -209,9 +209,25 @@ export async function GET() {
       conversionRate: member.totalProjects > 0 ? Math.round((member.closedProjects / member.totalProjects) * 100) : 0,
     })).sort((a, b) => b.closedProjects - a.closedProjects);
 
+    const canceledProjectsList = projects
+      .filter(p => p.status === 'CANCELED' || Boolean(p.lossReason))
+      .map(p => ({
+        id: p.id,
+        name: p.name || 'Projeto sem nome',
+        totalKwp: Number((p.totalKwp || 0).toFixed(2)),
+        estimatedCost: Math.round(p.estimatedCost || ((p.totalKwp || 0) * 3800)),
+        createdAt: p.createdAt,
+        lossReason: p.lossReason || 'Outros / Não informado',
+        clientId: p.client?.id || null,
+        clientName: p.client?.name || 'Sem cliente vinculado',
+      }))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     return NextResponse.json({
       totalProjects,
       closedProjects: closedCount,
+      canceledProjectsCount: canceledProjectsList.length,
+      canceledProjectsList,
       totalKwp: Number(totalKwp.toFixed(2)),
       totalEstimatedRevenue: Math.round(totalEstimatedRevenue),
       openEstimatedRevenue: Math.round(openEstimatedRevenue),
