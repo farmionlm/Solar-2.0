@@ -14,7 +14,14 @@ import {
   Grid,
   Info,
   Trash2,
-  Plus
+  Plus,
+  Search,
+  Map,
+  Eye,
+  ZoomIn,
+  ZoomOut,
+  MapPin,
+  Loader2
 } from "lucide-react";
 import {
   LatLngPoint,
@@ -23,6 +30,7 @@ import {
   autoFillRoofLayout,
   calculatePolygonAreaMeters,
 } from "@/utils/roofLayoutMath";
+import { fetchAddressByCep } from "@/utils/cepApi";
 
 interface RoofLayoutModalProps {
   isOpen: boolean;
@@ -45,6 +53,55 @@ export function RoofLayoutModal({
   const [pitchDegrees, setPitchDegrees] = useState<number>(15);
   const [moduleOrientation, setModuleOrientation] = useState<'PORTRAIT' | 'LANDSCAPE'>('PORTRAIT');
   
+  // Estados da Busca por Endereço/CEP e Satélite HD Real
+  const [mapMode, setMapMode] = useState<'SATELLITE' | 'VECTOR'>('SATELLITE');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchError, setSearchError] = useState<string>('');
+  const [centerLat, setCenterLat] = useState<number>(-20.3155); // Vitória, ES (default)
+  const [centerLng, setCenterLng] = useState<number>(-40.3128);
+
+  const handleSearchAddress = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    setSearchError('');
+    try {
+      const cleanCep = searchQuery.replace(/\D/g, '');
+      if (cleanCep.length === 8) {
+        const cepResult = await fetchAddressByCep(cleanCep);
+        if (cepResult && cepResult.city) {
+          const queryStr = `${cepResult.address || ''}, ${cepResult.city} - ${cepResult.uf}, Brasil`;
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}`
+          );
+          const geoData = await geoRes.json();
+          if (geoData && geoData.length > 0) {
+            setCenterLat(parseFloat(geoData[0].lat));
+            setCenterLng(parseFloat(geoData[0].lon));
+            setMapMode('SATELLITE');
+          }
+        }
+      } else {
+        const geoRes = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery + ', Brasil')}`
+        );
+        const geoData = await geoRes.json();
+        if (geoData && geoData.length > 0) {
+          setCenterLat(parseFloat(geoData[0].lat));
+          setCenterLng(parseFloat(geoData[0].lon));
+          setMapMode('SATELLITE');
+        } else {
+          setSearchError('Endereço não localizado no mapa.');
+        }
+      }
+    } catch (err) {
+      console.error('Erro na busca de endereço:', err);
+      setSearchError('Falha ao buscar localização.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   // Vértices do polígono do telhado em coordenadas locais Canvas (2D)
   const [polygonVertices, setPolygonVertices] = useState<Point2D[]>([
     { x: 50, y: 50 },
@@ -114,15 +171,13 @@ export function RoofLayoutModal({
     }));
   }, [polygonVertices]);
 
-  // Converter metros fictícios para LatLng fictícios (para alimentar a função autoFillRoofLayout)
+  // Converter metros locais para LatLng reais relativos à localização pesquisada
   const latLngPoints: LatLngPoint[] = useMemo(() => {
-    const originLat = -20.3155;
-    const originLng = -40.3128;
     return roofMeters.map((m) => ({
-      lat: originLat + (m.y / 111000),
-      lng: originLng + (m.x / (111000 * Math.cos((originLat * Math.PI) / 180))),
+      lat: centerLat + (m.y / 111000),
+      lng: centerLng + (m.x / (111000 * Math.cos((centerLat * Math.PI) / 180))),
     }));
-  }, [roofMeters]);
+  }, [roofMeters, centerLat, centerLng]);
 
   // Executar o motor de auto-fill
   const autoFillResult: AutoFillResult = useMemo(() => {
@@ -184,22 +239,75 @@ export function RoofLayoutModal({
         {/* Conteúdo Principal */}
         <div className="p-6 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 custom-scrollbar">
           
-          {/* Coluna Esquerda: Editor Visual (Canvas SVG de Telhado & Módulos) */}
+          {/* Coluna Esquerda: Editor Visual (Canvas SVG de Telhado & Módulos com Foto de Satélite) */}
           <div className="lg:col-span-2 space-y-4">
             
-            {/* Toolbar de Formatos Rápidos */}
-            <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-xl border border-border text-xs">
-              <span className="font-bold text-muted-foreground flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-primary" /> Formato do Telhado:
-              </span>
+            {/* Barra de Busca de CEP / Endereço para Carregar Satélite do Imóvel */}
+            <div className="bg-secondary/40 border border-border p-3 rounded-2xl space-y-2">
               <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearchAddress()}
+                    placeholder="Digite o CEP (ex: 29050-670) ou Endereço do cliente para carregar foto de Satélite..."
+                    className="w-full h-10 pl-9 pr-3 text-xs font-semibold bg-card border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                  />
+                  <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSearchAddress}
+                  disabled={isSearching}
+                  className="h-10 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shrink-0"
+                >
+                  {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                  <span>Localizar Imóvel</span>
+                </button>
+              </div>
+
+              {searchError && (
+                <p className="text-[11px] font-bold text-red-400 pl-1">{searchError}</p>
+              )}
+            </div>
+
+            {/* Toolbar de Formatos Rápidos & Alternância Satélite/Vetor */}
+            <div className="flex flex-wrap items-center justify-between bg-secondary/30 p-3 rounded-xl border border-border text-xs gap-2">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setMapMode('SATELLITE')}
+                  className={`px-3 py-1.5 rounded-lg font-extrabold text-xs flex items-center gap-1.5 transition-all ${
+                    mapMode === 'SATELLITE'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-card text-muted-foreground hover:text-foreground border border-border'
+                  }`}
+                >
+                  <Map className="w-3.5 h-3.5" /> Satélite HD Real
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMapMode('VECTOR')}
+                  className={`px-3 py-1.5 rounded-lg font-extrabold text-xs flex items-center gap-1.5 transition-all ${
+                    mapMode === 'VECTOR'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-card text-muted-foreground hover:text-foreground border border-border'
+                  }`}
+                >
+                  <Eye className="w-3.5 h-3.5" /> Diagrama Vetorial
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-muted-foreground hidden sm:inline">Formato:</span>
                 <button
                   type="button"
                   onClick={() => applyPresetShape('RECTANGLE')}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                  className={`px-2.5 py-1.5 rounded-lg font-bold text-[11px] transition-all ${
                     activePreset === 'RECTANGLE'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'bg-secondary text-muted-foreground hover:text-foreground'
+                      ? 'bg-secondary text-foreground border border-primary/40'
+                      : 'bg-card text-muted-foreground hover:text-foreground border border-border'
                   }`}
                 >
                   Retangular
@@ -207,10 +315,10 @@ export function RoofLayoutModal({
                 <button
                   type="button"
                   onClick={() => applyPresetShape('L_SHAPE')}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                  className={`px-2.5 py-1.5 rounded-lg font-bold text-[11px] transition-all ${
                     activePreset === 'L_SHAPE'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'bg-secondary text-muted-foreground hover:text-foreground'
+                      ? 'bg-secondary text-foreground border border-primary/40'
+                      : 'bg-card text-muted-foreground hover:text-foreground border border-border'
                   }`}
                 >
                   Em "L"
@@ -218,10 +326,10 @@ export function RoofLayoutModal({
                 <button
                   type="button"
                   onClick={() => applyPresetShape('TRAPEZOID')}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                  className={`px-2.5 py-1.5 rounded-lg font-bold text-[11px] transition-all ${
                     activePreset === 'TRAPEZOID'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'bg-secondary text-muted-foreground hover:text-foreground'
+                      ? 'bg-secondary text-foreground border border-primary/40'
+                      : 'bg-card text-muted-foreground hover:text-foreground border border-border'
                   }`}
                 >
                   Trapezoidal
@@ -229,11 +337,38 @@ export function RoofLayoutModal({
               </div>
             </div>
 
-            {/* Canvas de Renderização SVG */}
+            {/* Canvas de Renderização SVG com Foto de Satélite Esri HD de Fundo */}
             <div className="relative w-full h-[340px] sm:h-[380px] bg-slate-950 border border-border rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
               
-              {/* Moldura de Fundo do Telhado */}
-              <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
+              {/* Imagem de Satélite Esri World Imagery (Custo ZERO) */}
+              {mapMode === 'SATELLITE' && (
+                <div className="absolute inset-0 z-0">
+                  <img
+                    src={`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/18/${Math.floor(
+                      ((1 -
+                        Math.log(
+                          Math.tan((centerLat * Math.PI) / 180) +
+                            1 / Math.cos((centerLat * Math.PI) / 180)
+                        ) /
+                          Math.PI) /
+                        2) *
+                        Math.pow(2, 18)
+                    )}/${Math.floor(((centerLng + 180) / 360) * Math.pow(2, 18))}`}
+                    alt="Foto de Satélite do Telhado"
+                    className="w-full h-full object-cover scale-150 filter brightness-90 contrast-110"
+                    onError={(e) => {
+                      // Fallback se tile de nível 18 falhar
+                      (e.target as HTMLImageElement).src = `https://static-maps.yandex.ru/1.x/?l=sat&ll=${centerLng},${centerLat}&z=17&size=600,450`;
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black/20 pointer-events-none"></div>
+                </div>
+              )}
+
+              {/* Moldura Vetorial de Fundo (Modo Diagrama) */}
+              {mapMode === 'VECTOR' && (
+                <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
+              )}
 
               <svg
                 className="w-full h-full relative z-10 cursor-crosshair select-none"
