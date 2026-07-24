@@ -11,6 +11,7 @@ export type Point2D = {
 export type SolarPanelLayout = {
   id: string;
   center: Point2D;
+  alignedCenter: Point2D; // Centro em metros no espaço alinhado aos eixos do telhado
   corners: Point2D[]; // 4 vértices do painel retangular em metros
   widthMeters: number;
   heightMeters: number;
@@ -297,6 +298,7 @@ export function autoFillRoofLayout(options: AutoFillOptions): AutoFillResult {
           panels.push({
             id: `panel-${panelCounter}`,
             center: unrotatedCenter,
+            alignedCenter: { x, y },
             corners: unrotatedCorners,
             widthMeters: panelW,
             heightMeters: panelH,

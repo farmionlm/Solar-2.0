@@ -388,12 +388,12 @@ function RoofStudioContent() {
     const clientX = e.clientX - rect.left;
     const clientY = e.clientY - rect.top;
 
-    // Desrotaciona a posição do mouse em relação à origem estática do Canvas (centerCanvasX, centerCanvasY)
+    // Desrotaciona a posição do mouse em relação ao centroide do polígono
     const unrotated = getUnrotatedPoint(
       clientX,
       clientY,
-      centerCanvasX,
-      centerCanvasY,
+      polygonCentroidPixels.x,
+      polygonCentroidPixels.y,
       azimuthDegrees
     );
 
@@ -453,7 +453,7 @@ function RoofStudioContent() {
 
   const [isRotating, setIsRotating] = useState(false);
 
-  // Rotação Interativa da Estrutura Completa do Telhado (Alça ↻) em relação ao Centro do Canvas
+  // Rotação Interativa da Estrutura Completa do Telhado (Alça ↻) em relação ao Centroide do Polígono
   const handleRotatePointerDown = (e: React.PointerEvent<SVGGElement>) => {
     e.stopPropagation();
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
@@ -468,8 +468,8 @@ function RoofStudioContent() {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    const dx = mouseX - centerCanvasX;
-    const dy = mouseY - centerCanvasY;
+    const dx = mouseX - polygonCentroidPixels.x;
+    const dy = mouseY - polygonCentroidPixels.y;
     let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
     if (angle < 0) angle += 360;
 
@@ -655,8 +655,8 @@ function RoofStudioContent() {
               </pattern>
             </defs>
 
-            {/* Grupo Único do Telhado & Módulos Rotacionados pelo Azimute em relação à Origem Estática (centerCanvasX, centerCanvasY) */}
-            <g transform={`rotate(${azimuthDegrees}, ${centerCanvasX}, ${centerCanvasY})`}>
+            {/* Grupo Único do Telhado & Módulos Rotacionados pelo Azimute em relação ao Centroide do Polígono */}
+            <g transform={`rotate(${azimuthDegrees}, ${polygonCentroidPixels.x}, ${polygonCentroidPixels.y})`}>
               
               {/* Polígono do Telhado (Perímetro Exterior em Metros Reais - Arrastável) */}
               <polygon
@@ -690,10 +690,11 @@ function RoofStudioContent() {
                 />
               )}
 
-              {/* Módulos Encaixados no Telhado */}
+              {/* Módulos Encaixados no Telhado (Ancorados ao Centroide e Alinhados ao Grid) */}
               {autoFillResult.panels.map((panel, idx) => {
-                const pxX = centerCanvasX + panel.center.x * pixelsPerMeter;
-                const pxY = centerCanvasY + panel.center.y * pixelsPerMeter;
+                const ac = panel.alignedCenter || panel.center;
+                const pxX = polygonCentroidPixels.x + ac.x * pixelsPerMeter;
+                const pxY = polygonCentroidPixels.y + ac.y * pixelsPerMeter;
                 const pWidth = panel.widthMeters * pixelsPerMeter;
                 const pHeight = panel.heightMeters * pixelsPerMeter;
 
