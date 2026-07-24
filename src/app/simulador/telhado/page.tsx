@@ -745,19 +745,19 @@ function RoofStudioContent() {
                 return (
                   <g key={`edge-${i}`} className="pointer-events-none">
                     <rect
-                      x={midX - 22}
-                      y={midY - 10}
-                      width="44"
-                      height="20"
-                      rx="6"
+                      x={midX - 18}
+                      y={midY - 8}
+                      width="36"
+                      height="16"
+                      rx="4"
                       fill="rgba(15, 23, 42, 0.9)"
                       stroke="#38bdf8"
-                      strokeWidth="1.2"
+                      strokeWidth="1"
                     />
                     <text
                       x={midX}
-                      y={midY + 4}
-                      fontSize="10"
+                      y={midY + 3}
+                      fontSize="9"
                       fontWeight="black"
                       fill="#38bdf8"
                       textAnchor="middle"
@@ -768,48 +768,48 @@ function RoofStudioContent() {
                 );
               })}
 
-              {/* Vértices Editáveis do Telhado */}
+              {/* Vértices Editáveis do Telhado (Compactos e Sem Shaking CSS) */}
               {polygonVerticesPixels.map((v, i) => (
                 <circle
                   key={i}
                   cx={v.x}
                   cy={v.y}
-                  r={draggingVertexIndex === i ? "12" : "8.5"}
+                  r={draggingVertexIndex === i ? "6" : "4.5"}
                   fill={draggingVertexIndex === i ? "#f59e0b" : "#38bdf8"}
                   stroke="#ffffff"
-                  strokeWidth="3"
+                  strokeWidth="1.5"
                   onPointerDown={(e) => handleVertexPointerDown(i, e)}
-                  className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform drop-shadow-md"
+                  className="cursor-pointer hover:fill-amber-400 drop-shadow-sm"
                 />
               ))}
 
               {/* Alça Interativa de Rotação (↻) no Topo do Telhado */}
               <g
                 onPointerDown={handleRotatePointerDown}
-                className="cursor-grab active:cursor-grabbing hover:scale-110 transition-transform"
+                className="cursor-pointer hover:opacity-90"
               >
                 <line
                   x1={polygonCentroidPixels.x}
                   y1={polygonCentroidPixels.y - 80}
                   x2={polygonCentroidPixels.x}
-                  y2={polygonCentroidPixels.y - 115}
+                  y2={polygonCentroidPixels.y - 105}
                   stroke="#f59e0b"
-                  strokeWidth="2.5"
+                  strokeWidth="2"
                   strokeDasharray="4 3"
                 />
                 <circle
                   cx={polygonCentroidPixels.x}
-                  cy={polygonCentroidPixels.y - 115}
-                  r="12"
+                  cy={polygonCentroidPixels.y - 105}
+                  r="9"
                   fill="#f59e0b"
                   stroke="#ffffff"
-                  strokeWidth="2.5"
-                  className="shadow-lg"
+                  strokeWidth="2"
+                  className="shadow-md"
                 />
                 <text
                   x={polygonCentroidPixels.x}
-                  y={polygonCentroidPixels.y - 111}
-                  fontSize="12"
+                  y={polygonCentroidPixels.y - 102}
+                  fontSize="10"
                   fontWeight="black"
                   fill="#ffffff"
                   textAnchor="middle"
