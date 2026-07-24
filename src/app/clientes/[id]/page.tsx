@@ -5,7 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { fetcher } from "@/utils/fetcher";
 import * as XLSX from "xlsx";
-import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X, Trash2, RefreshCw, Upload, Eye, PenTool, MessageSquare, ExternalLink, Sparkles } from "lucide-react";
+import { ArrowLeft, Save, Download, Zap, LayoutGrid, Calendar, ChevronDown, ChevronUp, FileText, Phone, Mail, MapPin, Home, Pencil, X, Trash2, RefreshCw, Upload, Eye, PenTool, MessageSquare, ExternalLink, Sparkles, XCircle } from "lucide-react";
 
 import { Project, ClientDetail, Inverter } from "@/types";
 import { Button } from "@/components/ui/button";
