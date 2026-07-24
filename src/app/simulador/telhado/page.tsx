@@ -74,6 +74,9 @@ function RoofStudioContent() {
   const [draggingVertexIndex, setDraggingVertexIndex] = useState<number | null>(null);
   const [showSidebar, setShowSidebar] = useState<boolean>(true);
 
+  // Provedor de Imagem de Satélite
+  const [tileProvider, setTileProvider] = useState<'GOOGLE_SAT' | 'GOOGLE_HYBRID' | 'ESRI'>('GOOGLE_SAT');
+
   // Efeito para buscar CEP inicial se passado via query params
   useEffect(() => {
     if (initialCep) {
@@ -91,16 +94,38 @@ function RoofStudioContent() {
       if (cleanCep.length === 8) {
         const cepResult = await fetchAddressByCep(cleanCep);
         if (cepResult && cepResult.localidade) {
-          const queryStr = `${cepResult.logradouro || ""}, ${cepResult.localidade} - ${cepResult.uf}, Brasil`;
-          const geoRes = await fetch(
+          // Tenta geocodificar do mais específico para o genérico
+          let queryStr = `${cepResult.logradouro || ""}, ${cepResult.bairro || ""}, ${cepResult.localidade} - ${cepResult.uf}, Brasil`;
+          let geoRes = await fetch(
             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}`
           );
-          const geoData = await geoRes.json();
+          let geoData = await geoRes.json();
+
+          if (!geoData || geoData.length === 0) {
+            queryStr = `${cepResult.bairro || ""}, ${cepResult.localidade} - ${cepResult.uf}, Brasil`;
+            geoRes = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}`
+            );
+            geoData = await geoRes.json();
+          }
+
+          if (!geoData || geoData.length === 0) {
+            queryStr = `${cepResult.localidade} - ${cepResult.uf}, Brasil`;
+            geoRes = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}`
+            );
+            geoData = await geoRes.json();
+          }
+
           if (geoData && geoData.length > 0) {
             setCenterLat(parseFloat(geoData[0].lat));
             setCenterLng(parseFloat(geoData[0].lon));
             setMapMode("SATELLITE");
+          } else {
+            setSearchError("Endereço não localizado no mapa.");
           }
+        } else {
+          setSearchError("CEP não encontrado.");
         }
       } else {
         const geoRes = await fetch(
@@ -195,7 +220,7 @@ function RoofStudioContent() {
   const maxFitCount = autoFillResult.maxPanelsCount;
   const isDeficit = initialRequiredModules > 0 && maxFitCount < initialRequiredModules;
 
-  // Cálculo da grade de tiles de Satélite Esri 3x3 Ultra HD (Nível de zoom 19)
+  // Cálculo da grade de tiles de Satélite Google Ultra HD 3x3 (100% cobertura no Brasil sem falhas)
   const tileGrid = useMemo(() => {
     const z = zoomLevel;
     const latRad = (centerLat * Math.PI) / 180;
@@ -206,14 +231,23 @@ function RoofStudioContent() {
     const tiles = [];
     for (let dy = -1; dy <= 1; dy++) {
       for (let dx = -1; dx <= 1; dx++) {
+        const x = xtile + dx;
+        const y = ytile + dy;
+        let tileUrl = `https://mt1.google.com/vt/lyrs=s&x=${x}&y=${y}&z=${z}`;
+        if (tileProvider === 'GOOGLE_HYBRID') {
+          tileUrl = `https://mt1.google.com/vt/lyrs=y&x=${x}&y=${y}&z=${z}`;
+        } else if (tileProvider === 'ESRI') {
+          tileUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+        }
+
         tiles.push({
-          url: `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${ytile + dy}/${xtile + dx}`,
-          key: `${z}-${ytile + dy}-${xtile + dx}`,
+          url: tileUrl,
+          key: `${tileProvider}-${z}-${y}-${x}`,
         });
       }
     }
     return tiles;
-  }, [centerLat, centerLng, zoomLevel]);
+  }, [centerLat, centerLng, zoomLevel, tileProvider]);
 
   const handleSvgMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (draggingVertexIndex === null) return;
@@ -296,14 +330,31 @@ function RoofStudioContent() {
           <div className="bg-secondary/60 p-1 rounded-xl border border-border flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setMapMode('SATELLITE')}
+              onClick={() => {
+                setMapMode('SATELLITE');
+                setTileProvider('GOOGLE_SAT');
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all ${
-                mapMode === 'SATELLITE'
+                mapMode === 'SATELLITE' && tileProvider === 'GOOGLE_SAT'
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Map className="w-3.5 h-3.5" /> Satélite HD
+              <Map className="w-3.5 h-3.5" /> Satélite Google HD
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMapMode('SATELLITE');
+                setTileProvider('GOOGLE_HYBRID');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all ${
+                mapMode === 'SATELLITE' && tileProvider === 'GOOGLE_HYBRID'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5" /> Híbrido (Ruas)
             </button>
             <button
               type="button"
