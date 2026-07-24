@@ -221,34 +221,68 @@ function RoofStudioContent() {
   const maxFitCount = autoFillResult.maxPanelsCount;
   const isDeficit = initialRequiredModules > 0 && maxFitCount < initialRequiredModules;
 
-  // Cálculo da grade de tiles de Satélite Google Ultra HD 3x3 (100% cobertura no Brasil sem falhas)
-  const tileGrid = useMemo(() => {
-    const z = zoomLevel;
-    const latRad = (centerLat * Math.PI) / 180;
-    const n = Math.pow(2, z);
-    const xtile = Math.floor(((centerLng + 180) / 360) * n);
-    const ytile = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n);
+  const mapRef = useRef<HTMLDivElement | null>(null);
+  const leafletInstanceRef = useRef<any>(null);
 
-    const tiles = [];
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        const x = xtile + dx;
-        const y = ytile + dy;
-        let tileUrl = `https://mt1.google.com/vt/lyrs=s&x=${x}&y=${y}&z=${z}`;
-        if (tileProvider === 'GOOGLE_HYBRID') {
-          tileUrl = `https://mt1.google.com/vt/lyrs=y&x=${x}&y=${y}&z=${z}`;
-        } else if (tileProvider === 'ESRI') {
-          tileUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
-        }
+  // Carregador Dinâmico do Mapa de Satélite Leaflet Contínuo (Sem cortes nem emendas)
+  useEffect(() => {
+    if (typeof window === "undefined" || mapMode !== "SATELLITE") return;
 
-        tiles.push({
-          url: tileUrl,
-          key: `${tileProvider}-${z}-${y}-${x}`,
+    if (!document.getElementById("leaflet-css")) {
+      const link = document.createElement("link");
+      link.id = "leaflet-css";
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+    }
+
+    const loadLeaflet = async () => {
+      if (!(window as any).L) {
+        await new Promise<void>((resolve) => {
+          const script = document.createElement("script");
+          script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+          script.onload = () => resolve();
+          document.body.appendChild(script);
         });
       }
-    }
-    return tiles;
-  }, [centerLat, centerLng, zoomLevel, tileProvider]);
+
+      const L = (window as any).L;
+      if (!L || !mapRef.current) return;
+
+      if (leafletInstanceRef.current) {
+        leafletInstanceRef.current.remove();
+        leafletInstanceRef.current = null;
+      }
+
+      const map = L.map(mapRef.current, {
+        center: [centerLat, centerLng],
+        zoom: zoomLevel,
+        zoomControl: false,
+        attributionControl: false,
+        dragging: true,
+        scrollWheelZoom: false,
+      });
+
+      let tileUrl = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}";
+      if (tileProvider === "GOOGLE_HYBRID") {
+        tileUrl = "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}";
+      } else if (tileProvider === "ESRI") {
+        tileUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+      }
+
+      L.tileLayer(tileUrl, { maxZoom: 20 }).addTo(map);
+
+      map.on("moveend", () => {
+        const c = map.getCenter();
+        setCenterLat(c.lat);
+        setCenterLng(c.lng);
+      });
+
+      leafletInstanceRef.current = map;
+    };
+
+    loadLeaflet();
+  }, [centerLat, centerLng, zoomLevel, tileProvider, mapMode]);
 
   // Movimentação do Telhado Inteiro (Pan Polygon)
   const handlePolygonPointerDown = (e: React.PointerEvent<SVGPolygonElement>) => {
@@ -489,22 +523,12 @@ function RoofStudioContent() {
         {/* Workspace do Desenho (Takes entire remaining space) */}
         <div className="relative flex-1 h-full bg-slate-950 flex items-center justify-center overflow-hidden">
           
-          {/* Fundo 1: Imagem de Satélite Multi-Tile 3x3 Ultra HD (Esri World Imagery) */}
+          {/* Fundo 1: Imagem de Satélite Contínua Nível de Produção (Leaflet HD - Custo ZERO, Sem Cortes) */}
           {mapMode === 'SATELLITE' && (
-            <div className="absolute inset-0 z-0 grid grid-cols-3 grid-rows-3 w-full h-full pointer-events-none opacity-90 scale-110 filter brightness-95 contrast-105">
-              {tileGrid.map((tile) => (
-                <img
-                  key={tile.key}
-                  src={tile.url}
-                  alt="Satélite HD do Telhado"
-                  className="w-full h-full object-cover border-none"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://static-maps.yandex.ru/1.x/?l=sat&ll=${centerLng},${centerLat}&z=18&size=450,450`;
-                  }}
-                />
-              ))}
-              <div className="absolute inset-0 bg-black/15 pointer-events-none"></div>
-            </div>
+            <div
+              ref={mapRef}
+              className="absolute inset-0 z-0 w-full h-full cursor-grab active:cursor-grabbing opacity-95 filter brightness-95 contrast-105"
+            />
           )}
 
           {/* Fundo 2: Moldura de Grid Vetorial Blueprint (Modo Diagrama) */}
