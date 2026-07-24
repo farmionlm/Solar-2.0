@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import Link from "next/link";
@@ -9,7 +9,6 @@ import { ProcessedUnit, ClientData, ClientListItem } from "@/types";
 import { ResultCards } from "@/components/ResultCards";
 import { SimulationTable } from "@/components/SimulationTable";
 import { ClientLinkingForm } from "@/components/ClientLinkingForm";
-import { RoofLayoutModal } from "@/components/RoofLayoutModal";
 import { ExcelParserService } from "@/services/ExcelParserService";
 import { HSP_BY_UF, DEFAULT_HSP } from "@/utils/solarIrradiation";
 import { calculateBatteryRequirement, validateDisjuntorCompatibility } from "@/utils/solarMath";
@@ -25,8 +24,10 @@ import { ProjectContextBanner } from "@/components/ui/ProjectContextBanner";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 function SimulatorContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const clientId = searchParams.get("clientId");
+  const roofLimitParam = searchParams.get("roofLimit");
 
   const { data: dbModules } = useSWR("/api/equipments/modules", fetcher);
   const { data: dbInverters } = useSWR("/api/equipments/inverters", fetcher);
@@ -56,9 +57,18 @@ function SimulatorContent() {
   const [modulePowerB, setModulePowerB] = useState<number | "">("");
   const [lossFactorPercentB, setLossFactorPercentB] = useState<number>(15);
 
-  // Estado do Modal de Dimensionamento Espacial do Telhado (Auto-Fill 2D)
-  const [isRoofModalOpen, setIsRoofModalOpen] = useState(false);
   const [appliedRoofLimit, setAppliedRoofLimit] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (roofLimitParam) {
+      const limit = Number(roofLimitParam);
+      if (!isNaN(limit) && limit > 0) {
+        setAppliedRoofLimit(limit);
+        setSuccessMsg(`Estudo de Telhado Aplicado: Limite Físico de ${limit} placas!`);
+        setTimeout(() => setSuccessMsg(""), 5000);
+      }
+    }
+  }, [roofLimitParam]);
 
   const batteryCalc = useMemo(() => {
     if (!enableBatteryBackup) return null;
@@ -545,11 +555,11 @@ function SimulatorContent() {
             </div>
             <Button
               type="button"
-              onClick={() => setIsRoofModalOpen(true)}
-              className="bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs h-10 px-4 rounded-xl shadow-md shrink-0 active:scale-95"
+              onClick={() => router.push(`/simulador/telhado?cep=${encodeURIComponent(cep)}&required=${results?.totalModules || 0}`)}
+              className="bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs h-10 px-4 rounded-xl shadow-md shrink-0 active:scale-95 flex items-center gap-1.5"
             >
-              <Grid className="w-4 h-4 mr-1.5" />
-              Simular Capacidade do Telhado
+              <Grid className="w-4 h-4" />
+              <span>Abrir Estudo de Telhado (Tela Cheia)</span>
             </Button>
           </div>
         </div>
@@ -774,26 +784,6 @@ function SimulatorContent() {
           </div>
         )}
       </StepCard>
-
-      {/* Modal de Dimensionamento Espacial do Telhado (Auto-Fill 2D) */}
-      <RoofLayoutModal
-        isOpen={isRoofModalOpen}
-        onClose={() => setIsRoofModalOpen(false)}
-        initialRequiredModules={results ? results.totalModules : 0}
-        selectedModuleDimensions={(() => {
-          const mod = dbModules?.find((m: any) => m.id === selectedModuleId);
-          return {
-            widthMeters: 1.13,
-            heightMeters: 2.28,
-            powerW: mod ? mod.powerW : (Number(modulePower) || 550),
-          };
-        })()}
-        onApplyCapacity={(maxPanelsCount) => {
-          setAppliedRoofLimit(maxPanelsCount);
-          setSuccessMsg(`Limite de ${maxPanelsCount} placas aplicado do estudo de telhado!`);
-          setTimeout(() => setSuccessMsg(""), 4000);
-        }}
-      />
     </div>
   );
 }
