@@ -49,6 +49,7 @@ export async function GET() {
       where: projectWhereClause,
       select: {
         id: true,
+        name: true,
         totalKwp: true,
         estimatedCost: true,
         createdAt: true,
