@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import Link from "next/link";
-import { Sun, Upload, Save, Download, Users, ArrowLeft, RefreshCw, CheckCircle2, Zap, Battery, Grid } from "lucide-react";
+import { Sun, Upload, Save, Download, Users, ArrowLeft, RefreshCw, CheckCircle2, Zap, Battery, Grid, FileText, FileSpreadsheet } from "lucide-react";
 import { ProcessedUnit, ClientData, ClientListItem } from "@/types";
 import { ResultCards } from "@/components/ResultCards";
 import { SimulationTable } from "@/components/SimulationTable";
@@ -90,29 +90,90 @@ function SimulatorContent() {
   const [clientLinkMode, setClientLinkMode] = useState<'existing' | 'new'>('existing');
   const [clientSearchTerm, setClientSearchTerm] = useState("");
 
-  const results = useMemo(() => {
-    if (rawExcelData && modulePower && Number(modulePower) > 0) {
-      try {
-        return ExcelParserService.calculateUnits(rawExcelData, Number(modulePower), irradiation, lossFactorPercent);
-      } catch (err) {
-        console.error("Erro ao recalcular Cenário A:", err);
-        return null;
-      }
+  const [consumptionMode, setConsumptionMode] = useState<'DIRECT' | 'BILL_ATTACHMENT' | 'SPREADSHEET'>('DIRECT');
+  const [directKwh, setDirectKwh] = useState<string>("750");
+  const [directValueReais, setDirectValueReais] = useState<string>("");
+  const [tariffRate, setTariffRate] = useState<number>(0.95);
+  const [billFileName, setBillFileName] = useState<string>("");
+  const [unitCode, setUnitCode] = useState<string>("UC-01");
+
+  const activeKwh = useMemo(() => {
+    if (consumptionMode === 'SPREADSHEET') return 0;
+    const kwhNum = parseFloat(directKwh);
+    if (!isNaN(kwhNum) && kwhNum > 0) return kwhNum;
+
+    const realsNum = parseFloat(directValueReais.replace(/\./g, "").replace(",", "."));
+    if (!isNaN(realsNum) && realsNum > 0 && tariffRate > 0) {
+      return Math.round(realsNum / tariffRate);
     }
-    return null;
-  }, [modulePower, irradiation, lossFactorPercent, rawExcelData]);
+    return 0;
+  }, [consumptionMode, directKwh, directValueReais, tariffRate]);
+
+  const results = useMemo(() => {
+    if (!modulePower || Number(modulePower) <= 0) return null;
+
+    if (consumptionMode === 'SPREADSHEET') {
+      if (rawExcelData) {
+        try {
+          return ExcelParserService.calculateUnits(rawExcelData, Number(modulePower), irradiation, lossFactorPercent);
+        } catch (err) {
+          console.error("Erro ao recalcular Cenário A:", err);
+          return null;
+        }
+      }
+      return null;
+    } else {
+      if (activeKwh > 0) {
+        try {
+          return ExcelParserService.calculateSingleDirectUnit(
+            activeKwh,
+            Number(modulePower),
+            projectName || (preSelectedClient ? `Projeto — ${preSelectedClient.name}` : "Unidade Consumidora"),
+            unitCode || "UC-01",
+            irradiation,
+            lossFactorPercent
+          );
+        } catch (err) {
+          console.error("Erro ao calcular unidade direta:", err);
+          return null;
+        }
+      }
+      return null;
+    }
+  }, [consumptionMode, rawExcelData, activeKwh, modulePower, irradiation, lossFactorPercent, projectName, preSelectedClient, unitCode]);
 
   const resultsB = useMemo(() => {
-    if (enableCompareScenarios && rawExcelData && modulePowerB && Number(modulePowerB) > 0) {
-      try {
-        return ExcelParserService.calculateUnits(rawExcelData, Number(modulePowerB), irradiation, lossFactorPercentB);
-      } catch (err) {
-        console.error("Erro ao recalcular Cenário B:", err);
-        return null;
+    if (!enableCompareScenarios || !modulePowerB || Number(modulePowerB) <= 0) return null;
+
+    if (consumptionMode === 'SPREADSHEET') {
+      if (rawExcelData) {
+        try {
+          return ExcelParserService.calculateUnits(rawExcelData, Number(modulePowerB), irradiation, lossFactorPercentB);
+        } catch (err) {
+          console.error("Erro ao recalcular Cenário B:", err);
+          return null;
+        }
       }
+      return null;
+    } else {
+      if (activeKwh > 0) {
+        try {
+          return ExcelParserService.calculateSingleDirectUnit(
+            activeKwh,
+            Number(modulePowerB),
+            projectName || (preSelectedClient ? `Projeto — ${preSelectedClient.name}` : "Unidade Consumidora"),
+            unitCode || "UC-01",
+            irradiation,
+            lossFactorPercentB
+          );
+        } catch (err) {
+          console.error("Erro ao calcular Cenário B:", err);
+          return null;
+        }
+      }
+      return null;
     }
-    return null;
-  }, [enableCompareScenarios, modulePowerB, irradiation, lossFactorPercentB, rawExcelData]);
+  }, [enableCompareScenarios, consumptionMode, rawExcelData, activeKwh, modulePowerB, irradiation, lossFactorPercentB, projectName, preSelectedClient, unitCode]);
 
   useEffect(() => {
     fetch("/api/clients")
@@ -638,11 +699,11 @@ function SimulatorContent() {
         </div>
       </StepCard>
 
-      {/* ETAPA 3: PLANILHA DE CONSUMO & RESULTADOS */}
+      {/* ETAPA 3: ENTRADA DE CONSUMO & RESULTADOS */}
       <StepCard
         stepNumber={3}
-        title="PLANILHA DE CONSUMO & MEMORIAL"
-        subtitle="Carregue a planilha (.xlsx ou .csv) contendo as unidades consumidoras para gerar o relatório final."
+        title="ENTRADA DE CONSUMO & MEMORIAL"
+        subtitle="Informe o consumo mensal em kWh/R$, anexe a conta de luz ou carregue uma planilha (.xlsx opcional)."
         actionButton={
           results && (
             <Button
@@ -658,22 +719,183 @@ function SimulatorContent() {
           )
         }
       >
-        <div className="mb-6">
-          <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">Arquivo de Consumo das Unidades (.xlsx)</label>
-          <div className="relative">
-            <input 
-              type="file" 
-              accept=".xlsx, .xls, .csv"
-              onChange={processFile}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-            />
-            <div className="w-full p-4 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-bold flex flex-col items-center justify-center gap-2 transition-all">
-              <Upload className="w-6 h-6" />
-              <span>{isProcessing ? "Processando planilha..." : "Clique ou arraste o arquivo Excel/CSV de consumo aqui"}</span>
-              <span className="text-[11px] font-medium text-muted-foreground">Suporta tabelas com colunas Cód. Instalação, Nome e Consumo em kWh</span>
-            </div>
+        {/* Seletor de Modalidade de Entrada */}
+        <div className="mb-6 space-y-3">
+          <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            Forma de Entrada dos Dados de Consumo
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => setConsumptionMode('DIRECT')}
+              className={`p-3.5 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all border text-left ${
+                consumptionMode === 'DIRECT'
+                  ? 'bg-primary/10 border-primary text-primary shadow-sm ring-1 ring-primary/40'
+                  : 'bg-card border-border hover:bg-secondary text-muted-foreground'
+              }`}
+            >
+              <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+              <div>
+                <span className="block font-black text-foreground">Consumo Direto (kWh/R$)</span>
+                <span className="text-[10px] text-muted-foreground font-normal">Digite a média mensal ou valor em R$</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setConsumptionMode('BILL_ATTACHMENT')}
+              className={`p-3.5 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all border text-left ${
+                consumptionMode === 'BILL_ATTACHMENT'
+                  ? 'bg-primary/10 border-primary text-primary shadow-sm ring-1 ring-primary/40'
+                  : 'bg-card border-border hover:bg-secondary text-muted-foreground'
+              }`}
+            >
+              <FileText className="w-4 h-4 text-sky-400 shrink-0" />
+              <div>
+                <span className="block font-black text-foreground">Anexar Conta de Luz</span>
+                <span className="text-[10px] text-muted-foreground font-normal">Upload PDF/Foto da Fatura do Cliente</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setConsumptionMode('SPREADSHEET')}
+              className={`p-3.5 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all border text-left ${
+                consumptionMode === 'SPREADSHEET'
+                  ? 'bg-primary/10 border-primary text-primary shadow-sm ring-1 ring-primary/40'
+                  : 'bg-card border-border hover:bg-secondary text-muted-foreground'
+              }`}
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div>
+                <span className="block font-black text-foreground">Planilha Excel (.xlsx)</span>
+                <span className="text-[10px] text-muted-foreground font-normal">Para projetos com múltiplas UCs / Usina</span>
+              </div>
+            </button>
           </div>
         </div>
+
+        {/* MODO 1: CONSUMO DIRETO */}
+        {consumptionMode === 'DIRECT' && (
+          <div className="bg-secondary/20 border border-border p-5 rounded-2xl mb-6 space-y-4 animate-in fade-in duration-200">
+            <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider flex items-center gap-2">
+              <Zap className="w-4 h-4 text-primary" /> Informar Consumo Mensal Médio
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5">Consumo Médio (kWh/mês)</label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    value={directKwh}
+                    onChange={(e) => {
+                      setDirectKwh(e.target.value);
+                      setDirectValueReais("");
+                    }}
+                    placeholder="Ex: 750"
+                    className="h-11 text-sm font-extrabold font-mono text-primary bg-card border-border pl-3 pr-12"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">kWh</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5">Ou Valor da Conta (R$/mês)</label>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    value={directValueReais}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDirectValueReais(val);
+                      const num = parseFloat(val.replace(/\./g, "").replace(",", "."));
+                      if (!isNaN(num) && num > 0 && tariffRate > 0) {
+                        setDirectKwh(Math.round(num / tariffRate).toString());
+                      }
+                    }}
+                    placeholder="Ex: 650.00"
+                    className="h-11 text-sm font-bold font-mono text-foreground bg-card border-border pl-8"
+                  />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">R$</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5">Cód. da Instalação / UC (Opcional)</label>
+                <Input
+                  type="text"
+                  value={unitCode}
+                  onChange={(e) => setUnitCode(e.target.value)}
+                  placeholder="Ex: UC-7049281"
+                  className="h-11 text-sm font-medium bg-card border-border"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODO 2: ANEXAR CONTA DE LUZ */}
+        {consumptionMode === 'BILL_ATTACHMENT' && (
+          <div className="bg-secondary/20 border border-border p-5 rounded-2xl mb-6 space-y-4 animate-in fade-in duration-200">
+            <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider flex items-center gap-2">
+              <FileText className="w-4 h-4 text-sky-400" /> Anexo da Fatura de Energia do Cliente
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5">Consumo Extraído ou Informado (kWh/mês)</label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    value={directKwh}
+                    onChange={(e) => setDirectKwh(e.target.value)}
+                    placeholder="Ex: 750"
+                    className="h-11 text-sm font-extrabold font-mono text-primary bg-card border-border pl-3 pr-12"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">kWh</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5">Arquivo da Fatura (PDF / PNG / JPG)</label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".pdf, .png, .jpg, .jpeg"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setBillFileName(file.name);
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  <div className="h-11 px-3 rounded-xl border border-dashed border-sky-500/40 bg-sky-500/5 hover:bg-sky-500/10 text-sky-400 font-bold flex items-center justify-between transition-all text-xs">
+                    <span className="truncate">{billFileName || "Clique para anexar arquivo da conta..."}</span>
+                    <Upload className="w-4 h-4 shrink-0 ml-2" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODO 3: PLANILHA EXCEL */}
+        {consumptionMode === 'SPREADSHEET' && (
+          <div className="mb-6 animate-in fade-in duration-200">
+            <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">Arquivo de Consumo das Unidades (.xlsx opcional)</label>
+            <div className="relative">
+              <input 
+                type="file" 
+                accept=".xlsx, .xls, .csv"
+                onChange={processFile}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              />
+              <div className="w-full p-4 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-bold flex flex-col items-center justify-center gap-2 transition-all">
+                <Upload className="w-6 h-6" />
+                <span>{isProcessing ? "Processando planilha..." : "Clique ou arraste o arquivo Excel/CSV de consumo aqui"}</span>
+                <span className="text-[11px] font-medium text-muted-foreground">Suporta tabelas com colunas Cód. Instalação, Nome e Consumo em kWh</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {results && (
           <div className="animate-in fade-in duration-500 pt-4 border-t border-border/60 space-y-4">

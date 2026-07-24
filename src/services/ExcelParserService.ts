@@ -80,6 +80,38 @@ export class ExcelParserService {
   }
 
   /**
+   * Generates a result object for a single direct consumption entry (kWh/month)
+   * without needing an Excel spreadsheet file.
+   */
+  static calculateSingleDirectUnit(
+    monthlyCons: number,
+    modulePower: number,
+    name: string = "Unidade Principal",
+    code: string = "UC-01",
+    irradiation?: number,
+    lossFactorPercent?: number
+  ): { units: ProcessedUnit[], totalKwp: number, totalModules: number } {
+    if (isNaN(monthlyCons) || monthlyCons <= 0) {
+      throw new Error("Por favor, informe um consumo mensal válido em kWh maior que zero.");
+    }
+
+    const solarData = calculateUnitSolarData(monthlyCons, modulePower, irradiation, lossFactorPercent);
+    const unit: ProcessedUnit = {
+      code,
+      name,
+      monthlyCons,
+      ...solarData,
+    };
+
+    const totals = calculateProjectTotals([unit]);
+
+    return {
+      units: [unit],
+      ...totals,
+    };
+  }
+
+  /**
    * Generates a workbook for exporting results to Excel.
    */
   static generateExportWorkbook(
