@@ -64,6 +64,41 @@ function DashboardContent() {
         </div>
       ) : (
         <>
+          {/* Banner de Alerta de Procurações a Vencer / Vencidas */}
+          {metrics.procuracaoAlerts?.length > 0 && (
+            <div className="mb-8 p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-3 animate-in fade-in duration-300 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5 font-black text-sm">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-foreground block font-black">Aviso de Validade: Procurações Vencidas ou a Vencer ({metrics.procuracaoAlerts.length})</span>
+                    <span className="text-[11px] text-muted-foreground font-medium">Clientes que necessitam de renovação da procuração jurídica</span>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                {metrics.procuracaoAlerts.map((alert: any) => (
+                  <div key={alert.id} className="p-3.5 rounded-xl bg-card border border-amber-500/30 flex items-center justify-between gap-3 shadow-sm">
+                    <div className="truncate">
+                      <span className="font-extrabold text-foreground text-xs block truncate">{alert.clientName}</span>
+                      <span className={`text-[11px] font-bold block mt-0.5 ${alert.isExpired ? "text-red-400" : "text-amber-400"}`}>
+                        {alert.isExpired ? `⚠️ Vencida há ${Math.abs(alert.daysRemaining)} dias` : `⏳ Vence em ${alert.daysRemaining} dias`}
+                      </span>
+                    </div>
+                    <Link
+                      href={`/clientes/${alert.id}`}
+                      className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold transition-all text-xs shrink-0 border border-amber-500/30 flex items-center gap-1"
+                    >
+                      <UserCheck className="w-3.5 h-3.5" /> Ver Cliente
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Cards de Métricas Principais (KPIs) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
             <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group">

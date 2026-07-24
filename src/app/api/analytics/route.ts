@@ -224,11 +224,48 @@ export async function GET() {
       }))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+    // 8. Procurações a Vencer (<= 15 dias) ou Vencidas
+    const now = new Date();
+    const fifteenDaysFromNow = new Date();
+    fifteenDaysFromNow.setDate(fifteenDaysFromNow.getDate() + 15);
+
+    const procuracaoClients = await prisma.client.findMany({
+      where: {
+        procuracaoExpirationDate: {
+          lte: fifteenDaysFromNow,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        procuracaoName: true,
+        procuracaoExpirationDate: true,
+      },
+      orderBy: {
+        procuracaoExpirationDate: 'asc',
+      },
+    });
+
+    const procuracaoAlerts = procuracaoClients.map((c) => {
+      const exp = new Date(c.procuracaoExpirationDate!);
+      const diffTime = exp.getTime() - now.getTime();
+      const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return {
+        id: c.id,
+        clientName: c.name,
+        docName: c.procuracaoName || 'Procuração.pdf',
+        expirationDate: c.procuracaoExpirationDate,
+        daysRemaining,
+        isExpired: daysRemaining < 0,
+      };
+    });
+
     return NextResponse.json({
       totalProjects,
       closedProjects: closedCount,
       canceledProjectsCount: canceledProjectsList.length,
       canceledProjectsList,
+      procuracaoAlerts,
       totalKwp: Number(totalKwp.toFixed(2)),
       totalEstimatedRevenue: Math.round(totalEstimatedRevenue),
       openEstimatedRevenue: Math.round(openEstimatedRevenue),

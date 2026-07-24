@@ -11,7 +11,7 @@ import { SimulationTable } from "@/components/SimulationTable";
 import { ClientLinkingForm } from "@/components/ClientLinkingForm";
 import { ExcelParserService } from "@/services/ExcelParserService";
 import { HSP_BY_UF, DEFAULT_HSP } from "@/utils/solarIrradiation";
-import { getRecommendedTariffRate, DEFAULT_TARIFF_RATE } from "@/utils/tariffRates";
+import { getRecommendedTariffRate, DEFAULT_TARIFF_RATE, CONCESSIONARIAS_LIST } from "@/utils/tariffRates";
 import { calculateBatteryRequirement, validateDisjuntorCompatibility } from "@/utils/solarMath";
 import { validateRegulatoryLimits } from "@/utils/regulatoryLimits";
 import useSWR from "swr";
@@ -95,6 +95,7 @@ function SimulatorContent() {
   const [directKwh, setDirectKwh] = useState<string>("750");
   const [directValueReais, setDirectValueReais] = useState<string>("");
   const [tariffRate, setTariffRate] = useState<number>(0.95);
+  const [selectedConcessionaria, setSelectedConcessionaria] = useState<string>("");
   const [billFileName, setBillFileName] = useState<string>("");
   const [unitCode, setUnitCode] = useState<string>("UC-01");
 
@@ -376,7 +377,7 @@ function SimulatorContent() {
           ) : undefined
         }
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div>
             <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">Nome de Identificação do Projeto</label>
             <Input 
@@ -403,6 +404,30 @@ function SimulatorContent() {
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
               )}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">Concessionária de Energia</label>
+            <select
+              value={selectedConcessionaria}
+              onChange={(e) => {
+                const conc = e.target.value;
+                setSelectedConcessionaria(conc);
+                if (conc) {
+                  const newTariff = getRecommendedTariffRate(conc, uf);
+                  setTariffRate(newTariff);
+                } else {
+                  const newTariff = getRecommendedTariffRate(null, uf);
+                  setTariffRate(newTariff);
+                }
+              }}
+              className="h-11 w-full text-xs font-bold bg-card border border-border rounded-xl px-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+            >
+              <option value="">Automática pelo CEP / UF</option>
+              {CONCESSIONARIAS_LIST.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
 
           <div>

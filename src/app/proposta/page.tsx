@@ -3,7 +3,7 @@
 import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
-import { Sun, Zap, TrendingUp, Clock, Leaf, PrinterIcon, ArrowLeft, CheckCircle } from "lucide-react";
+import { Sun, Zap, TrendingUp, Clock, Leaf, PrinterIcon, ArrowLeft, CheckCircle, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import type { Project } from "@/types";
 import {
@@ -237,6 +237,37 @@ function PropostaContent() {
                 R$ {totalSavingsPeriod.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </span>
             </p>
+          </div>
+        </div>
+
+        {/* ── ROOF STUDIO DIAGRAM CARD ────────────────────────────────────────── */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-6 mb-8 print:shadow-none print:border-slate-200">
+          <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="text-xl font-black text-slate-800">Estudo Visual do Telhado & Disposição dos Módulos</h3>
+              <p className="text-slate-500 text-xs font-medium mt-0.5">Arranjo espacial simétrico e dimensionamento físico real em 2D</p>
+            </div>
+            <span className="bg-blue-50 text-blue-600 border border-blue-100 text-xs font-black px-3 py-1 rounded-full">
+              {p.totalModules} Módulos Posicionados
+            </span>
+          </div>
+
+          <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800 flex flex-col items-center justify-center text-center relative overflow-hidden min-h-[220px]">
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]"></div>
+            <div className="relative z-10 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/30 text-blue-400 flex items-center justify-center mx-auto font-bold shadow-lg">
+                <LayoutGrid className="w-6 h-6" />
+              </div>
+              <h4 className="text-white font-extrabold text-base">Arranjo Físico de Placas Mapeado</h4>
+              <p className="text-slate-400 text-xs max-w-md font-medium mx-auto">
+                Arranjo simétrico de <strong>{p.totalModules} módulos fotovoltaicos</strong> de {p.modulePower}W sobre o telhado do imóvel com recuo de segurança regulatório de 0.50m.
+              </p>
+              <div className="flex items-center justify-center gap-4 text-xs font-bold text-sky-400 pt-1">
+                <span>✓ Potência Total: {p.totalKwp.toFixed(2)} kWp</span>
+                <span>•</span>
+                <span>✓ Área Estimada: ~{Math.round(p.totalModules * 2.58)} m²</span>
+              </div>
+            </div>
           </div>
         </div>
 
