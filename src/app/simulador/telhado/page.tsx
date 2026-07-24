@@ -312,7 +312,6 @@ function RoofStudioContent() {
         setCenterLat(c.lat);
         setCenterLng(c.lng);
       });
-
       leafletInstanceRef.current = map;
     };
 
@@ -340,12 +339,12 @@ function RoofStudioContent() {
   const handlePolygonPointerDown = (e: React.PointerEvent<SVGPolygonElement>) => {
     e.stopPropagation();
     const target = e.currentTarget;
-    target.setPointerCapture(e.pointerId);
+    try { target.setPointerCapture(e.pointerId); } catch {}
     setDragStartPos({ x: e.clientX, y: e.clientY });
     setInitialMetersOnDrag([...polygonMeters]);
   };
 
-  const handlePolygonPointerMove = (e: React.PointerEvent<SVGPolygonElement>) => {
+  const handlePolygonPointerMove = (e: React.PointerEvent<any>) => {
     if (!dragStartPos) return;
     const dxScreen = e.clientX - dragStartPos.x;
     const dyScreen = e.clientY - dragStartPos.y;
@@ -365,34 +364,36 @@ function RoofStudioContent() {
     );
   };
 
-  const handlePolygonPointerUp = (e: React.PointerEvent<SVGPolygonElement>) => {
+  const handlePolygonPointerUp = (e?: React.PointerEvent<any>) => {
     if (dragStartPos) {
-      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+      if (e && e.currentTarget && e.currentTarget.releasePointerCapture) {
+        try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+      }
       setDragStartPos(null);
     }
   };
 
-  // Arraste Fluído e Sem Flickering dos Vértices em Metros
+  // Arraste Fluído, Preciso e Sem Flickering dos Vértices em Metros
   const handleVertexPointerDown = (index: number, e: React.PointerEvent<SVGCircleElement>) => {
     e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
     setDraggingVertexIndex(index);
   };
 
-  const handleVertexPointerMove = (index: number, e: React.PointerEvent<SVGCircleElement>) => {
+  const handleVertexPointerMove = (index: number, e: React.PointerEvent<any>) => {
     if (draggingVertexIndex !== index) return;
-    const svg = e.currentTarget.ownerSVGElement;
+    const svg = e.currentTarget.ownerSVGElement || (e.currentTarget as SVGElement);
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     const clientX = e.clientX - rect.left;
     const clientY = e.clientY - rect.top;
 
-    // Desrotaciona a posição do mouse em relação ao centroide do polígono
+    // Desrotaciona a posição do mouse em relação à origem estática do Canvas (centerCanvasX, centerCanvasY)
     const unrotated = getUnrotatedPoint(
       clientX,
       clientY,
-      polygonCentroidPixels.x,
-      polygonCentroidPixels.y,
+      centerCanvasX,
+      centerCanvasY,
       azimuthDegrees
     );
 
@@ -406,11 +407,30 @@ function RoofStudioContent() {
     });
   };
 
-  const handleVertexPointerUp = (index: number, e: React.PointerEvent<SVGCircleElement>) => {
+  const handleVertexPointerUp = (index: number, e?: React.PointerEvent<any>) => {
     if (draggingVertexIndex === index) {
-      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+      if (e && e.currentTarget && e.currentTarget.releasePointerCapture) {
+        try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+      }
       setDraggingVertexIndex(null);
     }
+  };
+
+  // Handler Global de PointerMove/Up no SVG Canvas para evitar perda de evento durante drag rápido
+  const handleSvgPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (draggingVertexIndex !== null) {
+      handleVertexPointerMove(draggingVertexIndex, e);
+    } else if (dragStartPos) {
+      handlePolygonPointerMove(e);
+    } else if (isRotating) {
+      handleRotatePointerMove(e);
+    }
+  };
+
+  const handleSvgPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (draggingVertexIndex !== null) handleVertexPointerUp(draggingVertexIndex, e);
+    if (dragStartPos) handlePolygonPointerUp(e);
+    if (isRotating) handleRotatePointerUp(e);
   };
 
   // Centroide em Metros e em Pixels
@@ -433,32 +453,34 @@ function RoofStudioContent() {
 
   const [isRotating, setIsRotating] = useState(false);
 
-  // Rotação Interativa da Estrutura Completa do Telhado (Alça ↻)
+  // Rotação Interativa da Estrutura Completa do Telhado (Alça ↻) em relação ao Centro do Canvas
   const handleRotatePointerDown = (e: React.PointerEvent<SVGGElement>) => {
     e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
     setIsRotating(true);
   };
 
-  const handleRotatePointerMove = (e: React.PointerEvent<SVGGElement>) => {
+  const handleRotatePointerMove = (e: React.PointerEvent<any>) => {
     if (!isRotating) return;
-    const svg = e.currentTarget.ownerSVGElement;
+    const svg = e.currentTarget.ownerSVGElement || (e.currentTarget as SVGElement);
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    const dx = mouseX - polygonCentroidPixels.x;
-    const dy = mouseY - polygonCentroidPixels.y;
+    const dx = mouseX - centerCanvasX;
+    const dy = mouseY - centerCanvasY;
     let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
     if (angle < 0) angle += 360;
 
     setAzimuthDegrees(Math.round(angle));
   };
 
-  const handleRotatePointerUp = (e: React.PointerEvent<SVGGElement>) => {
+  const handleRotatePointerUp = (e?: React.PointerEvent<any>) => {
     if (isRotating) {
-      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+      if (e && e.currentTarget && e.currentTarget.releasePointerCapture) {
+        try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+      }
       setIsRotating(false);
     }
   };
@@ -618,8 +640,10 @@ function RoofStudioContent() {
 
           {/* Canvas SVG Interativo para Telhado e Módulos */}
           <svg
-            className="w-full h-full relative z-10 select-none"
+            className="w-full h-full relative z-10 select-none cursor-crosshair"
             viewBox={`0 0 ${containerDimensions.width} ${containerDimensions.height}`}
+            onPointerMove={handleSvgPointerMove}
+            onPointerUp={handleSvgPointerUp}
           >
             <defs>
               <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -631,8 +655,8 @@ function RoofStudioContent() {
               </pattern>
             </defs>
 
-            {/* Grupo Único do Telhado & Módulos Rotacionados pelo Azimute */}
-            <g transform={`rotate(${azimuthDegrees}, ${polygonCentroidPixels.x}, ${polygonCentroidPixels.y})`}>
+            {/* Grupo Único do Telhado & Módulos Rotacionados pelo Azimute em relação à Origem Estática (centerCanvasX, centerCanvasY) */}
+            <g transform={`rotate(${azimuthDegrees}, ${centerCanvasX}, ${centerCanvasY})`}>
               
               {/* Polígono do Telhado (Perímetro Exterior em Metros Reais - Arrastável) */}
               <polygon
@@ -642,8 +666,6 @@ function RoofStudioContent() {
                 strokeWidth="3"
                 strokeDasharray="none"
                 onPointerDown={handlePolygonPointerDown}
-                onPointerMove={handlePolygonPointerMove}
-                onPointerUp={handlePolygonPointerUp}
                 className="cursor-move hover:fill-slate-900/80 transition-colors"
               />
 
@@ -670,8 +692,8 @@ function RoofStudioContent() {
 
               {/* Módulos Encaixados no Telhado */}
               {autoFillResult.panels.map((panel, idx) => {
-                const pxX = polygonCentroidPixels.x + panel.center.x * pixelsPerMeter;
-                const pxY = polygonCentroidPixels.y + panel.center.y * pixelsPerMeter;
+                const pxX = centerCanvasX + panel.center.x * pixelsPerMeter;
+                const pxY = centerCanvasY + panel.center.y * pixelsPerMeter;
                 const pWidth = panel.widthMeters * pixelsPerMeter;
                 const pHeight = panel.heightMeters * pixelsPerMeter;
 
@@ -752,13 +774,11 @@ function RoofStudioContent() {
                   key={i}
                   cx={v.x}
                   cy={v.y}
-                  r={draggingVertexIndex === i ? "11" : "8"}
+                  r={draggingVertexIndex === i ? "12" : "8.5"}
                   fill={draggingVertexIndex === i ? "#f59e0b" : "#38bdf8"}
                   stroke="#ffffff"
                   strokeWidth="3"
                   onPointerDown={(e) => handleVertexPointerDown(i, e)}
-                  onPointerMove={(e) => handleVertexPointerMove(i, e)}
-                  onPointerUp={(e) => handleVertexPointerUp(i, e)}
                   className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform drop-shadow-md"
                 />
               ))}
@@ -766,8 +786,6 @@ function RoofStudioContent() {
               {/* Alça Interativa de Rotação (↻) no Topo do Telhado */}
               <g
                 onPointerDown={handleRotatePointerDown}
-                onPointerMove={handleRotatePointerMove}
-                onPointerUp={handleRotatePointerUp}
                 className="cursor-grab active:cursor-grabbing hover:scale-110 transition-transform"
               >
                 <line
