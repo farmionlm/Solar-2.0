@@ -54,8 +54,25 @@ export function RoofLayoutModal({
   ]);
 
   const [activePreset, setActivePreset] = useState<'RECTANGLE' | 'L_SHAPE' | 'TRAPEZOID'>('RECTANGLE');
+  const [draggingVertexIndex, setDraggingVertexIndex] = useState<number | null>(null);
 
-  if (!isOpen) return null;
+  const handleSvgMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (draggingVertexIndex === null) return;
+    const svg = e.currentTarget;
+    const rect = svg.getBoundingClientRect();
+    const x = Math.max(10, Math.min(390, (e.clientX - rect.left) * (400 / rect.width)));
+    const y = Math.max(10, Math.min(290, (e.clientY - rect.top) * (300 / rect.height)));
+
+    setPolygonVertices((prev) => {
+      const updated = [...prev];
+      updated[draggingVertexIndex] = { x: Math.round(x), y: Math.round(y) };
+      return updated;
+    });
+  };
+
+  const handleSvgMouseUp = () => {
+    setDraggingVertexIndex(null);
+  };
 
   // Carregar preset de formato de telhado
   const applyPresetShape = (shape: 'RECTANGLE' | 'L_SHAPE' | 'TRAPEZOID') => {
@@ -130,6 +147,8 @@ export function RoofLayoutModal({
 
   const maxFitCount = autoFillResult.maxPanelsCount;
   const isDeficit = initialRequiredModules > 0 && maxFitCount < initialRequiredModules;
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
@@ -216,7 +235,13 @@ export function RoofLayoutModal({
               {/* Moldura de Fundo do Telhado */}
               <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
 
-              <svg className="w-full h-full relative z-10" viewBox="0 0 400 300">
+              <svg
+                className="w-full h-full relative z-10 cursor-crosshair select-none"
+                viewBox="0 0 400 300"
+                onMouseMove={handleSvgMouseMove}
+                onMouseUp={handleSvgMouseUp}
+                onMouseLeave={handleSvgMouseUp}
+              >
                 <defs>
                   <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#2563eb" stopOpacity="0.85" />
@@ -297,17 +322,21 @@ export function RoofLayoutModal({
                   );
                 })}
 
-                {/* Vértices Editáveis no SVG */}
+                {/* Vértices Editáveis no SVG (Arrastáveis) */}
                 {polygonVertices.map((v, i) => (
                   <circle
                     key={i}
                     cx={v.x}
                     cy={v.y}
-                    r="5"
-                    fill="#38bdf8"
+                    r={draggingVertexIndex === i ? "7" : "5"}
+                    fill={draggingVertexIndex === i ? "#f59e0b" : "#38bdf8"}
                     stroke="#ffffff"
                     strokeWidth="1.5"
-                    className="cursor-pointer hover:scale-125 transition-transform"
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      setDraggingVertexIndex(i);
+                    }}
+                    className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
                   />
                 ))}
               </svg>
