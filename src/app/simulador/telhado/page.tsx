@@ -319,7 +319,24 @@ function RoofStudioContent() {
     loadLeaflet();
   }, [centerLat, centerLng, zoomLevel, tileProvider, mapMode]);
 
-  // Movimentação do Telhado Inteiro (Pan Polygon) em Metros
+  // Helper para desrotacionar coordenadas de tela com base na orientação (Azimute)
+  const getUnrotatedPoint = (
+    screenX: number,
+    screenY: number,
+    originX: number,
+    originY: number,
+    angleDegrees: number
+  ) => {
+    const rad = (-angleDegrees * Math.PI) / 180;
+    const dx = screenX - originX;
+    const dy = screenY - originY;
+    return {
+      x: originX + (dx * Math.cos(rad) - dy * Math.sin(rad)),
+      y: originY + (dx * Math.sin(rad) + dy * Math.cos(rad)),
+    };
+  };
+
+  // Movimentação do Telhado Inteiro (Pan Polygon) em Metros Desrotacionados
   const handlePolygonPointerDown = (e: React.PointerEvent<SVGPolygonElement>) => {
     e.stopPropagation();
     const target = e.currentTarget;
@@ -332,8 +349,13 @@ function RoofStudioContent() {
     if (!dragStartPos) return;
     const dxScreen = e.clientX - dragStartPos.x;
     const dyScreen = e.clientY - dragStartPos.y;
-    const dxMeters = dxScreen / pixelsPerMeter;
-    const dyMeters = dyScreen / pixelsPerMeter;
+
+    const rad = (-azimuthDegrees * Math.PI) / 180;
+    const dxUnrotated = dxScreen * Math.cos(rad) - dyScreen * Math.sin(rad);
+    const dyUnrotated = dxScreen * Math.sin(rad) + dyScreen * Math.cos(rad);
+
+    const dxMeters = dxUnrotated / pixelsPerMeter;
+    const dyMeters = dyUnrotated / pixelsPerMeter;
 
     setPolygonMeters(
       initialMetersOnDrag.map((v) => ({
@@ -350,7 +372,7 @@ function RoofStudioContent() {
     }
   };
 
-  // Arraste dos Vértices em Metros
+  // Arraste Fluído e Sem Flickering dos Vértices em Metros
   const handleVertexPointerDown = (index: number, e: React.PointerEvent<SVGCircleElement>) => {
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -365,8 +387,17 @@ function RoofStudioContent() {
     const clientX = e.clientX - rect.left;
     const clientY = e.clientY - rect.top;
 
-    const mX = (clientX - centerCanvasX) / pixelsPerMeter;
-    const mY = (clientY - centerCanvasY) / pixelsPerMeter;
+    // Desrotaciona a posição do mouse em relação ao centroide do polígono
+    const unrotated = getUnrotatedPoint(
+      clientX,
+      clientY,
+      polygonCentroidPixels.x,
+      polygonCentroidPixels.y,
+      azimuthDegrees
+    );
+
+    const mX = (unrotated.x - centerCanvasX) / pixelsPerMeter;
+    const mY = (unrotated.y - centerCanvasY) / pixelsPerMeter;
 
     setPolygonMeters((prev) => {
       const updated = [...prev];
@@ -680,20 +711,55 @@ function RoofStudioContent() {
                 );
               })}
 
+              {/* Cotações em Metros das Arestas do Telhado */}
+              {polygonMeters.map((v1, i) => {
+                const v2 = polygonMeters[(i + 1) % polygonMeters.length];
+                const edgeLength = Math.hypot(v2.x - v1.x, v2.y - v1.y).toFixed(1);
+                const p1 = polygonVerticesPixels[i];
+                const p2 = polygonVerticesPixels[(i + 1) % polygonVerticesPixels.length];
+                const midX = (p1.x + p2.x) / 2;
+                const midY = (p1.y + p2.y) / 2;
+
+                return (
+                  <g key={`edge-${i}`} className="pointer-events-none">
+                    <rect
+                      x={midX - 22}
+                      y={midY - 10}
+                      width="44"
+                      height="20"
+                      rx="6"
+                      fill="rgba(15, 23, 42, 0.9)"
+                      stroke="#38bdf8"
+                      strokeWidth="1.2"
+                    />
+                    <text
+                      x={midX}
+                      y={midY + 4}
+                      fontSize="10"
+                      fontWeight="black"
+                      fill="#38bdf8"
+                      textAnchor="middle"
+                    >
+                      {edgeLength}m
+                    </text>
+                  </g>
+                );
+              })}
+
               {/* Vértices Editáveis do Telhado */}
               {polygonVerticesPixels.map((v, i) => (
                 <circle
                   key={i}
                   cx={v.x}
                   cy={v.y}
-                  r={draggingVertexIndex === i ? "10" : "7"}
+                  r={draggingVertexIndex === i ? "11" : "8"}
                   fill={draggingVertexIndex === i ? "#f59e0b" : "#38bdf8"}
                   stroke="#ffffff"
-                  strokeWidth="2.5"
+                  strokeWidth="3"
                   onPointerDown={(e) => handleVertexPointerDown(i, e)}
                   onPointerMove={(e) => handleVertexPointerMove(i, e)}
                   onPointerUp={(e) => handleVertexPointerUp(i, e)}
-                  className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
+                  className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform drop-shadow-md"
                 />
               ))}
 
