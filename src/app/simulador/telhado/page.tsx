@@ -392,17 +392,8 @@ function RoofStudioContent() {
     const clientX = e.clientX - rect.left;
     const clientY = e.clientY - rect.top;
 
-    // Desrotaciona a posição do mouse em relação ao centroide do polígono
-    const unrotated = getUnrotatedPoint(
-      clientX,
-      clientY,
-      polygonCentroidPixels.x,
-      polygonCentroidPixels.y,
-      azimuthDegrees
-    );
-
-    const mX = (unrotated.x - centerCanvasX) / pixelsPerMeter;
-    const mY = (unrotated.y - centerCanvasY) / pixelsPerMeter;
+    const mX = (clientX - centerCanvasX) / pixelsPerMeter;
+    const mY = (clientY - centerCanvasY) / pixelsPerMeter;
 
     setPolygonMeters((prev) => {
       const updated = [...prev];
@@ -659,42 +650,8 @@ function RoofStudioContent() {
               </pattern>
             </defs>
 
-            {/* Grupo Único do Telhado & Módulos Rotacionados pelo Azimute em relação ao Centroide do Polígono */}
+            {/* 1. Módulos Encaixados Rotacionados pelo Azimute em relação ao Centroide do Telhado */}
             <g transform={`rotate(${azimuthDegrees}, ${polygonCentroidPixels.x}, ${polygonCentroidPixels.y})`}>
-              
-              {/* Polígono do Telhado (Perímetro Exterior em Metros Reais - Arrastável) */}
-              <polygon
-                points={polygonVerticesPixels.map((v) => `${v.x},${v.y}`).join(" ")}
-                fill="rgba(15, 23, 42, 0.65)"
-                stroke="#38bdf8"
-                strokeWidth="3"
-                strokeDasharray="none"
-                onPointerDown={handlePolygonPointerDown}
-                className="cursor-move hover:fill-slate-900/80 transition-colors"
-              />
-
-              {/* Margem de Segurança Interna (Recuo) */}
-              {polygonVerticesPixels.length >= 3 && (
-                <polygon
-                  points={polygonVerticesPixels.map((v) => {
-                    const cx = polygonCentroidPixels.x;
-                    const cy = polygonCentroidPixels.y;
-                    const distToCenter = Math.hypot(v.x - cx, v.y - cy);
-                    const marginPx = marginMeters * pixelsPerMeter;
-                    const factor = Math.max(0.2, 1 - marginPx / Math.max(1, distToCenter));
-                    const vx = cx + (v.x - cx) * factor;
-                    const vy = cy + (v.y - cy) * factor;
-                    return `${vx},${vy}`;
-                  }).join(" ")}
-                  fill="none"
-                  stroke="#f59e0b"
-                  strokeWidth="2"
-                  strokeDasharray="5 4"
-                  className="pointer-events-none"
-                />
-              )}
-
-              {/* Módulos Encaixados no Telhado (Ancorados ao Centroide e Alinhados ao Grid) */}
               {autoFillResult.panels.map((panel, idx) => {
                 const ac = panel.alignedCenter || panel.center;
                 const pxX = polygonCentroidPixels.x + ac.x * pixelsPerMeter;
@@ -737,6 +694,41 @@ function RoofStudioContent() {
                   </g>
                 );
               })}
+            </g>
+
+            {/* 2. Estrutura do Telhado (Polígono, Margem de Recuo, Cotas e Vértices na Posição Real do Mapa) */}
+            <g>
+              {/* Polígono do Telhado (Perímetro Exterior em Metros Reais - Arrastável) */}
+              <polygon
+                points={polygonVerticesPixels.map((v) => `${v.x},${v.y}`).join(" ")}
+                fill="rgba(15, 23, 42, 0.60)"
+                stroke="#38bdf8"
+                strokeWidth="3"
+                strokeDasharray="none"
+                onPointerDown={handlePolygonPointerDown}
+                className="cursor-move hover:fill-slate-900/75 transition-colors"
+              />
+
+              {/* Margem de Segurança Interna (Recuo) */}
+              {polygonVerticesPixels.length >= 3 && (
+                <polygon
+                  points={polygonVerticesPixels.map((v) => {
+                    const cx = polygonCentroidPixels.x;
+                    const cy = polygonCentroidPixels.y;
+                    const distToCenter = Math.hypot(v.x - cx, v.y - cy);
+                    const marginPx = marginMeters * pixelsPerMeter;
+                    const factor = Math.max(0.2, 1 - marginPx / Math.max(1, distToCenter));
+                    const vx = cx + (v.x - cx) * factor;
+                    const vy = cy + (v.y - cy) * factor;
+                    return `${vx},${vy}`;
+                  }).join(" ")}
+                  fill="none"
+                  stroke="#f59e0b"
+                  strokeWidth="2"
+                  strokeDasharray="5 4"
+                  className="pointer-events-none"
+                />
+              )}
 
               {/* Cotações em Metros das Arestas do Telhado */}
               {polygonMeters.map((v1, i) => {
@@ -773,7 +765,7 @@ function RoofStudioContent() {
                 );
               })}
 
-              {/* Vértices Editáveis do Telhado (Compactos e Sem Shaking CSS) */}
+              {/* Vértices Editáveis do Telhado */}
               {polygonVerticesPixels.map((v, i) => (
                 <circle
                   key={i}
@@ -822,7 +814,6 @@ function RoofStudioContent() {
                   ↻
                 </text>
               </g>
-
             </g>
           </svg>
 
