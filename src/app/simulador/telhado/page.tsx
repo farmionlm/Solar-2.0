@@ -419,6 +419,51 @@ function RoofStudioContent() {
     }
   };
 
+  // Estado para arraste direto da imagem do mapa de satélite com o mouse
+  const [mapDragStart, setMapDragStart] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
+
+  const handleMapPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    // Inicia o arraste do mapa apenas se o clique for no fundo do SVG (não nos vértices/polígono)
+    if ((e.target as HTMLElement).tagName === 'svg') {
+      setMapDragStart({
+        x: e.clientX,
+        y: e.clientY,
+        lat: centerLat,
+        lng: centerLng,
+      });
+    }
+  };
+
+  const handleMapPointerMove = (e: React.PointerEvent<any>) => {
+    if (!mapDragStart) return;
+    const dxPixels = e.clientX - mapDragStart.x;
+    const dyPixels = e.clientY - mapDragStart.y;
+
+    const dLat = (dyPixels * metersPerPixel) / 111000;
+    const dLng = -(dxPixels * metersPerPixel) / (111000 * Math.cos((mapDragStart.lat * Math.PI) / 180));
+
+    setCenterLat(mapDragStart.lat + dLat);
+    setCenterLng(mapDragStart.lng + dLng);
+  };
+
+  const handleMapPointerUp = () => {
+    setMapDragStart(null);
+  };
+
+  // Scroll do Mouse (Wheel) para Zoom In/Out
+  const lastWheelTimeRef = useRef<number>(0);
+  const handleWheelZoom = (e: React.WheelEvent) => {
+    const now = Date.now();
+    if (now - lastWheelTimeRef.current < 100) return;
+    lastWheelTimeRef.current = now;
+
+    if (e.deltaY < 0) {
+      setZoomLevel((prev) => Math.min(22, prev + 1));
+    } else if (e.deltaY > 0) {
+      setZoomLevel((prev) => Math.max(18, prev - 1));
+    }
+  };
+
   // Handler Global de PointerMove/Up no SVG Canvas para evitar perda de evento durante drag rápido
   const handleSvgPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     if (draggingVertexIndex !== null) {
@@ -427,6 +472,8 @@ function RoofStudioContent() {
       handlePolygonPointerMove(e);
     } else if (isRotating) {
       handleRotatePointerMove(e);
+    } else if (mapDragStart) {
+      handleMapPointerMove(e);
     }
   };
 
@@ -434,6 +481,7 @@ function RoofStudioContent() {
     if (draggingVertexIndex !== null) handleVertexPointerUp(draggingVertexIndex, e);
     if (dragStartPos) handlePolygonPointerUp(e);
     if (isRotating) handleRotatePointerUp(e);
+    if (mapDragStart) handleMapPointerUp();
   };
 
   // Centroide em Metros e em Pixels
@@ -614,7 +662,11 @@ function RoofStudioContent() {
       <div className="relative flex-1 w-full h-[calc(100vh-64px)] flex overflow-hidden">
         
         {/* Workspace do Desenho (Takes entire remaining space) */}
-        <div ref={containerRef} className="relative flex-1 h-full bg-slate-950 flex items-center justify-center overflow-hidden">
+        <div
+          ref={containerRef}
+          onWheel={handleWheelZoom}
+          className="relative flex-1 h-full bg-slate-950 flex items-center justify-center overflow-hidden"
+        >
           
           {/* Badge de Escala Real de Engenharia */}
           <div className="absolute top-4 left-4 z-20 bg-card/90 backdrop-blur-md border border-border p-2.5 rounded-2xl shadow-xl flex items-center gap-3">
@@ -643,8 +695,11 @@ function RoofStudioContent() {
 
           {/* Canvas SVG Interativo para Telhado e Módulos */}
           <svg
-            className="w-full h-full relative z-10 select-none cursor-crosshair"
+            className={`w-full h-full relative z-10 select-none ${
+              mapDragStart ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
             viewBox={`0 0 ${containerDimensions.width} ${containerDimensions.height}`}
+            onPointerDown={handleMapPointerDown}
             onPointerMove={handleSvgPointerMove}
             onPointerUp={handleSvgPointerUp}
           >
