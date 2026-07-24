@@ -50,7 +50,7 @@ function RoofStudioContent() {
   const [searchError, setSearchError] = useState<string>("");
   const [centerLat, setCenterLat] = useState<number>(-20.3155); // Vitória, ES
   const [centerLng, setCenterLng] = useState<number>(-40.3128);
-  const [zoomLevel, setZoomLevel] = useState<number>(19); // 18, 19, 20 (Ultra Sharp)
+  const [zoomLevel, setZoomLevel] = useState<number>(20); // Default Zoom 20 (Ultra Sharp HD)
   const [mapMode, setMapMode] = useState<'SATELLITE' | 'VECTOR'>('SATELLITE');
 
   // Estados de Engenharia do Telhado
@@ -62,19 +62,54 @@ function RoofStudioContent() {
   const [moduleWidthMeters, setModuleWidthMeters] = useState<number>(1.13);
   const [moduleHeightMeters, setModuleHeightMeters] = useState<number>(2.28);
 
-  // Vértices do telhado em pixels no canvas amplo (800x600) — tamanho compacto inicial
-  const [polygonVertices, setPolygonVertices] = useState<Point2D[]>([
-    { x: 275, y: 210 },
-    { x: 525, y: 210 },
-    { x: 525, y: 390 },
-    { x: 275, y: 390 },
+  // Vértices do telhado em METROS reais em relação ao centro do imóvel
+  // Inicialmente um retângulo típico de 10m de largura por 7.2m de comprimento
+  const [polygonMeters, setPolygonMeters] = useState<Point2D[]>([
+    { x: -5, y: -3.6 },
+    { x: 5, y: -3.6 },
+    { x: 5, y: 3.6 },
+    { x: -5, y: 3.6 },
   ]);
 
   const [activePreset, setActivePreset] = useState<'RECTANGLE' | 'L_SHAPE' | 'TRAPEZOID'>('RECTANGLE');
   const [draggingVertexIndex, setDraggingVertexIndex] = useState<number | null>(null);
   const [dragStartPos, setDragStartPos] = useState<Point2D | null>(null);
-  const [initialVerticesOnDrag, setInitialVerticesOnDrag] = useState<Point2D[]>([]);
+  const [initialMetersOnDrag, setInitialMetersOnDrag] = useState<Point2D[]>([]);
   const [showSidebar, setShowSidebar] = useState<boolean>(true);
+
+  // Medição do container para sincronizar com o canvas
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerDimensions, setContainerDimensions] = useState<{ width: number; height: number }>({
+    width: 1000,
+    height: 700,
+  });
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateSize = () => {
+      if (containerRef.current) {
+        setContainerDimensions({
+          width: containerRef.current.clientWidth || 1000,
+          height: containerRef.current.clientHeight || 700,
+        });
+      }
+    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
+
+  const centerCanvasX = containerDimensions.width / 2;
+  const centerCanvasY = containerDimensions.height / 2;
+
+  // Cálculo rigoroso da escala geográfica do mapa (Web Mercator) em pixels por metro
+  const metersPerPixel = useMemo(() => {
+    return (156543.03392 * Math.cos((centerLat * Math.PI) / 180)) / Math.pow(2, zoomLevel);
+  }, [centerLat, zoomLevel]);
+
+  const pixelsPerMeter = useMemo(() => {
+    return 1 / Math.max(0.0001, metersPerPixel);
+  }, [metersPerPixel]);
 
   // Provedor de Imagem de Satélite
   const [tileProvider, setTileProvider] = useState<'GOOGLE_SAT' | 'GOOGLE_HYBRID' | 'ESRI'>('GOOGLE_SAT');
@@ -121,6 +156,7 @@ function RoofStudioContent() {
           if (geoData && geoData.length > 0) {
             setCenterLat(parseFloat(geoData[0].lat));
             setCenterLng(parseFloat(geoData[0].lon));
+            setZoomLevel(20);
             setMapMode("SATELLITE");
           } else {
             setSearchError("Endereço não localizado no mapa.");
@@ -136,6 +172,7 @@ function RoofStudioContent() {
         if (geoData && geoData.length > 0) {
           setCenterLat(parseFloat(geoData[0].lat));
           setCenterLng(parseFloat(geoData[0].lon));
+          setZoomLevel(20);
           setMapMode("SATELLITE");
         } else {
           setSearchError("Endereço não localizado no mapa.");
@@ -149,52 +186,50 @@ function RoofStudioContent() {
     }
   };
 
-  // Preset Shapes compactos e centralizados
+  // Presets de Formatos em METROS Reais
   const applyPresetShape = (shape: 'RECTANGLE' | 'L_SHAPE' | 'TRAPEZOID') => {
     setActivePreset(shape);
     if (shape === 'RECTANGLE') {
-      setPolygonVertices([
-        { x: 275, y: 210 },
-        { x: 525, y: 210 },
-        { x: 525, y: 390 },
-        { x: 275, y: 390 },
+      setPolygonMeters([
+        { x: -5, y: -3.6 },
+        { x: 5, y: -3.6 },
+        { x: 5, y: 3.6 },
+        { x: -5, y: 3.6 },
       ]);
     } else if (shape === 'L_SHAPE') {
-      setPolygonVertices([
-        { x: 275, y: 210 },
-        { x: 525, y: 210 },
-        { x: 525, y: 300 },
-        { x: 400, y: 300 },
-        { x: 400, y: 390 },
-        { x: 275, y: 390 },
+      setPolygonMeters([
+        { x: -5, y: -3.6 },
+        { x: 5, y: -3.6 },
+        { x: 5, y: 0 },
+        { x: 0, y: 0 },
+        { x: 0, y: 3.6 },
+        { x: -5, y: 3.6 },
       ]);
     } else if (shape === 'TRAPEZOID') {
-      setPolygonVertices([
-        { x: 320, y: 210 },
-        { x: 480, y: 210 },
-        { x: 540, y: 390 },
-        { x: 260, y: 390 },
+      setPolygonMeters([
+        { x: -3.2, y: -3.6 },
+        { x: 3.2, y: -3.6 },
+        { x: 5.6, y: 3.6 },
+        { x: -5.6, y: 3.6 },
       ]);
     }
   };
 
-  const PIXELS_PER_METER = 25; // 25px = 1m para maior nitidez gráfica
-
-  // Converte vértices do canvas para coordenadas simuladas em metros
-  const roofMeters: Point2D[] = useMemo(() => {
-    return polygonVertices.map((v) => ({
-      x: (v.x - 400) / PIXELS_PER_METER,
-      y: (v.y - 300) / PIXELS_PER_METER,
+  // Converte vértices em metros para pixels no canvas SVG
+  const polygonVerticesPixels: Point2D[] = useMemo(() => {
+    return polygonMeters.map((m) => ({
+      x: centerCanvasX + m.x * pixelsPerMeter,
+      y: centerCanvasY + m.y * pixelsPerMeter,
     }));
-  }, [polygonVertices]);
+  }, [polygonMeters, centerCanvasX, centerCanvasY, pixelsPerMeter]);
 
   // Converter metros locais para LatLng reais relativos à localização pesquisada
   const latLngPoints: LatLngPoint[] = useMemo(() => {
-    return roofMeters.map((m) => ({
+    return polygonMeters.map((m) => ({
       lat: centerLat + (m.y / 111000),
       lng: centerLng + (m.x / (111000 * Math.cos((centerLat * Math.PI) / 180))),
     }));
-  }, [roofMeters, centerLat, centerLng]);
+  }, [polygonMeters, centerLat, centerLng]);
 
   // Motor de auto-fill
   const autoFillResult: AutoFillResult = useMemo(() => {
@@ -270,7 +305,7 @@ function RoofStudioContent() {
         tileUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
       }
 
-      L.tileLayer(tileUrl, { maxZoom: 20 }).addTo(map);
+      L.tileLayer(tileUrl, { maxZoom: 22, maxNativeZoom: 20 }).addTo(map);
 
       map.on("moveend", () => {
         const c = map.getCenter();
@@ -284,34 +319,26 @@ function RoofStudioContent() {
     loadLeaflet();
   }, [centerLat, centerLng, zoomLevel, tileProvider, mapMode]);
 
-  // Movimentação do Telhado Inteiro (Pan Polygon)
+  // Movimentação do Telhado Inteiro (Pan Polygon) em Metros
   const handlePolygonPointerDown = (e: React.PointerEvent<SVGPolygonElement>) => {
     e.stopPropagation();
     const target = e.currentTarget;
     target.setPointerCapture(e.pointerId);
-    const svg = target.ownerSVGElement;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (800 / rect.width);
-    const y = (e.clientY - rect.top) * (600 / rect.height);
-    setDragStartPos({ x, y });
-    setInitialVerticesOnDrag([...polygonVertices]);
+    setDragStartPos({ x: e.clientX, y: e.clientY });
+    setInitialMetersOnDrag([...polygonMeters]);
   };
 
   const handlePolygonPointerMove = (e: React.PointerEvent<SVGPolygonElement>) => {
     if (!dragStartPos) return;
-    const svg = e.currentTarget.ownerSVGElement;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const currX = (e.clientX - rect.left) * (800 / rect.width);
-    const currY = (e.clientY - rect.top) * (600 / rect.height);
-    const dx = currX - dragStartPos.x;
-    const dy = currY - dragStartPos.y;
+    const dxScreen = e.clientX - dragStartPos.x;
+    const dyScreen = e.clientY - dragStartPos.y;
+    const dxMeters = dxScreen / pixelsPerMeter;
+    const dyMeters = dyScreen / pixelsPerMeter;
 
-    setPolygonVertices(
-      initialVerticesOnDrag.map((v) => ({
-        x: Math.round(Math.max(10, Math.min(790, v.x + dx))),
-        y: Math.round(Math.max(10, Math.min(590, v.y + dy))),
+    setPolygonMeters(
+      initialMetersOnDrag.map((v) => ({
+        x: Number((v.x + dxMeters).toFixed(2)),
+        y: Number((v.y + dyMeters).toFixed(2)),
       }))
     );
   };
@@ -323,7 +350,7 @@ function RoofStudioContent() {
     }
   };
 
-  // Arraste Sem Flickering das Arestas/Vértices (Pointer Capture)
+  // Arraste dos Vértices em Metros
   const handleVertexPointerDown = (index: number, e: React.PointerEvent<SVGCircleElement>) => {
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -335,12 +362,15 @@ function RoofStudioContent() {
     const svg = e.currentTarget.ownerSVGElement;
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
-    const x = Math.max(10, Math.min(790, (e.clientX - rect.left) * (800 / rect.width)));
-    const y = Math.max(10, Math.min(590, (e.clientY - rect.top) * (600 / rect.height)));
+    const clientX = e.clientX - rect.left;
+    const clientY = e.clientY - rect.top;
 
-    setPolygonVertices((prev) => {
+    const mX = (clientX - centerCanvasX) / pixelsPerMeter;
+    const mY = (clientY - centerCanvasY) / pixelsPerMeter;
+
+    setPolygonMeters((prev) => {
       const updated = [...prev];
-      updated[index] = { x: Math.round(x), y: Math.round(y) };
+      updated[index] = { x: Number(mX.toFixed(2)), y: Number(mY.toFixed(2)) };
       return updated;
     });
   };
@@ -352,16 +382,23 @@ function RoofStudioContent() {
     }
   };
 
-  // Centroide (Centro de Gravidade) do Polígono do Telhado em Pixels
-  const polygonCentroid = useMemo(() => {
-    if (!polygonVertices || polygonVertices.length === 0) return { x: 400, y: 300 };
-    const sumX = polygonVertices.reduce((acc, v) => acc + v.x, 0);
-    const sumY = polygonVertices.reduce((acc, v) => acc + v.y, 0);
+  // Centroide em Metros e em Pixels
+  const polygonCentroidMeters = useMemo(() => {
+    if (!polygonMeters || polygonMeters.length === 0) return { x: 0, y: 0 };
+    const sumX = polygonMeters.reduce((acc, v) => acc + v.x, 0);
+    const sumY = polygonMeters.reduce((acc, v) => acc + v.y, 0);
     return {
-      x: Math.round(sumX / polygonVertices.length),
-      y: Math.round(sumY / polygonVertices.length),
+      x: sumX / polygonMeters.length,
+      y: sumY / polygonMeters.length,
     };
-  }, [polygonVertices]);
+  }, [polygonMeters]);
+
+  const polygonCentroidPixels = useMemo(() => {
+    return {
+      x: centerCanvasX + polygonCentroidMeters.x * pixelsPerMeter,
+      y: centerCanvasY + polygonCentroidMeters.y * pixelsPerMeter,
+    };
+  }, [centerCanvasX, centerCanvasY, polygonCentroidMeters, pixelsPerMeter]);
 
   const [isRotating, setIsRotating] = useState(false);
 
@@ -377,11 +414,11 @@ function RoofStudioContent() {
     const svg = e.currentTarget.ownerSVGElement;
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
-    const mouseX = (e.clientX - rect.left) * (800 / rect.width);
-    const mouseY = (e.clientY - rect.top) * (600 / rect.height);
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
 
-    const dx = mouseX - polygonCentroid.x;
-    const dy = mouseY - polygonCentroid.y;
+    const dx = mouseX - polygonCentroidPixels.x;
+    const dy = mouseY - polygonCentroidPixels.y;
     let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
     if (angle < 0) angle += 360;
 
@@ -521,8 +558,20 @@ function RoofStudioContent() {
       <div className="relative flex-1 w-full h-[calc(100vh-64px)] flex overflow-hidden">
         
         {/* Workspace do Desenho (Takes entire remaining space) */}
-        <div className="relative flex-1 h-full bg-slate-950 flex items-center justify-center overflow-hidden">
+        <div ref={containerRef} className="relative flex-1 h-full bg-slate-950 flex items-center justify-center overflow-hidden">
           
+          {/* Badge de Escala Real de Engenharia */}
+          <div className="absolute top-4 left-4 z-20 bg-card/90 backdrop-blur-md border border-border p-2.5 rounded-2xl shadow-xl flex items-center gap-3">
+            <div className="flex items-center gap-2 text-xs font-extrabold text-foreground">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Escala Física Real: <strong className="text-primary">1m = {pixelsPerMeter.toFixed(1)} px</strong></span>
+            </div>
+            <div className="h-4 w-px bg-border" />
+            <span className="text-[11px] font-bold text-muted-foreground">
+              Módulo Sol: {moduleWidthMeters}m × {moduleHeightMeters}m (~{(moduleWidthMeters * moduleHeightMeters).toFixed(2)} m²)
+            </span>
+          </div>
+
           {/* Fundo 1: Imagem de Satélite Contínua Nível de Produção (Leaflet HD - Custo ZERO, Sem Cortes) */}
           {mapMode === 'SATELLITE' && (
             <div
@@ -539,7 +588,7 @@ function RoofStudioContent() {
           {/* Canvas SVG Interativo para Telhado e Módulos */}
           <svg
             className="w-full h-full relative z-10 select-none"
-            viewBox="0 0 800 600"
+            viewBox={`0 0 ${containerDimensions.width} ${containerDimensions.height}`}
           >
             <defs>
               <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -552,11 +601,11 @@ function RoofStudioContent() {
             </defs>
 
             {/* Grupo Único do Telhado & Módulos Rotacionados pelo Azimute */}
-            <g transform={`rotate(${azimuthDegrees}, ${polygonCentroid.x}, ${polygonCentroid.y})`}>
+            <g transform={`rotate(${azimuthDegrees}, ${polygonCentroidPixels.x}, ${polygonCentroidPixels.y})`}>
               
-              {/* Polígono do Telhado (Perímetro Exterior - Arrastável Inteiro) */}
+              {/* Polígono do Telhado (Perímetro Exterior em Metros Reais - Arrastável) */}
               <polygon
-                points={polygonVertices.map((v) => `${v.x},${v.y}`).join(" ")}
+                points={polygonVerticesPixels.map((v) => `${v.x},${v.y}`).join(" ")}
                 fill="rgba(15, 23, 42, 0.65)"
                 stroke="#38bdf8"
                 strokeWidth="3"
@@ -568,12 +617,14 @@ function RoofStudioContent() {
               />
 
               {/* Margem de Segurança Interna (Recuo) */}
-              {polygonVertices.length >= 3 && (
+              {polygonVerticesPixels.length >= 3 && (
                 <polygon
-                  points={polygonVertices.map((v) => {
-                    const cx = polygonVertices.reduce((a, b) => a + b.x, 0) / polygonVertices.length;
-                    const cy = polygonVertices.reduce((a, b) => a + b.y, 0) / polygonVertices.length;
-                    const factor = 1 - (marginMeters * 0.05);
+                  points={polygonVerticesPixels.map((v) => {
+                    const cx = polygonCentroidPixels.x;
+                    const cy = polygonCentroidPixels.y;
+                    const distToCenter = Math.hypot(v.x - cx, v.y - cy);
+                    const marginPx = marginMeters * pixelsPerMeter;
+                    const factor = Math.max(0.2, 1 - marginPx / Math.max(1, distToCenter));
                     const vx = cx + (v.x - cx) * factor;
                     const vy = cy + (v.y - cy) * factor;
                     return `${vx},${vy}`;
@@ -588,10 +639,10 @@ function RoofStudioContent() {
 
               {/* Módulos Encaixados no Telhado */}
               {autoFillResult.panels.map((panel, idx) => {
-                const pxX = polygonCentroid.x + panel.center.x * PIXELS_PER_METER;
-                const pxY = polygonCentroid.y + panel.center.y * PIXELS_PER_METER;
-                const pWidth = panel.widthMeters * PIXELS_PER_METER;
-                const pHeight = panel.heightMeters * PIXELS_PER_METER;
+                const pxX = centerCanvasX + panel.center.x * pixelsPerMeter;
+                const pxY = centerCanvasY + panel.center.y * pixelsPerMeter;
+                const pWidth = panel.widthMeters * pixelsPerMeter;
+                const pHeight = panel.heightMeters * pixelsPerMeter;
 
                 return (
                   <g key={panel.id} className="pointer-events-none">
@@ -600,7 +651,7 @@ function RoofStudioContent() {
                       y={pxY - pHeight / 2}
                       width={pWidth}
                       height={pHeight}
-                      rx="3"
+                      rx="2"
                       fill="url(#panelGrad)"
                       stroke="#93c5fd"
                       strokeWidth="1.2"
@@ -610,25 +661,27 @@ function RoofStudioContent() {
                       y={pxY - pHeight / 2}
                       width={pWidth}
                       height={pHeight}
-                      rx="3"
+                      rx="2"
                       fill="url(#solarGrid)"
                     />
-                    <text
-                      x={pxX}
-                      y={pxY + 4}
-                      fontSize="10"
-                      fontWeight="bold"
-                      fill="#ffffff"
-                      textAnchor="middle"
-                    >
-                      {idx + 1}
-                    </text>
+                    {pWidth > 14 && (
+                      <text
+                        x={pxX}
+                        y={pxY + 4}
+                        fontSize={Math.max(8, Math.min(12, pWidth * 0.45))}
+                        fontWeight="bold"
+                        fill="#ffffff"
+                        textAnchor="middle"
+                      >
+                        {idx + 1}
+                      </text>
+                    )}
                   </g>
                 );
               })}
 
-              {/* Vértices Editáveis do Telhado (Arrastáveis sem Flickering) */}
-              {polygonVertices.map((v, i) => (
+              {/* Vértices Editáveis do Telhado */}
+              {polygonVerticesPixels.map((v, i) => (
                 <circle
                   key={i}
                   cx={v.x}
@@ -652,17 +705,17 @@ function RoofStudioContent() {
                 className="cursor-grab active:cursor-grabbing hover:scale-110 transition-transform"
               >
                 <line
-                  x1={polygonCentroid.x}
-                  y1={polygonCentroid.y - 100}
-                  x2={polygonCentroid.x}
-                  y2={polygonCentroid.y - 135}
+                  x1={polygonCentroidPixels.x}
+                  y1={polygonCentroidPixels.y - 80}
+                  x2={polygonCentroidPixels.x}
+                  y2={polygonCentroidPixels.y - 115}
                   stroke="#f59e0b"
                   strokeWidth="2.5"
                   strokeDasharray="4 3"
                 />
                 <circle
-                  cx={polygonCentroid.x}
-                  cy={polygonCentroid.y - 135}
+                  cx={polygonCentroidPixels.x}
+                  cy={polygonCentroidPixels.y - 115}
                   r="12"
                   fill="#f59e0b"
                   stroke="#ffffff"
@@ -670,8 +723,8 @@ function RoofStudioContent() {
                   className="shadow-lg"
                 />
                 <text
-                  x={polygonCentroid.x}
-                  y={polygonCentroid.y - 131}
+                  x={polygonCentroidPixels.x}
+                  y={polygonCentroidPixels.y - 111}
                   fontSize="12"
                   fontWeight="black"
                   fill="#ffffff"
@@ -741,7 +794,7 @@ function RoofStudioContent() {
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => setZoomLevel(Math.min(20, zoomLevel + 1))}
+                onClick={() => setZoomLevel(Math.min(22, zoomLevel + 1))}
                 className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
                 title="Aumentar Zoom Satélite"
               >
@@ -750,7 +803,7 @@ function RoofStudioContent() {
               <span className="text-xs font-black px-2 text-primary">{zoomLevel}x</span>
               <button
                 type="button"
-                onClick={() => setZoomLevel(Math.max(17, zoomLevel - 1))}
+                onClick={() => setZoomLevel(Math.max(18, zoomLevel - 1))}
                 className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
                 title="Diminuir Zoom Satélite"
               >
