@@ -639,8 +639,8 @@ function RoofStudioContent() {
 
               {/* Módulos Encaixados no Telhado */}
               {autoFillResult.panels.map((panel, idx) => {
-                const pxX = centerCanvasX + panel.center.x * pixelsPerMeter;
-                const pxY = centerCanvasY + panel.center.y * pixelsPerMeter;
+                const pxX = polygonCentroidPixels.x + panel.center.x * pixelsPerMeter;
+                const pxY = polygonCentroidPixels.y + panel.center.y * pixelsPerMeter;
                 const pWidth = panel.widthMeters * pixelsPerMeter;
                 const pHeight = panel.heightMeters * pixelsPerMeter;
 
