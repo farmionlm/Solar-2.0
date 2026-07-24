@@ -311,10 +311,46 @@ function RoofStudioContent() {
     });
   };
 
-  const handleVertexPointerUp = (index: number, e: React.PointerEvent<SVGCircleElement>) => {
-    if (draggingVertexIndex === index) {
+  // Centroide (Centro de Gravidade) do Polígono do Telhado em Pixels
+  const polygonCentroid = useMemo(() => {
+    if (!polygonVertices || polygonVertices.length === 0) return { x: 400, y: 300 };
+    const sumX = polygonVertices.reduce((acc, v) => acc + v.x, 0);
+    const sumY = polygonVertices.reduce((acc, v) => acc + v.y, 0);
+    return {
+      x: Math.round(sumX / polygonVertices.length),
+      y: Math.round(sumY / polygonVertices.length),
+    };
+  }, [polygonVertices]);
+
+  const [isRotating, setIsRotating] = useState(false);
+
+  // Rotação Interativa da Estrutura Completa do Telhado (Alça ↻)
+  const handleRotatePointerDown = (e: React.PointerEvent<SVGGElement>) => {
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setIsRotating(true);
+  };
+
+  const handleRotatePointerMove = (e: React.PointerEvent<SVGGElement>) => {
+    if (!isRotating) return;
+    const svg = e.currentTarget.ownerSVGElement;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left) * (800 / rect.width);
+    const mouseY = (e.clientY - rect.top) * (600 / rect.height);
+
+    const dx = mouseX - polygonCentroid.x;
+    const dy = mouseY - polygonCentroid.y;
+    let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+    if (angle < 0) angle += 360;
+
+    setAzimuthDegrees(Math.round(angle));
+  };
+
+  const handleRotatePointerUp = (e: React.PointerEvent<SVGGElement>) => {
+    if (isRotating) {
       try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
-      setDraggingVertexIndex(null);
+      setIsRotating(false);
     }
   };
 
@@ -484,95 +520,137 @@ function RoofStudioContent() {
               </pattern>
             </defs>
 
-            {/* Polígono do Telhado (Perímetro Exterior - Arrastável Inteiro) */}
-            <polygon
-              points={polygonVertices.map((v) => `${v.x},${v.y}`).join(" ")}
-              fill="rgba(15, 23, 42, 0.65)"
-              stroke="#38bdf8"
-              strokeWidth="3"
-              strokeDasharray="none"
-              onPointerDown={handlePolygonPointerDown}
-              onPointerMove={handlePolygonPointerMove}
-              onPointerUp={handlePolygonPointerUp}
-              className="cursor-move hover:fill-slate-900/80 transition-colors"
-            />
-
-            {/* Margem de Segurança Interna (Recuo) */}
-            {polygonVertices.length >= 3 && (
+            {/* Grupo Único do Telhado & Módulos Rotacionados pelo Azimute */}
+            <g transform={`rotate(${azimuthDegrees}, ${polygonCentroid.x}, ${polygonCentroid.y})`}>
+              
+              {/* Polígono do Telhado (Perímetro Exterior - Arrastável Inteiro) */}
               <polygon
-                points={polygonVertices.map((v) => {
-                  const cx = polygonVertices.reduce((a, b) => a + b.x, 0) / polygonVertices.length;
-                  const cy = polygonVertices.reduce((a, b) => a + b.y, 0) / polygonVertices.length;
-                  const factor = 1 - (marginMeters * 0.05);
-                  const vx = cx + (v.x - cx) * factor;
-                  const vy = cy + (v.y - cy) * factor;
-                  return `${vx},${vy}`;
-                }).join(" ")}
-                fill="none"
-                stroke="#f59e0b"
-                strokeWidth="2"
-                strokeDasharray="5 4"
-                className="pointer-events-none"
+                points={polygonVertices.map((v) => `${v.x},${v.y}`).join(" ")}
+                fill="rgba(15, 23, 42, 0.65)"
+                stroke="#38bdf8"
+                strokeWidth="3"
+                strokeDasharray="none"
+                onPointerDown={handlePolygonPointerDown}
+                onPointerMove={handlePolygonPointerMove}
+                onPointerUp={handlePolygonPointerUp}
+                className="cursor-move hover:fill-slate-900/80 transition-colors"
               />
-            )}
 
-            {/* Módulos Encaixados no Telhado */}
-            {autoFillResult.panels.map((panel, idx) => {
-              const pxX = 400 + panel.center.x * PIXELS_PER_METER;
-              const pxY = 300 + panel.center.y * PIXELS_PER_METER;
-              const pWidth = panel.widthMeters * PIXELS_PER_METER;
-              const pHeight = panel.heightMeters * PIXELS_PER_METER;
+              {/* Margem de Segurança Interna (Recuo) */}
+              {polygonVertices.length >= 3 && (
+                <polygon
+                  points={polygonVertices.map((v) => {
+                    const cx = polygonVertices.reduce((a, b) => a + b.x, 0) / polygonVertices.length;
+                    const cy = polygonVertices.reduce((a, b) => a + b.y, 0) / polygonVertices.length;
+                    const factor = 1 - (marginMeters * 0.05);
+                    const vx = cx + (v.x - cx) * factor;
+                    const vy = cy + (v.y - cy) * factor;
+                    return `${vx},${vy}`;
+                  }).join(" ")}
+                  fill="none"
+                  stroke="#f59e0b"
+                  strokeWidth="2"
+                  strokeDasharray="5 4"
+                  className="pointer-events-none"
+                />
+              )}
 
-              return (
-                <g key={panel.id} transform={`rotate(${azimuthDegrees}, ${pxX}, ${pxY})`} className="pointer-events-none">
-                  <rect
-                    x={pxX - pWidth / 2}
-                    y={pxY - pHeight / 2}
-                    width={pWidth}
-                    height={pHeight}
-                    rx="3"
-                    fill="url(#panelGrad)"
-                    stroke="#93c5fd"
-                    strokeWidth="1.2"
-                  />
-                  <rect
-                    x={pxX - pWidth / 2}
-                    y={pxY - pHeight / 2}
-                    width={pWidth}
-                    height={pHeight}
-                    rx="3"
-                    fill="url(#solarGrid)"
-                  />
-                  <text
-                    x={pxX}
-                    y={pxY + 4}
-                    fontSize="10"
-                    fontWeight="bold"
-                    fill="#ffffff"
-                    textAnchor="middle"
-                  >
-                    {idx + 1}
-                  </text>
-                </g>
-              );
-            })}
+              {/* Módulos Encaixados no Telhado */}
+              {autoFillResult.panels.map((panel, idx) => {
+                const pxX = polygonCentroid.x + panel.center.x * PIXELS_PER_METER;
+                const pxY = polygonCentroid.y + panel.center.y * PIXELS_PER_METER;
+                const pWidth = panel.widthMeters * PIXELS_PER_METER;
+                const pHeight = panel.heightMeters * PIXELS_PER_METER;
 
-            {/* Vértices Editáveis do Telhado (Arrastáveis sem Flickering) */}
-            {polygonVertices.map((v, i) => (
-              <circle
-                key={i}
-                cx={v.x}
-                cy={v.y}
-                r={draggingVertexIndex === i ? "10" : "7"}
-                fill={draggingVertexIndex === i ? "#f59e0b" : "#38bdf8"}
-                stroke="#ffffff"
-                strokeWidth="2.5"
-                onPointerDown={(e) => handleVertexPointerDown(i, e)}
-                onPointerMove={(e) => handleVertexPointerMove(i, e)}
-                onPointerUp={(e) => handleVertexPointerUp(i, e)}
-                className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
-              />
-            ))}
+                return (
+                  <g key={panel.id} className="pointer-events-none">
+                    <rect
+                      x={pxX - pWidth / 2}
+                      y={pxY - pHeight / 2}
+                      width={pWidth}
+                      height={pHeight}
+                      rx="3"
+                      fill="url(#panelGrad)"
+                      stroke="#93c5fd"
+                      strokeWidth="1.2"
+                    />
+                    <rect
+                      x={pxX - pWidth / 2}
+                      y={pxY - pHeight / 2}
+                      width={pWidth}
+                      height={pHeight}
+                      rx="3"
+                      fill="url(#solarGrid)"
+                    />
+                    <text
+                      x={pxX}
+                      y={pxY + 4}
+                      fontSize="10"
+                      fontWeight="bold"
+                      fill="#ffffff"
+                      textAnchor="middle"
+                    >
+                      {idx + 1}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Vértices Editáveis do Telhado (Arrastáveis sem Flickering) */}
+              {polygonVertices.map((v, i) => (
+                <circle
+                  key={i}
+                  cx={v.x}
+                  cy={v.y}
+                  r={draggingVertexIndex === i ? "10" : "7"}
+                  fill={draggingVertexIndex === i ? "#f59e0b" : "#38bdf8"}
+                  stroke="#ffffff"
+                  strokeWidth="2.5"
+                  onPointerDown={(e) => handleVertexPointerDown(i, e)}
+                  onPointerMove={(e) => handleVertexPointerMove(i, e)}
+                  onPointerUp={(e) => handleVertexPointerUp(i, e)}
+                  className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
+                />
+              ))}
+
+              {/* Alça Interativa de Rotação (↻) no Topo do Telhado */}
+              <g
+                onPointerDown={handleRotatePointerDown}
+                onPointerMove={handleRotatePointerMove}
+                onPointerUp={handleRotatePointerUp}
+                className="cursor-grab active:cursor-grabbing hover:scale-110 transition-transform"
+              >
+                <line
+                  x1={polygonCentroid.x}
+                  y1={polygonCentroid.y - 100}
+                  x2={polygonCentroid.x}
+                  y2={polygonCentroid.y - 135}
+                  stroke="#f59e0b"
+                  strokeWidth="2.5"
+                  strokeDasharray="4 3"
+                />
+                <circle
+                  cx={polygonCentroid.x}
+                  cy={polygonCentroid.y - 135}
+                  r="12"
+                  fill="#f59e0b"
+                  stroke="#ffffff"
+                  strokeWidth="2.5"
+                  className="shadow-lg"
+                />
+                <text
+                  x={polygonCentroid.x}
+                  y={polygonCentroid.y - 131}
+                  fontSize="12"
+                  fontWeight="black"
+                  fill="#ffffff"
+                  textAnchor="middle"
+                >
+                  ↻
+                </text>
+              </g>
+
+            </g>
           </svg>
 
           {/* Rosa dos Ventos & Indicador de Orientação */}
