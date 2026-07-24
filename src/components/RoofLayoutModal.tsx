@@ -69,8 +69,8 @@ export function RoofLayoutModal({
       const cleanCep = searchQuery.replace(/\D/g, '');
       if (cleanCep.length === 8) {
         const cepResult = await fetchAddressByCep(cleanCep);
-        if (cepResult && cepResult.city) {
-          const queryStr = `${cepResult.address || ''}, ${cepResult.city} - ${cepResult.uf}, Brasil`;
+        if (cepResult && cepResult.localidade) {
+          const queryStr = `${cepResult.logradouro || ''}, ${cepResult.localidade} - ${cepResult.uf}, Brasil`;
           const geoRes = await fetch(
             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}`
           );
