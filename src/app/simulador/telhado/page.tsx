@@ -311,6 +311,13 @@ function RoofStudioContent() {
     });
   };
 
+  const handleVertexPointerUp = (index: number, e: React.PointerEvent<SVGCircleElement>) => {
+    if (draggingVertexIndex === index) {
+      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+      setDraggingVertexIndex(null);
+    }
+  };
+
   // Centroide (Centro de Gravidade) do Polígono do Telhado em Pixels
   const polygonCentroid = useMemo(() => {
     if (!polygonVertices || polygonVertices.length === 0) return { x: 400, y: 300 };
