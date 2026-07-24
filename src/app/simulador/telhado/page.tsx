@@ -62,16 +62,18 @@ function RoofStudioContent() {
   const [moduleWidthMeters, setModuleWidthMeters] = useState<number>(1.13);
   const [moduleHeightMeters, setModuleHeightMeters] = useState<number>(2.28);
 
-  // Vértices do telhado em pixels no canvas amplo (800x600)
+  // Vértices do telhado em pixels no canvas amplo (800x600) — tamanho compacto inicial
   const [polygonVertices, setPolygonVertices] = useState<Point2D[]>([
-    { x: 150, y: 120 },
-    { x: 650, y: 120 },
-    { x: 650, y: 480 },
-    { x: 150, y: 480 },
+    { x: 275, y: 210 },
+    { x: 525, y: 210 },
+    { x: 525, y: 390 },
+    { x: 275, y: 390 },
   ]);
 
   const [activePreset, setActivePreset] = useState<'RECTANGLE' | 'L_SHAPE' | 'TRAPEZOID'>('RECTANGLE');
   const [draggingVertexIndex, setDraggingVertexIndex] = useState<number | null>(null);
+  const [dragStartPos, setDragStartPos] = useState<Point2D | null>(null);
+  const [initialVerticesOnDrag, setInitialVerticesOnDrag] = useState<Point2D[]>([]);
   const [showSidebar, setShowSidebar] = useState<boolean>(true);
 
   // Provedor de Imagem de Satélite
@@ -94,7 +96,6 @@ function RoofStudioContent() {
       if (cleanCep.length === 8) {
         const cepResult = await fetchAddressByCep(cleanCep);
         if (cepResult && cepResult.localidade) {
-          // Tenta geocodificar do mais específico para o genérico
           let queryStr = `${cepResult.logradouro || ""}, ${cepResult.bairro || ""}, ${cepResult.localidade} - ${cepResult.uf}, Brasil`;
           let geoRes = await fetch(
             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}`
@@ -148,31 +149,31 @@ function RoofStudioContent() {
     }
   };
 
-  // Preset Shapes para canvas 800x600
+  // Preset Shapes compactos e centralizados
   const applyPresetShape = (shape: 'RECTANGLE' | 'L_SHAPE' | 'TRAPEZOID') => {
     setActivePreset(shape);
     if (shape === 'RECTANGLE') {
       setPolygonVertices([
-        { x: 150, y: 120 },
-        { x: 650, y: 120 },
-        { x: 650, y: 480 },
-        { x: 150, y: 480 },
+        { x: 275, y: 210 },
+        { x: 525, y: 210 },
+        { x: 525, y: 390 },
+        { x: 275, y: 390 },
       ]);
     } else if (shape === 'L_SHAPE') {
       setPolygonVertices([
-        { x: 150, y: 120 },
-        { x: 650, y: 120 },
-        { x: 650, y: 300 },
+        { x: 275, y: 210 },
+        { x: 525, y: 210 },
+        { x: 525, y: 300 },
         { x: 400, y: 300 },
-        { x: 400, y: 520 },
-        { x: 150, y: 520 },
+        { x: 400, y: 390 },
+        { x: 275, y: 390 },
       ]);
     } else if (shape === 'TRAPEZOID') {
       setPolygonVertices([
-        { x: 220, y: 120 },
-        { x: 580, y: 120 },
-        { x: 720, y: 480 },
-        { x: 80, y: 480 },
+        { x: 320, y: 210 },
+        { x: 480, y: 210 },
+        { x: 540, y: 390 },
+        { x: 260, y: 390 },
       ]);
     }
   };
@@ -249,22 +250,81 @@ function RoofStudioContent() {
     return tiles;
   }, [centerLat, centerLng, zoomLevel, tileProvider]);
 
-  const handleSvgMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (draggingVertexIndex === null) return;
-    const svg = e.currentTarget;
+  // Movimentação do Telhado Inteiro (Pan Polygon)
+  const handlePolygonPointerDown = (e: React.PointerEvent<SVGPolygonElement>) => {
+    e.stopPropagation();
+    const target = e.currentTarget;
+    target.setPointerCapture(e.pointerId);
+    const svg = target.ownerSVGElement;
+    if (!svg) return;
     const rect = svg.getBoundingClientRect();
-    const x = Math.max(20, Math.min(780, (e.clientX - rect.left) * (800 / rect.width)));
-    const y = Math.max(20, Math.min(580, (e.clientY - rect.top) * (600 / rect.height)));
+    const x = (e.clientX - rect.left) * (800 / rect.width);
+    const y = (e.clientY - rect.top) * (600 / rect.height);
+    setDragStartPos({ x, y });
+    setInitialVerticesOnDrag([...polygonVertices]);
+  };
+
+  const handlePolygonPointerMove = (e: React.PointerEvent<SVGPolygonElement>) => {
+    if (!dragStartPos) return;
+    const svg = e.currentTarget.ownerSVGElement;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const currX = (e.clientX - rect.left) * (800 / rect.width);
+    const currY = (e.clientY - rect.top) * (600 / rect.height);
+    const dx = currX - dragStartPos.x;
+    const dy = currY - dragStartPos.y;
+
+    setPolygonVertices(
+      initialVerticesOnDrag.map((v) => ({
+        x: Math.round(Math.max(10, Math.min(790, v.x + dx))),
+        y: Math.round(Math.max(10, Math.min(590, v.y + dy))),
+      }))
+    );
+  };
+
+  const handlePolygonPointerUp = (e: React.PointerEvent<SVGPolygonElement>) => {
+    if (dragStartPos) {
+      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+      setDragStartPos(null);
+    }
+  };
+
+  // Arraste Sem Flickering das Arestas/Vértices (Pointer Capture)
+  const handleVertexPointerDown = (index: number, e: React.PointerEvent<SVGCircleElement>) => {
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDraggingVertexIndex(index);
+  };
+
+  const handleVertexPointerMove = (index: number, e: React.PointerEvent<SVGCircleElement>) => {
+    if (draggingVertexIndex !== index) return;
+    const svg = e.currentTarget.ownerSVGElement;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const x = Math.max(10, Math.min(790, (e.clientX - rect.left) * (800 / rect.width)));
+    const y = Math.max(10, Math.min(590, (e.clientY - rect.top) * (600 / rect.height)));
 
     setPolygonVertices((prev) => {
       const updated = [...prev];
-      updated[draggingVertexIndex] = { x: Math.round(x), y: Math.round(y) };
+      updated[index] = { x: Math.round(x), y: Math.round(y) };
       return updated;
     });
   };
 
-  const handleSvgMouseUp = () => {
-    setDraggingVertexIndex(null);
+  const handleVertexPointerUp = (index: number, e: React.PointerEvent<SVGCircleElement>) => {
+    if (draggingVertexIndex === index) {
+      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+      setDraggingVertexIndex(null);
+    }
+  };
+
+  // Ajuste Fino da Câmera do Satélite (Mover Mapa)
+  const panMap = (direction: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT') => {
+    const delta = 0.00015;
+    if (direction === 'UP') setCenterLat((prev) => prev + delta);
+    if (direction === 'DOWN') setCenterLat((prev) => prev - delta);
+    if (direction === 'LEFT') setCenterLng((prev) => prev - delta);
+    if (direction === 'RIGHT') setCenterLng((prev) => prev + delta);
   };
 
   return (
@@ -411,11 +471,8 @@ function RoofStudioContent() {
 
           {/* Canvas SVG Interativo para Telhado e Módulos */}
           <svg
-            className="w-full h-full relative z-10 cursor-crosshair select-none"
+            className="w-full h-full relative z-10 select-none"
             viewBox="0 0 800 600"
-            onMouseMove={handleSvgMouseMove}
-            onMouseUp={handleSvgMouseUp}
-            onMouseLeave={handleSvgMouseUp}
           >
             <defs>
               <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -427,13 +484,17 @@ function RoofStudioContent() {
               </pattern>
             </defs>
 
-            {/* Polígono do Telhado (Perímetro Exterior) */}
+            {/* Polígono do Telhado (Perímetro Exterior - Arrastável Inteiro) */}
             <polygon
               points={polygonVertices.map((v) => `${v.x},${v.y}`).join(" ")}
               fill="rgba(15, 23, 42, 0.65)"
               stroke="#38bdf8"
               strokeWidth="3"
               strokeDasharray="none"
+              onPointerDown={handlePolygonPointerDown}
+              onPointerMove={handlePolygonPointerMove}
+              onPointerUp={handlePolygonPointerUp}
+              className="cursor-move hover:fill-slate-900/80 transition-colors"
             />
 
             {/* Margem de Segurança Interna (Recuo) */}
@@ -451,6 +512,7 @@ function RoofStudioContent() {
                 stroke="#f59e0b"
                 strokeWidth="2"
                 strokeDasharray="5 4"
+                className="pointer-events-none"
               />
             )}
 
@@ -462,7 +524,7 @@ function RoofStudioContent() {
               const pHeight = panel.heightMeters * PIXELS_PER_METER;
 
               return (
-                <g key={panel.id} transform={`rotate(${azimuthDegrees}, ${pxX}, ${pxY})`}>
+                <g key={panel.id} transform={`rotate(${azimuthDegrees}, ${pxX}, ${pxY})`} className="pointer-events-none">
                   <rect
                     x={pxX - pWidth / 2}
                     y={pxY - pHeight / 2}
@@ -495,20 +557,19 @@ function RoofStudioContent() {
               );
             })}
 
-            {/* Vértices Editáveis do Telhado (Arrastáveis) */}
+            {/* Vértices Editáveis do Telhado (Arrastáveis sem Flickering) */}
             {polygonVertices.map((v, i) => (
               <circle
                 key={i}
                 cx={v.x}
                 cy={v.y}
-                r={draggingVertexIndex === i ? "9" : "7"}
+                r={draggingVertexIndex === i ? "10" : "7"}
                 fill={draggingVertexIndex === i ? "#f59e0b" : "#38bdf8"}
                 stroke="#ffffff"
-                strokeWidth="2"
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  setDraggingVertexIndex(i);
-                }}
+                strokeWidth="2.5"
+                onPointerDown={(e) => handleVertexPointerDown(i, e)}
+                onPointerMove={(e) => handleVertexPointerMove(i, e)}
+                onPointerUp={(e) => handleVertexPointerUp(i, e)}
                 className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
               />
             ))}
@@ -525,25 +586,68 @@ function RoofStudioContent() {
             </span>
           </div>
 
-          {/* Controle de Zoom do Satélite */}
-          <div className="absolute bottom-6 left-6 z-20 bg-card/90 backdrop-blur-md border border-border p-1.5 rounded-2xl shadow-xl flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setZoomLevel(Math.min(20, zoomLevel + 1))}
-              className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
-              title="Aumentar Zoom Satélite"
-            >
-              <ZoomIn className="w-4 h-4" />
-            </button>
-            <span className="text-xs font-black px-2 text-primary">{zoomLevel}x</span>
-            <button
-              type="button"
-              onClick={() => setZoomLevel(Math.max(17, zoomLevel - 1))}
-              className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
-              title="Diminuir Zoom Satélite"
-            >
-              <ZoomOut className="w-4 h-4" />
-            </button>
+          {/* Controle de NAVEGAÇÃO DO MAPA & ZOOM */}
+          <div className="absolute bottom-6 left-6 z-20 bg-card/90 backdrop-blur-md border border-border p-2 rounded-2xl shadow-xl flex items-center gap-3">
+            
+            {/* Pad Direcional para Mover o Mapa de Satélite */}
+            <div className="flex flex-col items-center gap-0.5 border-r border-border pr-3">
+              <span className="text-[9px] font-extrabold text-muted-foreground uppercase mb-0.5">Mover Imagem</span>
+              <button
+                type="button"
+                onClick={() => panMap('UP')}
+                className="p-1 rounded bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs"
+                title="Mover Mapa para Cima"
+              >
+                ▲
+              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => panMap('LEFT')}
+                  className="p-1 rounded bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs"
+                  title="Mover Mapa para Esquerda"
+                >
+                  ◄
+                </button>
+                <button
+                  type="button"
+                  onClick={() => panMap('RIGHT')}
+                  className="p-1 rounded bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs"
+                  title="Mover Mapa para Direita"
+                >
+                  ►
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => panMap('DOWN')}
+                className="p-1 rounded bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs"
+                title="Mover Mapa para Baixo"
+              >
+                ▼
+              </button>
+            </div>
+
+            {/* Controle de Zoom */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setZoomLevel(Math.min(20, zoomLevel + 1))}
+                className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
+                title="Aumentar Zoom Satélite"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-black px-2 text-primary">{zoomLevel}x</span>
+              <button
+                type="button"
+                onClick={() => setZoomLevel(Math.max(17, zoomLevel - 1))}
+                className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
+                title="Diminuir Zoom Satélite"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
         </div>
