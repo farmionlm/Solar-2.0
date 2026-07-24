@@ -25,7 +25,7 @@ const COLORS = ['#38bdf8', '#d97706', '#059669', '#6366f1', '#64748b', '#dc2626'
 const LOSS_COLORS = ['#ef4444', '#f97316', '#f59e0b', '#8b5cf6', '#64748b'];
 
 function DashboardContent() {
-  const { data: metrics, error, isLoading } = useSWR('/api/analytics', fetcher);
+  const { data: metrics, error, isLoading, mutate } = useSWR('/api/analytics', fetcher);
   const [showCanceledModal, setShowCanceledModal] = useState(false);
   const [canceledFilter, setCanceledFilter] = useState("");
 
