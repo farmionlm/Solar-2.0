@@ -4,11 +4,12 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import Link from "next/link";
-import { Sun, Upload, Save, Download, Users, ArrowLeft, RefreshCw, CheckCircle2, Zap, Battery } from "lucide-react";
+import { Sun, Upload, Save, Download, Users, ArrowLeft, RefreshCw, CheckCircle2, Zap, Battery, Grid } from "lucide-react";
 import { ProcessedUnit, ClientData, ClientListItem } from "@/types";
 import { ResultCards } from "@/components/ResultCards";
 import { SimulationTable } from "@/components/SimulationTable";
 import { ClientLinkingForm } from "@/components/ClientLinkingForm";
+import { RoofLayoutModal } from "@/components/RoofLayoutModal";
 import { ExcelParserService } from "@/services/ExcelParserService";
 import { HSP_BY_UF, DEFAULT_HSP } from "@/utils/solarIrradiation";
 import { calculateBatteryRequirement, validateDisjuntorCompatibility } from "@/utils/solarMath";
@@ -54,6 +55,10 @@ function SimulatorContent() {
   const [selectedModuleIdB, setSelectedModuleIdB] = useState<string>("");
   const [modulePowerB, setModulePowerB] = useState<number | "">("");
   const [lossFactorPercentB, setLossFactorPercentB] = useState<number>(15);
+
+  // Estado do Modal de Dimensionamento Espacial do Telhado (Auto-Fill 2D)
+  const [isRoofModalOpen, setIsRoofModalOpen] = useState(false);
+  const [appliedRoofLimit, setAppliedRoofLimit] = useState<number | null>(null);
 
   const batteryCalc = useMemo(() => {
     if (!enableBatteryBackup) return null;
@@ -519,6 +524,36 @@ function SimulatorContent() {
           )}
         </div>
 
+        {/* Mapeamento Espacial do Telhado (Auto-Fill 2D) */}
+        <div className="mt-5 pt-5 border-t border-border/60">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-sky-500/10 border border-sky-500/20">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-extrabold shrink-0">
+                <Grid className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  Mapeamento Espacial & Auto-Fill do Telhado
+                  {appliedRoofLimit !== null && (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Limite Aplicado: {appliedRoofLimit} placas
+                    </span>
+                  )}
+                </h4>
+                <p className="text-xs text-muted-foreground">Desenhe o formato do telhado para calcular a capacidade máxima física de painéis solares.</p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={() => setIsRoofModalOpen(true)}
+              className="bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs h-10 px-4 rounded-xl shadow-md shrink-0 active:scale-95"
+            >
+              <Grid className="w-4 h-4 mr-1.5" />
+              Simular Capacidade do Telhado
+            </Button>
+          </div>
+        </div>
+
         {/* Seção de Backup de Baterias (Sistema Híbrido) */}
         <div className="mt-6 pt-5 border-t border-border/60">
           <div className="flex items-center justify-between mb-4">
@@ -739,6 +774,26 @@ function SimulatorContent() {
           </div>
         )}
       </StepCard>
+
+      {/* Modal de Dimensionamento Espacial do Telhado (Auto-Fill 2D) */}
+      <RoofLayoutModal
+        isOpen={isRoofModalOpen}
+        onClose={() => setIsRoofModalOpen(false)}
+        initialRequiredModules={results ? results.totalModules : 0}
+        selectedModuleDimensions={(() => {
+          const mod = dbModules?.find((m: any) => m.id === selectedModuleId);
+          return {
+            widthMeters: 1.13,
+            heightMeters: 2.28,
+            powerW: mod ? mod.powerW : (Number(modulePower) || 550),
+          };
+        })()}
+        onApplyCapacity={(maxPanelsCount) => {
+          setAppliedRoofLimit(maxPanelsCount);
+          setSuccessMsg(`Limite de ${maxPanelsCount} placas aplicado do estudo de telhado!`);
+          setTimeout(() => setSuccessMsg(""), 4000);
+        }}
+      />
     </div>
   );
 }
