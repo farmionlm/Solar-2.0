@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import { Project, ClientDetail, Inverter } from "@/types";
+import { sanitizeCpfCnpj, sanitizeInstallationNumber } from "@/utils/sanitizers";
 
 export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   const doc = new jsPDF();
@@ -47,12 +48,12 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   setFontBold();
   doc.text("CPF/CNPJ: ", 30, 210);
   setFontNormal();
-  doc.text(client.cpfCnpj || "", 55, 210);
+  doc.text(sanitizeCpfCnpj(client.cpfCnpj), 55, 210);
 
   setFontBold();
   doc.text("Unidade Consumidora: ", 30, 220);
   setFontNormal();
-  doc.text(project.installationNumber || project.units?.[0]?.code || client.installationNumber || "", 75, 220);
+  doc.text(sanitizeInstallationNumber(project.installationNumber || project.units?.[0]?.code || client.installationNumber), 75, 220);
 
   setFontBold();
   doc.text("Município: ", 30, 230);

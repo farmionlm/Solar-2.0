@@ -5,13 +5,17 @@ import { authOptions } from "../auth/[...nextauth]/route";
 
 export const dynamic = 'force-dynamic';
 
-// GET - Listar todos os clientes
-export async function GET() {
+// GET - Listar clientes com suporte a paginação
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
     }
+
+    const { searchParams } = new URL(request.url);
+    const pageParam = searchParams.get('page');
+    const limitParam = searchParams.get('limit');
 
     let whereClause: any = {};
     
@@ -25,9 +29,16 @@ export async function GET() {
       };
     }
 
+    const isPaginated = Boolean(pageParam || limitParam);
+    const page = Math.max(1, Number(pageParam) || 1);
+    const limit = Math.min(500, Math.max(1, Number(limitParam) || 50));
+    const skip = (page - 1) * limit;
+
     const clients = await prisma.client.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
+      skip: isPaginated ? skip : undefined,
+      take: isPaginated ? limit : undefined,
       include: {
         _count: {
           select: { projects: true }

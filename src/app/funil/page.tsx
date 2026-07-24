@@ -225,6 +225,8 @@ export default function KanbanPage() {
       }
 
       // Mudou de coluna! Atualiza optimisticamente o cache do SWR
+      const previousItems = { ...items };
+
       mutate((currentData: any) => {
         if (!Array.isArray(currentData)) return currentData;
         return currentData.map((p: any) => p.id === activeId ? { ...p, status: overContainer, lossReason } : p);
@@ -238,15 +240,16 @@ export default function KanbanPage() {
         });
         
         if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(errText);
+          const errData = await res.json().catch(() => ({ error: 'Falha ao atualizar no servidor.' }));
+          throw new Error(errData.error || 'Erro na atualização do servidor');
         }
         
         mutate();
       } catch (err: any) {
-        console.error("Failed to update status", err);
-        alert("Erro na atualização do funil: " + err.message);
-        mutate();
+        console.error("Failed to update status:", err);
+        setItems(previousItems);
+        alert("Erro ao mover card no funil: " + (err.message || "Falha na requisição. Operação revertida."));
+        mutate(undefined, { revalidate: true });
       }
     } else {
       // Reordenação na mesma coluna

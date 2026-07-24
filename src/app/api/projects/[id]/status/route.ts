@@ -44,6 +44,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     }
 
+    // Restrição de Role RBAC: Apenas ADMIN e PARTNER podem aprovar fechamento comercial/financeiro
+    if (status === 'CLOSED' && session.user.role === 'TECHNICIAN') {
+      return NextResponse.json({ error: 'Apenas gestores ou parceiros podem aprovar o fechamento comercial da proposta.' }, { status: 403 });
+    }
+
     const updatedProject = await prisma.project.update({
       where: { id },
       data: { status }
