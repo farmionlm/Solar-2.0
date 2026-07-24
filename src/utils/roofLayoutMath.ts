@@ -35,6 +35,7 @@ export type AutoFillOptions = {
   marginMeters?: number;        // Recuo de segurança nas bordas (ex: 0.5m de afastamento de beiral)
   panelSpacingMeters?: number;  // Espaçamento entre painéis (ex: 0.02m)
   orientation?: 'PORTRAIT' | 'LANDSCAPE'; // Retrato ou Paisagem
+  arrayStyle?: 'UNIFORM_RECTANGLE' | 'MAX_FILL'; // Matriz Limpa Uniforme ou Preenchimento Máximo
 };
 
 export type AutoFillResult = {
@@ -157,7 +158,6 @@ export function rotatePoint(point: Point2D, angleRadian: number): Point2D {
 export function bufferPolygonInward(polygon: Point2D[], marginMeters: number): Point2D[] {
   if (marginMeters <= 0 || !polygon || polygon.length < 3) return polygon;
 
-  // Para cada vértice, empurra em direção ao centroide pela margem
   let cx = 0, cy = 0;
   for (const p of polygon) {
     cx += p.x;
@@ -192,8 +192,9 @@ export function autoFillRoofLayout(options: AutoFillOptions): AutoFillResult {
     azimuthDegrees = 0,
     pitchDegrees = 15,
     marginMeters = 0.5,
-    panelSpacingMeters = 0.02,
+    panelSpacingMeters = 0.05,
     orientation = 'PORTRAIT',
+    arrayStyle = 'UNIFORM_RECTANGLE',
   } = options;
 
   const defaultEmptyResult: AutoFillResult = {
@@ -224,7 +225,7 @@ export function autoFillRoofLayout(options: AutoFillOptions): AutoFillResult {
   // 2. Calcular Área Plana e Área Real (considerando a inclinação do telhado)
   const totalFlatAreaM2 = calculatePolygonAreaMeters(roofMeters);
   const pitchRad = (pitchDegrees * Math.PI) / 180;
-  const totalRealAreaM2 = totalFlatAreaM2 / Math.max(0.707, Math.cos(pitchRad)); // cos(45°) limit
+  const totalRealAreaM2 = totalFlatAreaM2 / Math.max(0.707, Math.cos(pitchRad));
 
   // Apply inward margin
   const bufferedRoofMeters = bufferPolygonInward(roofMeters, marginMeters);
@@ -254,19 +255,32 @@ export function autoFillRoofLayout(options: AutoFillOptions): AutoFillResult {
     if (p.y > maxY) maxY = p.y;
   }
 
-  const panels: SolarPanelLayout[] = [];
+  const totalW = maxX - minX;
+  const totalH = maxY - minY;
+
+  // Obter número de colunas e linhas teóricas
+  const maxCols = Math.max(1, Math.floor((totalW + panelSpacingMeters) / stepX));
+  const maxRows = Math.max(1, Math.floor((totalH + panelSpacingMeters) / stepY));
+
+  // Centralização simétrica da grade no espaço do telhado
+  const gridW = maxCols * stepX - panelSpacingMeters;
+  const gridH = maxRows * stepY - panelSpacingMeters;
+
+  const startX = minX + (totalW - gridW) / 2 + panelW / 2;
+  const startY = minY + (totalH - gridH) / 2 + panelH / 2;
+
+  const rawPanels: SolarPanelLayout[] = [];
   const reverseAzimuthRad = (azimuthDegrees * Math.PI) / 180;
   let panelCounter = 0;
-  let rowIndex = 0;
 
-  // 6. Varredura do Grid no espaço alinhado
-  for (let y = minY + panelH / 2; y <= maxY - panelH / 2; y += stepY) {
-    let colIndex = 0;
-    for (let x = minX + panelW / 2; x <= maxX - panelW / 2; x += stepX) {
+  // 6. Varredura do Grid Centralizado
+  for (let r = 0; r < maxRows; r++) {
+    const y = startY + r * stepY;
+    for (let c = 0; c < maxCols; c++) {
+      const x = startX + c * stepX;
       const halfW = panelW / 2;
       const halfH = panelH / 2;
 
-      // 4 cantos do painel candidato no espaço alinhado
       const candidateCornersRotated: Point2D[] = [
         { x: x - halfW, y: y - halfH },
         { x: x + halfW, y: y - halfH },
@@ -274,13 +288,11 @@ export function autoFillRoofLayout(options: AutoFillOptions): AutoFillResult {
         { x: x - halfW, y: y + halfH },
       ];
 
-      // Teste 1: Todos os 4 cantos devem estar DENTRO do telhado rotacionado
       const allCornersInside = candidateCornersRotated.every((corner) =>
         isPointInsidePolygon(corner, rotatedRoof)
       );
 
       if (allCornersInside) {
-        // Teste 2: Nenhum dos cantos ou centro pode estar DENTRO de um obstáculo
         const centerPoint: Point2D = { x, y };
         const collidesWithObstacle = rotatedObstacles.some((obs) =>
           isPointInsidePolygon(centerPoint, obs.points) ||
@@ -289,31 +301,79 @@ export function autoFillRoofLayout(options: AutoFillOptions): AutoFillResult {
 
         if (!collidesWithObstacle) {
           panelCounter++;
-          // Desrotacionar o centro e os 4 cantos para as coordenadas originais
           const unrotatedCenter = rotatePoint({ x, y }, reverseAzimuthRad);
           const unrotatedCorners = candidateCornersRotated.map((c) =>
             rotatePoint(c, reverseAzimuthRad)
           );
 
-          panels.push({
+          rawPanels.push({
             id: `panel-${panelCounter}`,
             center: unrotatedCenter,
             alignedCenter: { x, y },
             corners: unrotatedCorners,
             widthMeters: panelW,
             heightMeters: panelH,
-            row: rowIndex,
-            col: colIndex,
+            row: r,
+            col: c,
           });
         }
       }
-
-      colIndex++;
     }
-    rowIndex++;
   }
 
-  const maxPanelsCount = panels.length;
+  let finalPanels = rawPanels;
+
+  // Se o estilo for UNIFORM_RECTANGLE (padrão), selecionamos a sub-matriz retangular homogênea ideal
+  if (arrayStyle === 'UNIFORM_RECTANGLE' && rawPanels.length > 0) {
+    const rowMap = new Map<number, Set<number>>();
+    for (const p of rawPanels) {
+      if (!rowMap.has(p.row)) rowMap.set(p.row, new Set());
+      rowMap.get(p.row)!.add(p.col);
+    }
+
+    const presentRows = Array.from(rowMap.keys()).sort((a, b) => a - b);
+    let bestBlock: SolarPanelLayout[] = [];
+    let maxBlockPanels = 0;
+
+    for (let i = 0; i < presentRows.length; i++) {
+      for (let j = i; j < presentRows.length; j++) {
+        const subRows = presentRows.slice(i, j + 1);
+        let commonCols = new Set(rowMap.get(subRows[0])!);
+        for (let k = 1; k < subRows.length; k++) {
+          const nextSet = rowMap.get(subRows[k])!;
+          commonCols = new Set([...commonCols].filter((col) => nextSet.has(col)));
+        }
+
+        const sortedCols = Array.from(commonCols).sort((a, b) => a - b);
+        let currSeq: number[] = [];
+        let maxSeq: number[] = [];
+
+        for (const col of sortedCols) {
+          if (currSeq.length === 0 || col === currSeq[currSeq.length - 1] + 1) {
+            currSeq.push(col);
+          } else {
+            if (currSeq.length > maxSeq.length) maxSeq = [...currSeq];
+            currSeq = [col];
+          }
+        }
+        if (currSeq.length > maxSeq.length) maxSeq = [...currSeq];
+
+        const totalPanels = subRows.length * maxSeq.length;
+        if (totalPanels > maxBlockPanels && maxSeq.length > 0) {
+          maxBlockPanels = totalPanels;
+          const colSet = new Set(maxSeq);
+          const rowSet = new Set(subRows);
+          bestBlock = rawPanels.filter((p) => rowSet.has(p.row) && colSet.has(p.col));
+        }
+      }
+    }
+
+    if (bestBlock.length > 0) {
+      finalPanels = bestBlock.map((p, idx) => ({ ...p, id: `panel-${idx + 1}` }));
+    }
+  }
+
+  const maxPanelsCount = finalPanels.length;
   const totalPanelsAreaM2 = maxPanelsCount * (panelW * panelH);
   const densityPercentage = usableAreaM2 > 0 ? Math.min(100, Math.round((totalPanelsAreaM2 / usableAreaM2) * 100)) : 0;
 
@@ -322,7 +382,7 @@ export function autoFillRoofLayout(options: AutoFillOptions): AutoFillResult {
     totalFlatAreaM2: Number(totalFlatAreaM2.toFixed(2)),
     totalRealAreaM2: Number(totalRealAreaM2.toFixed(2)),
     usableAreaM2: Number(usableAreaM2.toFixed(2)),
-    panels,
+    panels: finalPanels,
     roofPolygonMeters: roofMeters,
     densityPercentage,
   };

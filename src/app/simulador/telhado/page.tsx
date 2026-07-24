@@ -231,6 +231,8 @@ function RoofStudioContent() {
     }));
   }, [polygonMeters, centerLat, centerLng]);
 
+  const [arrayStyle, setArrayStyle] = useState<'UNIFORM_RECTANGLE' | 'MAX_FILL'>('UNIFORM_RECTANGLE');
+
   // Motor de auto-fill
   const autoFillResult: AutoFillResult = useMemo(() => {
     return autoFillRoofLayout({
@@ -242,6 +244,7 @@ function RoofStudioContent() {
       marginMeters,
       panelSpacingMeters: 0.05,
       orientation: moduleOrientation,
+      arrayStyle,
     });
   }, [
     latLngPoints,
@@ -251,6 +254,7 @@ function RoofStudioContent() {
     pitchDegrees,
     marginMeters,
     moduleOrientation,
+    arrayStyle,
   ]);
 
   const maxFitCount = autoFillResult.maxPanelsCount;
@@ -1032,6 +1036,40 @@ function RoofStudioContent() {
                       Paisagem (Deitada)
                     </button>
                   </div>
+                </div>
+
+                {/* Estilo do Arranjo */}
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground mb-1.5">Disposição do Arranjo</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setArrayStyle('UNIFORM_RECTANGLE')}
+                      className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border ${
+                        arrayStyle === 'UNIFORM_RECTANGLE'
+                          ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                          : 'bg-card text-muted-foreground border-border hover:bg-secondary'
+                      }`}
+                    >
+                      Matriz Uniforme
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setArrayStyle('MAX_FILL')}
+                      className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border ${
+                        arrayStyle === 'MAX_FILL'
+                          ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                          : 'bg-card text-muted-foreground border-border hover:bg-secondary'
+                      }`}
+                    >
+                      Preencher Tudo
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground block mt-1">
+                    {arrayStyle === 'UNIFORM_RECTANGLE'
+                      ? 'Gera linhas e colunas simétricas de tamanho homogêneo (Recomendado).'
+                      : 'Preenche cada canto do telhado maximizando a área.'}
+                  </span>
                 </div>
 
               </div>
