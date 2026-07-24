@@ -11,6 +11,7 @@ import { SimulationTable } from "@/components/SimulationTable";
 import { ClientLinkingForm } from "@/components/ClientLinkingForm";
 import { ExcelParserService } from "@/services/ExcelParserService";
 import { HSP_BY_UF, DEFAULT_HSP } from "@/utils/solarIrradiation";
+import { getRecommendedTariffRate, DEFAULT_TARIFF_RATE } from "@/utils/tariffRates";
 import { calculateBatteryRequirement, validateDisjuntorCompatibility } from "@/utils/solarMath";
 import { validateRegulatoryLimits } from "@/utils/regulatoryLimits";
 import useSWR from "swr";
@@ -221,9 +222,12 @@ function SimulatorContent() {
           setUf(data.uf);
           const newHsp = HSP_BY_UF[data.uf] || DEFAULT_HSP;
           setIrradiation(newHsp);
+          const newTariff = getRecommendedTariffRate(null, data.uf);
+          setTariffRate(newTariff);
         } else {
           setUf("");
           setIrradiation(DEFAULT_HSP);
+          setTariffRate(DEFAULT_TARIFF_RATE);
         }
       } catch (err) {
         console.error("Erro ao buscar CEP:", err);

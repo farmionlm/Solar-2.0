@@ -432,6 +432,28 @@ function DashboardContent() {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={async () => {
+                          if (confirm(`Deseja reativar o projeto "${proj.name}" e movê-lo de volta para Em Negociação?`)) {
+                            try {
+                              const res = await fetch(`/api/projects/${proj.id}/status`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: 'NEGOTIATION', lossReason: null })
+                              });
+                              if (!res.ok) throw new Error();
+                              await mutate();
+                              alert('Projeto reativado com sucesso! Movido para Em Negociação.');
+                            } catch {
+                              alert('Erro ao reativar projeto.');
+                            }
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold transition-all border border-emerald-500/30 flex items-center gap-1"
+                        title="Reativar e mover de volta para Em Negociação no Funil de Vendas"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" /> Reativar
+                      </button>
                       {proj.clientId && (
                         <Link
                           href={`/clientes/${proj.clientId}`}

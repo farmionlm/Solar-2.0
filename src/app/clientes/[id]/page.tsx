@@ -1144,11 +1144,38 @@ export default function ClienteDetalhe({ params }: { params: Promise<{ id: strin
                                 <XCircle className="w-4 h-4 text-red-400 shrink-0" />
                                 <span>Projeto Cancelado / Perdido</span>
                               </div>
-                              {proj.lossReason && (
-                                <span className="bg-red-950/80 text-red-200 px-2 py-0.5 rounded-md border border-red-500/40 text-[11px] font-extrabold">
-                                  Motivo: {proj.lossReason}
-                                </span>
-                              )}
+                              <div className="flex items-center gap-2">
+                                {proj.lossReason && (
+                                  <span className="bg-red-950/80 text-red-200 px-2 py-0.5 rounded-md border border-red-500/40 text-[11px] font-extrabold">
+                                    Motivo: {proj.lossReason}
+                                  </span>
+                                )}
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (confirm(`Reativar o projeto "${proj.name || 'Sem nome'}" e movê-lo de volta para o Funil de Vendas?`)) {
+                                      try {
+                                        const res = await fetch(`/api/projects/${proj.id}/status`, {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ status: 'NEGOTIATION', lossReason: null })
+                                        });
+                                        if (!res.ok) throw new Error();
+                                        await mutate();
+                                        setSaveMsg("Projeto reativado com sucesso!");
+                                        setTimeout(() => setSaveMsg(""), 3000);
+                                      } catch {
+                                        alert("Erro ao reativar projeto.");
+                                      }
+                                    }
+                                  }}
+                                  className="h-7 text-[11px] font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 px-2.5 rounded-lg flex items-center gap-1"
+                                >
+                                  <RefreshCw className="w-3 h-3" /> Reativar
+                                </Button>
+                              </div>
                             </div>
                           )}
                         </div>

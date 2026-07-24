@@ -77,6 +77,67 @@ function RoofStudioContent() {
   const [initialMetersOnDrag, setInitialMetersOnDrag] = useState<Point2D[]>([]);
   const [showSidebar, setShowSidebar] = useState<boolean>(true);
 
+  const [hasDraft, setHasDraft] = useState<boolean>(false);
+  const [draftTimestamp, setDraftTimestamp] = useState<number | null>(null);
+
+  // Auto-save draft to localStorage
+  useEffect(() => {
+    if (polygonMeters.length >= 3) {
+      const draftData = {
+        polygonMeters,
+        centerLat,
+        centerLng,
+        zoomLevel,
+        azimuthDegrees,
+        marginMeters,
+        timestamp: Date.now()
+      };
+      localStorage.setItem("solar_roof_draft", JSON.stringify(draftData));
+    }
+  }, [polygonMeters, centerLat, centerLng, zoomLevel, azimuthDegrees, marginMeters]);
+
+  // Check for saved draft on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("solar_roof_draft");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.polygonMeters && Array.isArray(parsed.polygonMeters) && parsed.timestamp) {
+          if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+            setHasDraft(true);
+            setDraftTimestamp(parsed.timestamp);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao ler rascunho de telhado:", err);
+    }
+  }, []);
+
+  const restoreDraft = () => {
+    try {
+      const saved = localStorage.getItem("solar_roof_draft");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.polygonMeters) setPolygonMeters(parsed.polygonMeters);
+        if (parsed.centerLat) setCenterLat(parsed.centerLat);
+        if (parsed.centerLng) setCenterLng(parsed.centerLng);
+        if (parsed.zoomLevel) setZoomLevel(parsed.zoomLevel);
+        if (parsed.azimuthDegrees !== undefined) setAzimuthDegrees(parsed.azimuthDegrees);
+        if (parsed.marginMeters !== undefined) setMarginMeters(parsed.marginMeters);
+      }
+    } catch (err) {
+      console.error("Erro ao restaurar rascunho:", err);
+    } finally {
+      setHasDraft(false);
+    }
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem("solar_roof_draft");
+    setHasDraft(false);
+  };
+
   // Medição do container para sincronizar com o canvas
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerDimensions, setContainerDimensions] = useState<{ width: number; height: number }>({
@@ -657,6 +718,31 @@ function RoofStudioContent() {
           </button>
         </div>
       </header>
+
+      {hasDraft && (
+        <div className="relative z-30 bg-amber-500/10 border-b border-amber-500/30 text-amber-200 px-4 py-2 flex items-center justify-between text-xs font-bold animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>
+              Rascunho de telhado anterior encontrado ({draftTimestamp ? new Date(draftTimestamp).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }) : ''}). Deseja restaurar?
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={restoreDraft}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1 rounded-lg text-xs font-black transition-all shadow-sm active:scale-95"
+            >
+              Restaurar Rascunho
+            </button>
+            <button
+              onClick={discardDraft}
+              className="text-muted-foreground hover:text-foreground px-2 py-1 transition-colors text-xs font-bold"
+            >
+              Descartar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Área Principal de Trabalho (Canvas 100vh Fullscreen) */}
       <div className="relative flex-1 w-full h-[calc(100vh-64px)] flex overflow-hidden">
