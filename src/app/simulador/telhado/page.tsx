@@ -1171,13 +1171,9 @@ function RoofStudioContent() {
                   >
                     {sc.section.name}: {sc.autoFill.maxPanelsCount}p.
                   </text>
-                </g>
-              );
-            })}
-
-                </g>
-              );
-            })}
+                  </g>
+                );
+              })}
           </svg>
 
           {/* Indicador de Azimute da Área Selecionada */}
