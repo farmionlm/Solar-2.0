@@ -340,44 +340,115 @@ function RoofStudioContent() {
       const svgWidth = svgEl.clientWidth || 1000;
       const svgHeight = svgEl.clientHeight || 700;
 
-      // Serializa o SVG atual como string
-      const svgClone = svgEl.cloneNode(true) as SVGSVGElement;
-      svgClone.setAttribute("width", String(svgWidth));
-      svgClone.setAttribute("height", String(svgHeight));
-      // Fundo escuro para o PNG
-      const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      bgRect.setAttribute("width", String(svgWidth));
-      bgRect.setAttribute("height", String(svgHeight));
-      bgRect.setAttribute("fill", "#020617");
-      svgClone.insertBefore(bgRect, svgClone.firstChild);
-
-      const svgStr = new XMLSerializer().serializeToString(svgClone);
-      const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
-      const svgUrl = URL.createObjectURL(svgBlob);
-
-      // Renderiza o SVG em um Canvas HTML
+      // ── 1. Montar canvas principal ─────────────────────────────────────────
       const FOOTER_H = 160;
+      const scale = 2; // HD 2×
       const canvas = document.createElement("canvas");
-      const scale = 2; // HD
       canvas.width = svgWidth * scale;
       canvas.height = (svgHeight + FOOTER_H) * scale;
       const ctx = canvas.getContext("2d")!;
       ctx.scale(scale, scale);
 
-      // Desenha o SVG
+      // ── 2. Pintar fundo escuro (fallback se tiles falharem) ────────────────
+      ctx.fillStyle = "#020617";
+      ctx.fillRect(0, 0, svgWidth, svgHeight);
+
+      // ── 3. Desenhar tiles de satélite via Web Mercator ─────────────────────
+      // Calcula quais tiles XYZ cobrem a área visível do canvas
+      if (mapMode === "SATELLITE") {
+        const z = Math.min(zoomLevel, 20); // zoom max dos tiles
+        const tileSize = 256; // pixels por tile (padrão XYZ)
+
+        // Conversão lat/lng → tile XYZ
+        const latToTileY = (lat: number, z: number) => {
+          const latRad = (lat * Math.PI) / 180;
+          return (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * Math.pow(2, z);
+        };
+        const lngToTileX = (lng: number, z: number) =>
+          ((lng + 180) / 360) * Math.pow(2, z);
+
+        // Centro do canvas em tile fracionário
+        const centerTileX = lngToTileX(centerLng, z);
+        const centerTileY = latToTileY(centerLat, z);
+
+        // Quantos tiles cabem na área do canvas (relação direta: canvas px ÷ tile size)
+        // À zoom z, cada tile XYZ = 256px na resolução nativa
+        const tilesInView = svgWidth / tileSize;
+        const tilesInViewY = svgHeight / tileSize;
+
+        // Tile superior-esquerdo (fracionário)
+        const startTileX = centerTileX - tilesInView / 2;
+        const startTileY = centerTileY - tilesInViewY / 2;
+
+        // Offset subpixel do primeiro tile para alinhar corretamente
+        const offsetX = -(startTileX - Math.floor(startTileX)) * tileSize;
+        const offsetY = -(startTileY - Math.floor(startTileY)) * tileSize;
+
+        const colStart = Math.floor(startTileX);
+        const rowStart = Math.floor(startTileY);
+        const colEnd = Math.ceil(startTileX + tilesInView) + 1;
+        const rowEnd = Math.ceil(startTileY + tilesInViewY) + 1;
+
+        const tileUrls: { url: string; px: number; py: number }[] = [];
+        for (let row = rowStart; row < rowEnd; row++) {
+          for (let col = colStart; col < colEnd; col++) {
+            const px = offsetX + (col - colStart) * tileSize;
+            const py = offsetY + (row - rowStart) * tileSize;
+            let url = "";
+            if (tileProvider === "GOOGLE_SAT") {
+              url = `https://mt1.google.com/vt/lyrs=s&x=${col}&y=${row}&z=${z}`;
+            } else if (tileProvider === "GOOGLE_HYBRID") {
+              url = `https://mt1.google.com/vt/lyrs=y&x=${col}&y=${row}&z=${z}`;
+            } else {
+              url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${row}/${col}`;
+            }
+            tileUrls.push({ url, px, py });
+          }
+        }
+
+        // Carrega todos os tiles em paralelo (via proxy Next.js para evitar CORS)
+        await Promise.allSettled(
+          tileUrls.map(({ url, px, py }) =>
+            new Promise<void>((resolve) => {
+              const img = new Image();
+              img.crossOrigin = "anonymous";
+              img.onload = () => {
+                ctx.drawImage(img, px, py, tileSize, tileSize);
+                resolve();
+              };
+              img.onerror = () => resolve(); // tile falhou → deixa o fundo escuro
+              // Redireciona pelo proxy Next.js para evitar bloqueio de CORS
+              img.src = `/api/proxy-tile?url=${encodeURIComponent(url)}`;
+            })
+          )
+        );
+      }
+
+      // ── 4. Overlay do SVG (módulos + polígonos) por cima dos tiles ─────────
+      const svgClone = svgEl.cloneNode(true) as SVGSVGElement;
+      svgClone.setAttribute("width", String(svgWidth));
+      svgClone.setAttribute("height", String(svgHeight));
+      const svgStr = new XMLSerializer().serializeToString(svgClone);
+      const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+      const svgUrl = URL.createObjectURL(svgBlob);
+
       await new Promise<void>((resolve, reject) => {
         const img = new Image();
-        img.onload = () => { ctx.drawImage(img, 0, 0, svgWidth, svgHeight); URL.revokeObjectURL(svgUrl); resolve(); };
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+          URL.revokeObjectURL(svgUrl);
+          resolve();
+        };
         img.onerror = reject;
         img.src = svgUrl;
       });
 
-      // Rodapé com informações
+      // ── 5. Rodapé com informações ──────────────────────────────────────────
       const footerY = svgHeight;
       ctx.fillStyle = "#0f172a";
       ctx.fillRect(0, footerY, svgWidth, FOOTER_H);
 
-      // Linha divisória
+      // Linha divisória azul
       ctx.fillStyle = "#1e40af";
       ctx.fillRect(0, footerY, svgWidth, 2);
 
@@ -389,7 +460,7 @@ function RoofStudioContent() {
       ctx.font = "11px sans-serif";
       ctx.fillText(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 20, footerY + 40);
 
-      // Detalhamento por água
+      // Distribuição por água
       ctx.font = "bold 11px sans-serif";
       ctx.fillStyle = "#60a5fa";
       ctx.fillText("DISTRIBUIÇÃO POR ÁREA:", 20, footerY + 62);
@@ -409,12 +480,12 @@ function RoofStudioContent() {
         if (col >= 3) { col = 0; row++; }
       });
 
-      // Total
+      // Total em destaque verde
       ctx.fillStyle = "#34d399";
       ctx.font = "bold 15px sans-serif";
       ctx.fillText(`TOTAL: ${totalMaxPanelsCount} PLACAS  |  ÁREA ÚTIL: ${totalUsableAreaM2} m²`, 20, footerY + FOOTER_H - 14);
 
-      // Download
+      // ── 6. Dispara o download ──────────────────────────────────────────────
       const pngUrl = canvas.toDataURL("image/png");
       const a = document.createElement("a");
       a.href = pngUrl;
@@ -427,6 +498,7 @@ function RoofStudioContent() {
     }
   };
   // ────────────────────────────────────────────────────────────────────────────
+
 
   // Medição do container para sincronizar com o canvas
   const containerRef = useRef<HTMLDivElement | null>(null);
