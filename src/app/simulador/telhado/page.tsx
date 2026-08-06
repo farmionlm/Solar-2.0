@@ -831,7 +831,7 @@ function RoofStudioContent() {
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden bg-slate-950 text-foreground font-sans select-none">
+    <div className="relative w-screen h-screen overflow-hidden bg-slate-950 text-foreground flex flex-col font-sans select-none">
       
       {/* 1. Header de Controle Superior */}
       <header className="relative z-30 h-16 shrink-0 bg-card/90 backdrop-blur-md border-b border-border/80 px-4 sm:px-6 flex items-center justify-between gap-4 shadow-lg">

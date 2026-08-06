@@ -15,14 +15,14 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Rotas sem shell de navegação (login, propostas públicas)
-  const PUBLIC_EXACT_ROUTES = ["/login"];
-  const PUBLIC_PREFIXES = ["/p/"];
-  const isPublicRoute =
-    PUBLIC_EXACT_ROUTES.includes(pathname) ||
-    PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  // Rotas sem shell de navegação global (login, propostas públicas, estúdios em tela cheia)
+  const FULLSCREEN_EXACT_ROUTES = ["/login"];
+  const FULLSCREEN_PREFIXES = ["/p/", "/simulador/telhado"];
+  const isFullScreenRoute =
+    FULLSCREEN_EXACT_ROUTES.includes(pathname) ||
+    FULLSCREEN_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
-  if (isPublicRoute) {
+  if (isFullScreenRoute) {
     return <>{children}</>;
   }
 
