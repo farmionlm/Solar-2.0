@@ -54,6 +54,15 @@ Atualmente, o Solar 2.0 possui uma base técnica robusta (Next.js, PostgreSQL/Pr
   - Ao digitar o CEP do cliente (ou coordenadas), consultar APIs (Ex: CRESESB, NASA POWER, ou INPE) para obter a irradiação solar média exata daquela localidade.
   - Ajustar automaticamente a geração (kWh/mês) e a eficiência com base nessa variável geográfica real.
 
+### 2.3. Dimensionamento de Sistemas Híbridos (Inversor Híbrido + Baterias)
+- **Status:** Planejado (Estudo & Plano Concluídos)
+- **Descrição:** Dimensionamento de armazenamento com baterias (LiFePO4) para Peak Shaving (Grupo A) e Time Shifting (Arbitragem Tarifária / Tarifa Branca).
+- **Funcionalidades Chaves:**
+  - Motor de simulação de despacho diário em resolução de 15 minutos (96 pontos/dia).
+  - Cálculo automatizado de potência (kW) e capacidade de energia (kWh) recomendados.
+  - Gráfico interativo de despacho no simulador e memorial descritivo.
+- **Documentação Técnica:** Veja [Plano de Implementação Híbrido](file:///c:/Luan/Github/Solar-2.0/docs/PLANO_DIMENSIONAMENTO_HIBRIDO.md) e [Estudo de Referência](file:///c:/Luan/Github/Solar-2.0/docs/estudo-dimensionamento-hibrido.md).
+
 ---
 
 ## 📊 Módulo 3: UX e Inteligência de Dados
