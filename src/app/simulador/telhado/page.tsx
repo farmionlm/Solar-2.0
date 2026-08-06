@@ -423,7 +423,32 @@ function RoofStudioContent() {
 
       const centroidMeters = getSectionCentroidMeters(sec);
       const centroidPixels = getSectionCentroidPixels(sec);
-      const minYPixel = polygonVerticesPixels.length > 0
+
+      const rad = (sec.azimuthDegrees * Math.PI) / 180;
+      const cosA = Math.cos(rad);
+      const sinA = Math.sin(rad);
+
+      const rotatedScreenVertices = polygonVerticesPixels.map((v) => {
+        const dx = v.x - centroidPixels.x;
+        const dy = v.y - centroidPixels.y;
+        return {
+          x: centroidPixels.x + (dx * cosA - dy * sinA),
+          y: centroidPixels.y + (dx * sinA + dy * cosA),
+        };
+      });
+
+      const screenMinY = rotatedScreenVertices.length > 0
+        ? Math.min(...rotatedScreenVertices.map((v) => v.y))
+        : centroidPixels.y - 40;
+      const screenMinX = rotatedScreenVertices.length > 0
+        ? Math.min(...rotatedScreenVertices.map((v) => v.x))
+        : centroidPixels.x - 40;
+      const screenMaxX = rotatedScreenVertices.length > 0
+        ? Math.max(...rotatedScreenVertices.map((v) => v.x))
+        : centroidPixels.x + 40;
+      const screenCenterX = (screenMinX + screenMaxX) / 2;
+
+      const minYLocal = polygonVerticesPixels.length > 0
         ? Math.min(...polygonVerticesPixels.map((v) => v.y))
         : centroidPixels.y - 40;
 
@@ -433,7 +458,9 @@ function RoofStudioContent() {
         polygonVerticesPixels,
         centroidMeters,
         centroidPixels,
-        minYPixel,
+        minYLocal,
+        screenMinY,
+        screenCenterX,
       };
     });
   }, [sections, centerLat, centerLng, centerCanvasX, centerCanvasY, pixelsPerMeter, moduleWidthMeters, moduleHeightMeters]);
@@ -1013,7 +1040,7 @@ function RoofStudioContent() {
                     );
                   })}
 
-                  {/* Cotações em Metros das Arestas (apenas se for a seção ativa) */}
+                  {/* Cotações em Metros das Arestas (Afastadas 12px para fora do polígono) */}
                   {isActive && section.polygonMeters.map((v1, i) => {
                     const v2 = section.polygonMeters[(i + 1) % section.polygonMeters.length];
                     const edgeLength = Math.hypot(v2.x - v1.x, v2.y - v1.y).toFixed(1);
@@ -1022,22 +1049,28 @@ function RoofStudioContent() {
                     const midX = (p1.x + p2.x) / 2;
                     const midY = (p1.y + p2.y) / 2;
 
+                    const dx = midX - centroidPixels.x;
+                    const dy = midY - centroidPixels.y;
+                    const dist = Math.hypot(dx, dy) || 1;
+                    const offsetX = midX + (dx / dist) * 12;
+                    const offsetY = midY + (dy / dist) * 12;
+
                     return (
                       <g key={`edge-${i}`} className="pointer-events-none">
                         <rect
-                          x={midX - 18}
-                          y={midY - 8}
-                          width="36"
-                          height="16"
+                          x={offsetX - 16}
+                          y={offsetY - 7}
+                          width="32"
+                          height="14"
                           rx="4"
                           fill="rgba(15, 23, 42, 0.9)"
                           stroke="#38bdf8"
                           strokeWidth="1"
                         />
                         <text
-                          x={midX}
-                          y={midY + 3}
-                          fontSize="9"
+                          x={offsetX}
+                          y={offsetY + 3}
+                          fontSize="8.5"
                           fontWeight="black"
                           fill="#38bdf8"
                           textAnchor="middle"
@@ -1071,16 +1104,16 @@ function RoofStudioContent() {
                     >
                       <line
                         x1={centroidPixels.x}
-                        y1={centroidPixels.y - 80}
+                        y1={secCalc.minYLocal - 8}
                         x2={centroidPixels.x}
-                        y2={centroidPixels.y - 105}
+                        y2={secCalc.minYLocal - 32}
                         stroke="#f59e0b"
                         strokeWidth="2"
                         strokeDasharray="4 3"
                       />
                       <circle
                         cx={centroidPixels.x}
-                        cy={centroidPixels.y - 105}
+                        cy={secCalc.minYLocal - 32}
                         r="9"
                         fill="#f59e0b"
                         stroke="#ffffff"
@@ -1089,7 +1122,7 @@ function RoofStudioContent() {
                       />
                       <text
                         x={centroidPixels.x}
-                        y={centroidPixels.y - 102}
+                        y={secCalc.minYLocal - 29}
                         fontSize="10"
                         fontWeight="black"
                         fill="#ffffff"
@@ -1100,39 +1133,47 @@ function RoofStudioContent() {
                     </g>
                   )}
 
-                  {/* Pílula / Rótulo Flutuante Externo (Fora do Desenho dos Módulos, Mantendo Texto 0° Horizontal) */}
-                  {showLabels && (
-                    <g
-                      transform={`translate(${centroidPixels.x}, ${minYPixel - 16}) rotate(${-section.azimuthDegrees})`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveSectionId(section.id);
-                      }}
-                      className="cursor-pointer hover:scale-105 transition-transform"
-                    >
-                      <rect
-                        x="-38"
-                        y="-10"
-                        width="76"
-                        height="20"
-                        rx="10"
-                        fill={isActive ? "rgba(15, 23, 42, 0.92)" : "rgba(30, 41, 59, 0.85)"}
-                        stroke={isActive ? "#38bdf8" : "#64748b"}
-                        strokeWidth="1.2"
-                        className="shadow-md"
-                      />
-                      <text
-                        x="0"
-                        y="3"
-                        fontSize="9"
-                        fontWeight="black"
-                        fill={isActive ? "#38bdf8" : "#e2e8f0"}
-                        textAnchor="middle"
-                      >
-                        {section.name}: {autoFill.maxPanelsCount}p.
-                      </text>
-                    </g>
-                  )}
+                </g>
+              );
+            })}
+
+            {/* Camada de Rótulos de Seção (Posicionados em Tela 22px Acima do Ponto Mais Alto do Polígono Rotacionado, 0° Horizontal) */}
+            {showLabels && sectionCalculations.map((sc) => {
+              const isActive = sc.section.id === activeSectionId;
+              return (
+                <g
+                  key={`label-${sc.section.id}`}
+                  transform={`translate(${sc.screenCenterX}, ${sc.screenMinY - 22})`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveSectionId(sc.section.id);
+                  }}
+                  className="cursor-pointer hover:scale-105 transition-transform"
+                >
+                  <rect
+                    x="-40"
+                    y="-11"
+                    width="80"
+                    height="22"
+                    rx="11"
+                    fill={isActive ? "rgba(15, 23, 42, 0.92)" : "rgba(30, 41, 59, 0.88)"}
+                    stroke={isActive ? "#38bdf8" : "#64748b"}
+                    strokeWidth="1.2"
+                    className="shadow-lg"
+                  />
+                  <text
+                    x="0"
+                    y="3"
+                    fontSize="9.5"
+                    fontWeight="black"
+                    fill={isActive ? "#38bdf8" : "#e2e8f0"}
+                    textAnchor="middle"
+                  >
+                    {sc.section.name}: {sc.autoFill.maxPanelsCount}p.
+                  </text>
+                </g>
+              );
+            })}
 
                 </g>
               );
