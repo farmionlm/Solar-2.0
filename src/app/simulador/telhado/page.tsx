@@ -958,7 +958,7 @@ function RoofStudioContent() {
 
             {/* Loop sobre Todas as Seções de Telhado (Águas) */}
             {sectionCalculations.map((secCalc) => {
-              const { section, autoFill, polygonVerticesPixels, centroidPixels, minYPixel } = secCalc;
+              const { section, autoFill, polygonVerticesPixels, centroidPixels, minYLocal } = secCalc;
               const isActive = section.id === activeSectionId;
 
               return (
