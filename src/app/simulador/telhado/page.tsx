@@ -156,6 +156,18 @@ function RoofStudioContent() {
     setEditingEdge(null);
   };
 
+  // Seção Ativa Atual
+  const activeSection = useMemo(() => {
+    return sections.find((s) => s.id === activeSectionId) || sections[0];
+  }, [sections, activeSectionId]);
+
+  // Atualizador Auxiliar da Seção Ativa
+  const updateActiveSection = (data: Partial<RoofSection>) => {
+    setSections((prev) =>
+      prev.map((s) => (s.id === activeSectionId ? { ...s, ...data } : s))
+    );
+  };
+
   const activeDimensions = useMemo(() => {
     if (!activeSection || !activeSection.polygonMeters || activeSection.polygonMeters.length === 0) {
       return { width: 10, length: 7.2 };
@@ -179,18 +191,6 @@ function RoofStudioContent() {
       { x: Number((c.x - halfW).toFixed(2)), y: Number((c.y + halfL).toFixed(2)) },
     ];
     updateActiveSection({ polygonMeters: updatedPolygon });
-  };
-
-  // Seção Ativa Atual
-  const activeSection = useMemo(() => {
-    return sections.find((s) => s.id === activeSectionId) || sections[0];
-  }, [sections, activeSectionId]);
-
-  // Atualizador Auxiliar da Seção Ativa
-  const updateActiveSection = (data: Partial<RoofSection>) => {
-    setSections((prev) =>
-      prev.map((s) => (s.id === activeSectionId ? { ...s, ...data } : s))
-    );
   };
 
   // Adicionar Nova Área / Água de Telhado
