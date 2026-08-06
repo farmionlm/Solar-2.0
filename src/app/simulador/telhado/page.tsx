@@ -26,6 +26,7 @@ import {
   Trash2,
   Edit3,
   Layers3,
+  Tag,
 } from "lucide-react";
 import {
   LatLngPoint,
@@ -62,6 +63,7 @@ function RoofStudioContent() {
 
   // Estados de localização e foto de satélite
   const [searchQuery, setSearchQuery] = useState<string>(initialCep);
+  const [showLabels, setShowLabels] = useState<boolean>(true);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<string>("");
   const [centerLat, setCenterLat] = useState<number>(-20.3155); // Vitória, ES
@@ -421,6 +423,9 @@ function RoofStudioContent() {
 
       const centroidMeters = getSectionCentroidMeters(sec);
       const centroidPixels = getSectionCentroidPixels(sec);
+      const minYPixel = polygonVerticesPixels.length > 0
+        ? Math.min(...polygonVerticesPixels.map((v) => v.y))
+        : centroidPixels.y - 40;
 
       return {
         section: sec,
@@ -428,6 +433,7 @@ function RoofStudioContent() {
         polygonVerticesPixels,
         centroidMeters,
         centroidPixels,
+        minYPixel,
       };
     });
   }, [sections, centerLat, centerLng, centerCanvasX, centerCanvasY, pixelsPerMeter, moduleWidthMeters, moduleHeightMeters]);
@@ -814,6 +820,18 @@ function RoofStudioContent() {
             >
               <Eye className="w-3.5 h-3.5" /> Diagrama 2D
             </button>
+            <button
+              type="button"
+              onClick={() => setShowLabels(!showLabels)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all ${
+                showLabels
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+              title="Exibir ou ocultar rótulos das áreas no mapa"
+            >
+              <Tag className="w-3.5 h-3.5" /> Rótulos
+            </button>
           </div>
 
           <button
@@ -1082,32 +1100,39 @@ function RoofStudioContent() {
                     </g>
                   )}
 
-                  {/* Crachá / Etiqueta de Identificação da Área sobre o Centroide */}
-                  <g
-                    onClick={() => setActiveSectionId(section.id)}
-                    className="cursor-pointer"
-                  >
-                    <rect
-                      x={centroidPixels.x - 45}
-                      y={centroidPixels.y - 12}
-                      width="90"
-                      height="24"
-                      rx="6"
-                      fill={isActive ? "rgba(14, 165, 233, 0.95)" : "rgba(30, 41, 59, 0.90)"}
-                      stroke={isActive ? "#38bdf8" : "#64748b"}
-                      strokeWidth="1.2"
-                    />
-                    <text
-                      x={centroidPixels.x}
-                      y={centroidPixels.y + 4}
-                      fontSize="10"
-                      fontWeight="extrabold"
-                      fill="#ffffff"
-                      textAnchor="middle"
+                  {/* Pílula / Rótulo Flutuante Externo (Fora do Desenho dos Módulos, Mantendo Texto 0° Horizontal) */}
+                  {showLabels && (
+                    <g
+                      transform={`translate(${centroidPixels.x}, ${minYPixel - 16}) rotate(${-section.azimuthDegrees})`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveSectionId(section.id);
+                      }}
+                      className="cursor-pointer hover:scale-105 transition-transform"
                     >
-                      {section.name}: {autoFill.maxPanelsCount} p.
-                    </text>
-                  </g>
+                      <rect
+                        x="-38"
+                        y="-10"
+                        width="76"
+                        height="20"
+                        rx="10"
+                        fill={isActive ? "rgba(15, 23, 42, 0.92)" : "rgba(30, 41, 59, 0.85)"}
+                        stroke={isActive ? "#38bdf8" : "#64748b"}
+                        strokeWidth="1.2"
+                        className="shadow-md"
+                      />
+                      <text
+                        x="0"
+                        y="3"
+                        fontSize="9"
+                        fontWeight="black"
+                        fill={isActive ? "#38bdf8" : "#e2e8f0"}
+                        textAnchor="middle"
+                      >
+                        {section.name}: {autoFill.maxPanelsCount}p.
+                      </text>
+                    </g>
+                  )}
 
                 </g>
               );

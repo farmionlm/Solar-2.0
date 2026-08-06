@@ -551,6 +551,38 @@ export function RoofLayoutModal({
                         />
                       ))}
 
+                      {/* Pílula / Rótulo Flutuante Externo (Fora do Desenho dos Módulos) */}
+                      <g
+                        transform={`translate(${section.polygonVertices.reduce((a,b)=>a+b.x,0)/section.polygonVertices.length}, ${Math.min(...section.polygonVertices.map(v=>v.y)) - 14}) rotate(${-section.azimuthDegrees})`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveSectionId(section.id);
+                        }}
+                        className="cursor-pointer hover:scale-105 transition-transform"
+                      >
+                        <rect
+                          x="-34"
+                          y="-9"
+                          width="68"
+                          height="18"
+                          rx="9"
+                          fill={isActive ? "rgba(15, 23, 42, 0.92)" : "rgba(30, 41, 59, 0.85)"}
+                          stroke={isActive ? "#38bdf8" : "#64748b"}
+                          strokeWidth="1.2"
+                          className="shadow-md"
+                        />
+                        <text
+                          x="0"
+                          y="3"
+                          fontSize="8.5"
+                          fontWeight="black"
+                          fill={isActive ? "#38bdf8" : "#e2e8f0"}
+                          textAnchor="middle"
+                        >
+                          {section.name}: {autoFill.maxPanelsCount}p.
+                        </text>
+                      </g>
+
                     </g>
                   );
                 })}
