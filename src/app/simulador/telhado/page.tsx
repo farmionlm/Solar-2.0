@@ -27,6 +27,7 @@ import {
   Edit3,
   Layers3,
   Tag,
+  Download,
 } from "lucide-react";
 import {
   LatLngPoint,
@@ -242,8 +243,17 @@ function RoofStudioContent() {
   const [hasDraft, setHasDraft] = useState<boolean>(false);
   const [draftTimestamp, setDraftTimestamp] = useState<number | null>(null);
 
+  // Ref para garantir que o auto-save só ocorre APÓS a verificação do rascunho na montagem
+  // Isso evita o bug onde o estado inicial sobrescrevia o rascunho salvo antes do check
+  const draftCheckedRef = useRef<boolean>(false);
+
+  // Ref do SVG do canvas para exportar PNG do estudo
+  const svgCanvasRef = useRef<SVGSVGElement | null>(null);
+
   // Auto-save draft to localStorage (com suporte a múltiplas áreas)
+  // CORREÇÃO: só salva após a verificação inicial do rascunho (draftCheckedRef)
   useEffect(() => {
+    if (!draftCheckedRef.current) return; // Aguarda o check inicial antes de salvar
     if (sections.length > 0) {
       const draftData = {
         sections,
@@ -272,6 +282,9 @@ function RoofStudioContent() {
       }
     } catch (err) {
       console.error("Erro ao ler rascunho de telhado:", err);
+    } finally {
+      // Marca que o check inicial foi concluído — agora o auto-save pode rodar
+      draftCheckedRef.current = true;
     }
   }, []);
 
@@ -315,6 +328,105 @@ function RoofStudioContent() {
     localStorage.removeItem("solar_roof_draft");
     setHasDraft(false);
   };
+
+  // ── DOWNLOAD DO ESTUDO COMO PNG ──────────────────────────────────────────────
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+
+  const downloadStudyImage = async () => {
+    if (!svgCanvasRef.current) return;
+    setIsDownloading(true);
+    try {
+      const svgEl = svgCanvasRef.current;
+      const svgWidth = svgEl.clientWidth || 1000;
+      const svgHeight = svgEl.clientHeight || 700;
+
+      // Serializa o SVG atual como string
+      const svgClone = svgEl.cloneNode(true) as SVGSVGElement;
+      svgClone.setAttribute("width", String(svgWidth));
+      svgClone.setAttribute("height", String(svgHeight));
+      // Fundo escuro para o PNG
+      const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      bgRect.setAttribute("width", String(svgWidth));
+      bgRect.setAttribute("height", String(svgHeight));
+      bgRect.setAttribute("fill", "#020617");
+      svgClone.insertBefore(bgRect, svgClone.firstChild);
+
+      const svgStr = new XMLSerializer().serializeToString(svgClone);
+      const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+      const svgUrl = URL.createObjectURL(svgBlob);
+
+      // Renderiza o SVG em um Canvas HTML
+      const FOOTER_H = 160;
+      const canvas = document.createElement("canvas");
+      const scale = 2; // HD
+      canvas.width = svgWidth * scale;
+      canvas.height = (svgHeight + FOOTER_H) * scale;
+      const ctx = canvas.getContext("2d")!;
+      ctx.scale(scale, scale);
+
+      // Desenha o SVG
+      await new Promise<void>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => { ctx.drawImage(img, 0, 0, svgWidth, svgHeight); URL.revokeObjectURL(svgUrl); resolve(); };
+        img.onerror = reject;
+        img.src = svgUrl;
+      });
+
+      // Rodapé com informações
+      const footerY = svgHeight;
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, footerY, svgWidth, FOOTER_H);
+
+      // Linha divisória
+      ctx.fillStyle = "#1e40af";
+      ctx.fillRect(0, footerY, svgWidth, 2);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText("ESTUDO DO TELHADO — CAPACIDADE FÍSICA", 20, footerY + 22);
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "11px sans-serif";
+      ctx.fillText(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 20, footerY + 40);
+
+      // Detalhamento por água
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillStyle = "#60a5fa";
+      ctx.fillText("DISTRIBUIÇÃO POR ÁREA:", 20, footerY + 62);
+
+      let col = 0;
+      let row = 0;
+      const colWidth = Math.floor(svgWidth / 3);
+      sectionCalculations.forEach((sc) => {
+        const x = 20 + col * colWidth;
+        const y = footerY + 80 + row * 20;
+        ctx.fillStyle = "#e2e8f0";
+        ctx.font = "bold 11px sans-serif";
+        ctx.fillText(`${sc.section.name}:`, x, y);
+        ctx.fillStyle = "#38bdf8";
+        ctx.fillText(`${sc.autoFill.maxPanelsCount} placas`, x + 80, y);
+        col++;
+        if (col >= 3) { col = 0; row++; }
+      });
+
+      // Total
+      ctx.fillStyle = "#34d399";
+      ctx.font = "bold 15px sans-serif";
+      ctx.fillText(`TOTAL: ${totalMaxPanelsCount} PLACAS  |  ÁREA ÚTIL: ${totalUsableAreaM2} m²`, 20, footerY + FOOTER_H - 14);
+
+      // Download
+      const pngUrl = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = pngUrl;
+      a.download = `estudo-telhado-${new Date().toISOString().slice(0, 10)}.png`;
+      a.click();
+    } catch (err) {
+      console.error("Erro ao gerar PNG do estudo:", err);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+  // ────────────────────────────────────────────────────────────────────────────
 
   // Medição do container para sincronizar com o canvas
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -1017,6 +1129,7 @@ function RoofStudioContent() {
 
           {/* Canvas SVG Interativo para Telhados Multi-Áreas e Módulos */}
           <svg
+            ref={svgCanvasRef}
             className={`w-full h-full relative z-10 select-none ${
               mapDragStart ? 'cursor-grabbing' : 'cursor-grab'
             }`}
@@ -1703,7 +1816,7 @@ function RoofStudioContent() {
             </div>
 
             {/* Botão de Ação para Salvar e Voltar */}
-            <div className="pt-4 mt-4 border-t border-border">
+            <div className="pt-4 mt-4 border-t border-border space-y-2.5">
               <button
                 type="button"
                 onClick={() => {
@@ -1713,6 +1826,26 @@ function RoofStudioContent() {
               >
                 <span>Aplicar {totalMaxPanelsCount} Placas ao Simulador</span>
                 <CheckCircle2 className="w-5 h-5" />
+              </button>
+
+              {/* Botão de Download do Estudo como PNG */}
+              <button
+                type="button"
+                onClick={downloadStudyImage}
+                disabled={isDownloading}
+                className="w-full py-3 px-4 bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs rounded-xl transition-all border border-border flex items-center justify-center gap-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isDownloading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Gerando imagem...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 text-primary" />
+                    <span>Baixar Estudo <span className="text-primary font-black">({totalMaxPanelsCount} placas)</span> como PNG</span>
+                  </>
+                )}
               </button>
             </div>
 
