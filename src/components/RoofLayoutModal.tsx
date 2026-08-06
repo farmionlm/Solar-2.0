@@ -1,36 +1,42 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
   X,
   Layers,
   Compass,
-  Maximize2,
   CheckCircle2,
   AlertTriangle,
-  RotateCcw,
   Sparkles,
-  Zap,
   Grid,
-  Info,
   Trash2,
   Plus,
   Search,
   Map,
   Eye,
-  ZoomIn,
-  ZoomOut,
   MapPin,
-  Loader2
+  Loader2,
+  Edit3,
+  Layers3,
 } from "lucide-react";
 import {
   LatLngPoint,
   Point2D,
   AutoFillResult,
   autoFillRoofLayout,
-  calculatePolygonAreaMeters,
 } from "@/utils/roofLayoutMath";
 import { fetchAddressByCep } from "@/utils/cepApi";
+
+export interface RoofSectionModal {
+  id: string;
+  name: string;
+  polygonVertices: Point2D[];
+  azimuthDegrees: number;
+  pitchDegrees: number;
+  marginMeters: number;
+  moduleOrientation: 'PORTRAIT' | 'LANDSCAPE';
+  activePreset: 'RECTANGLE' | 'L_SHAPE' | 'TRAPEZOID';
+}
 
 interface RoofLayoutModalProps {
   isOpen: boolean;
@@ -47,12 +53,75 @@ export function RoofLayoutModal({
   initialRequiredModules = 0,
   selectedModuleDimensions = { widthMeters: 1.13, heightMeters: 2.28, powerW: 550 },
 }: RoofLayoutModalProps) {
-  // Configuração dos parâmetros do telhado
-  const [marginMeters, setMarginMeters] = useState<number>(0.5);
-  const [azimuthDegrees, setAzimuthDegrees] = useState<number>(0); // 0° Norte, 90° Leste, 180° Sul, 270° Oeste
-  const [pitchDegrees, setPitchDegrees] = useState<number>(15);
-  const [moduleOrientation, setModuleOrientation] = useState<'PORTRAIT' | 'LANDSCAPE'>('PORTRAIT');
-  
+  // Lista de Águas / Áreas do Telhado (Multi-Seção)
+  const [sections, setSections] = useState<RoofSectionModal[]>([
+    {
+      id: "sec-1",
+      name: "Água 1",
+      polygonVertices: [
+        { x: 50, y: 50 },
+        { x: 350, y: 50 },
+        { x: 350, y: 250 },
+        { x: 50, y: 250 },
+      ],
+      azimuthDegrees: 0,
+      pitchDegrees: 15,
+      marginMeters: 0.5,
+      moduleOrientation: "PORTRAIT",
+      activePreset: "RECTANGLE",
+    },
+  ]);
+
+  const [activeSectionId, setActiveSectionId] = useState<string>("sec-1");
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+
+  // Seção Ativa Atual
+  const activeSection = useMemo(() => {
+    return sections.find((s) => s.id === activeSectionId) || sections[0];
+  }, [sections, activeSectionId]);
+
+  // Atualizador Auxiliar da Seção Ativa
+  const updateActiveSection = (data: Partial<RoofSectionModal>) => {
+    setSections((prev) =>
+      prev.map((s) => (s.id === activeSectionId ? { ...s, ...data } : s))
+    );
+  };
+
+  // Adicionar Nova Área / Água de Telhado
+  const addSection = () => {
+    const newId = `sec-${Date.now()}`;
+    const newNum = sections.length + 1;
+    const offset = (sections.length % 3) * 30;
+
+    const newSection: RoofSectionModal = {
+      id: newId,
+      name: `Água ${newNum}`,
+      polygonVertices: [
+        { x: 70 + offset, y: 70 + offset },
+        { x: 330 + offset, y: 70 + offset },
+        { x: 330 + offset, y: 230 + offset },
+        { x: 70 + offset, y: 230 + offset },
+      ],
+      azimuthDegrees: 0,
+      pitchDegrees: 15,
+      marginMeters: 0.5,
+      moduleOrientation: "PORTRAIT",
+      activePreset: "RECTANGLE",
+    };
+    setSections((prev) => [...prev, newSection]);
+    setActiveSectionId(newId);
+  };
+
+  // Remover Área / Água do Telhado
+  const removeSection = (id: string) => {
+    if (sections.length <= 1) return;
+    const filtered = sections.filter((s) => s.id !== id);
+    setSections(filtered);
+    if (activeSectionId === id) {
+      setActiveSectionId(filtered[0].id);
+    }
+  };
+
   // Estados da Busca por Endereço/CEP e Satélite HD Real
   const [mapMode, setMapMode] = useState<'SATELLITE' | 'VECTOR'>('SATELLITE');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -102,106 +171,98 @@ export function RoofLayoutModal({
     }
   };
 
-  // Vértices do polígono do telhado em coordenadas locais Canvas (2D)
-  const [polygonVertices, setPolygonVertices] = useState<Point2D[]>([
-    { x: 50, y: 50 },
-    { x: 350, y: 50 },
-    { x: 350, y: 250 },
-    { x: 50, y: 250 },
-  ]);
-
-  const [activePreset, setActivePreset] = useState<'RECTANGLE' | 'L_SHAPE' | 'TRAPEZOID'>('RECTANGLE');
   const [draggingVertexIndex, setDraggingVertexIndex] = useState<number | null>(null);
 
   const handleSvgMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (draggingVertexIndex === null) return;
+    if (draggingVertexIndex === null || !activeSection) return;
     const svg = e.currentTarget;
     const rect = svg.getBoundingClientRect();
     const x = Math.max(10, Math.min(390, (e.clientX - rect.left) * (400 / rect.width)));
     const y = Math.max(10, Math.min(290, (e.clientY - rect.top) * (300 / rect.height)));
 
-    setPolygonVertices((prev) => {
-      const updated = [...prev];
-      updated[draggingVertexIndex] = { x: Math.round(x), y: Math.round(y) };
-      return updated;
-    });
+    const updatedVertices = [...activeSection.polygonVertices];
+    updatedVertices[draggingVertexIndex] = { x: Math.round(x), y: Math.round(y) };
+    updateActiveSection({ polygonVertices: updatedVertices });
   };
 
   const handleSvgMouseUp = () => {
     setDraggingVertexIndex(null);
   };
 
-  // Carregar preset de formato de telhado
+  // Carregar preset de formato de telhado para a área ativa
   const applyPresetShape = (shape: 'RECTANGLE' | 'L_SHAPE' | 'TRAPEZOID') => {
-    setActivePreset(shape);
+    if (!activeSection) return;
+    let newVertices: Point2D[] = [];
     if (shape === 'RECTANGLE') {
-      setPolygonVertices([
+      newVertices = [
         { x: 50, y: 50 },
         { x: 350, y: 50 },
         { x: 350, y: 250 },
         { x: 50, y: 250 },
-      ]);
+      ];
     } else if (shape === 'L_SHAPE') {
-      setPolygonVertices([
+      newVertices = [
         { x: 50, y: 50 },
         { x: 350, y: 50 },
         { x: 350, y: 150 },
         { x: 200, y: 150 },
         { x: 200, y: 280 },
         { x: 50, y: 280 },
-      ]);
+      ];
     } else if (shape === 'TRAPEZOID') {
-      setPolygonVertices([
+      newVertices = [
         { x: 100, y: 50 },
         { x: 300, y: 50 },
         { x: 380, y: 250 },
         { x: 20, y: 250 },
-      ]);
+      ];
     }
+    updateActiveSection({ activePreset: shape, polygonVertices: newVertices });
   };
 
-  // Fator de escala: 10px no canvas = 1 metro real
   const PIXELS_PER_METER = 20;
 
-  // Converter vértices do canvas para coordenadas simuladas em metros para o algoritmo
-  const roofMeters: Point2D[] = useMemo(() => {
-    return polygonVertices.map((v) => ({
-      x: v.x / PIXELS_PER_METER,
-      y: v.y / PIXELS_PER_METER,
-    }));
-  }, [polygonVertices]);
+  // Motor de Auto-Fill por Seção Modal
+  const sectionCalculations = useMemo(() => {
+    return sections.map((sec) => {
+      const roofMeters: Point2D[] = sec.polygonVertices.map((v) => ({
+        x: v.x / PIXELS_PER_METER,
+        y: v.y / PIXELS_PER_METER,
+      }));
 
-  // Converter metros locais para LatLng reais relativos à localização pesquisada
-  const latLngPoints: LatLngPoint[] = useMemo(() => {
-    return roofMeters.map((m) => ({
-      lat: centerLat + (m.y / 111000),
-      lng: centerLng + (m.x / (111000 * Math.cos((centerLat * Math.PI) / 180))),
-    }));
-  }, [roofMeters, centerLat, centerLng]);
+      const latLngPoints: LatLngPoint[] = roofMeters.map((m) => ({
+        lat: centerLat + m.y / 111000,
+        lng: centerLng + m.x / (111000 * Math.cos((centerLat * Math.PI) / 180)),
+      }));
 
-  // Executar o motor de auto-fill
-  const autoFillResult: AutoFillResult = useMemo(() => {
-    return autoFillRoofLayout({
-      roofPolygon: latLngPoints,
-      moduleWidthMeters: selectedModuleDimensions.widthMeters,
-      moduleHeightMeters: selectedModuleDimensions.heightMeters,
-      azimuthDegrees,
-      pitchDegrees,
-      marginMeters,
-      panelSpacingMeters: 0.05,
-      orientation: moduleOrientation,
+      const autoFill: AutoFillResult = autoFillRoofLayout({
+        roofPolygon: latLngPoints,
+        moduleWidthMeters: selectedModuleDimensions.widthMeters,
+        moduleHeightMeters: selectedModuleDimensions.heightMeters,
+        azimuthDegrees: sec.azimuthDegrees,
+        pitchDegrees: sec.pitchDegrees,
+        marginMeters: sec.marginMeters,
+        panelSpacingMeters: 0.05,
+        orientation: sec.moduleOrientation,
+      });
+
+      return {
+        section: sec,
+        autoFill,
+      };
     });
-  }, [
-    latLngPoints,
-    selectedModuleDimensions,
-    azimuthDegrees,
-    pitchDegrees,
-    marginMeters,
-    moduleOrientation,
-  ]);
+  }, [sections, centerLat, centerLng, selectedModuleDimensions]);
 
-  const maxFitCount = autoFillResult.maxPanelsCount;
-  const isDeficit = initialRequiredModules > 0 && maxFitCount < initialRequiredModules;
+  // Totais Acumulados
+  const totalMaxPanelsCount = useMemo(() => {
+    return sectionCalculations.reduce((acc, curr) => acc + curr.autoFill.maxPanelsCount, 0);
+  }, [sectionCalculations]);
+
+  const totalUsableAreaM2 = useMemo(() => {
+    return Number(sectionCalculations.reduce((acc, curr) => acc + curr.autoFill.usableAreaM2, 0).toFixed(2));
+  }, [sectionCalculations]);
+
+  const isDeficit = initialRequiredModules > 0 && totalMaxPanelsCount < initialRequiredModules;
 
   if (!isOpen) return null;
 
@@ -217,13 +278,13 @@ export function RoofLayoutModal({
             </div>
             <div>
               <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
-                Simulador de Arranjo & Espaço Físico do Telhado
+                Simulador do Telhado Multi-Águas
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
-                  Sem API Pago (100% Grátis)
+                  {sections.length} {sections.length === 1 ? 'Área' : 'Áreas'}
                 </span>
               </h3>
               <p className="text-xs text-muted-foreground">
-                Desenhe o formato do telhado para calcular a capacidade máxima física de placas solares.
+                Desenhe o formato de múltiplas áreas de telhado para calcular a capacidade máxima combinada.
               </p>
             </div>
           </div>
@@ -242,7 +303,7 @@ export function RoofLayoutModal({
           {/* Coluna Esquerda: Editor Visual (Canvas SVG de Telhado & Módulos com Foto de Satélite) */}
           <div className="lg:col-span-2 space-y-4">
             
-            {/* Barra de Busca de CEP / Endereço para Carregar Satélite do Imóvel */}
+            {/* Barra de Busca de CEP / Endereço */}
             <div className="bg-secondary/40 border border-border p-3 rounded-2xl space-y-2">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
@@ -251,7 +312,7 @@ export function RoofLayoutModal({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearchAddress()}
-                    placeholder="Digite o CEP (ex: 29050-670) ou Endereço do cliente para carregar foto de Satélite..."
+                    placeholder="Digite o CEP ou Endereço do cliente para carregar foto de Satélite..."
                     className="w-full h-10 pl-9 pr-3 text-xs font-semibold bg-card border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                   />
                   <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
@@ -263,7 +324,7 @@ export function RoofLayoutModal({
                   className="h-10 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shrink-0"
                 >
                   {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-                  <span>Localizar Imóvel</span>
+                  <span>Localizar</span>
                 </button>
               </div>
 
@@ -272,75 +333,59 @@ export function RoofLayoutModal({
               )}
             </div>
 
-            {/* Toolbar de Formatos Rápidos & Alternância Satélite/Vetor */}
-            <div className="flex flex-wrap items-center justify-between bg-secondary/30 p-3 rounded-xl border border-border text-xs gap-2">
-              <div className="flex items-center gap-1.5">
+            {/* Seletor de Águas / Áreas */}
+            <div className="bg-secondary/30 p-3 rounded-xl border border-border space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold text-muted-foreground uppercase flex items-center gap-1.5">
+                  <Layers3 className="w-4 h-4 text-primary" /> Águas do Telhado
+                </span>
                 <button
                   type="button"
-                  onClick={() => setMapMode('SATELLITE')}
-                  className={`px-3 py-1.5 rounded-lg font-extrabold text-xs flex items-center gap-1.5 transition-all ${
-                    mapMode === 'SATELLITE'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'bg-card text-muted-foreground hover:text-foreground border border-border'
-                  }`}
+                  onClick={addSection}
+                  className="px-2 py-1 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1"
                 >
-                  <Map className="w-3.5 h-3.5" /> Satélite HD Real
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMapMode('VECTOR')}
-                  className={`px-3 py-1.5 rounded-lg font-extrabold text-xs flex items-center gap-1.5 transition-all ${
-                    mapMode === 'VECTOR'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'bg-card text-muted-foreground hover:text-foreground border border-border'
-                  }`}
-                >
-                  <Eye className="w-3.5 h-3.5" /> Diagrama Vetorial
+                  <Plus className="w-3.5 h-3.5" /> Nova Área
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold text-muted-foreground hidden sm:inline">Formato:</span>
-                <button
-                  type="button"
-                  onClick={() => applyPresetShape('RECTANGLE')}
-                  className={`px-2.5 py-1.5 rounded-lg font-bold text-[11px] transition-all ${
-                    activePreset === 'RECTANGLE'
-                      ? 'bg-secondary text-foreground border border-primary/40'
-                      : 'bg-card text-muted-foreground hover:text-foreground border border-border'
-                  }`}
-                >
-                  Retangular
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyPresetShape('L_SHAPE')}
-                  className={`px-2.5 py-1.5 rounded-lg font-bold text-[11px] transition-all ${
-                    activePreset === 'L_SHAPE'
-                      ? 'bg-secondary text-foreground border border-primary/40'
-                      : 'bg-card text-muted-foreground hover:text-foreground border border-border'
-                  }`}
-                >
-                  Em "L"
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyPresetShape('TRAPEZOID')}
-                  className={`px-2.5 py-1.5 rounded-lg font-bold text-[11px] transition-all ${
-                    activePreset === 'TRAPEZOID'
-                      ? 'bg-secondary text-foreground border border-primary/40'
-                      : 'bg-card text-muted-foreground hover:text-foreground border border-border'
-                  }`}
-                >
-                  Trapezoidal
-                </button>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {sections.map((sec, idx) => {
+                  const secCalc = sectionCalculations.find((sc) => sc.section.id === sec.id);
+                  const count = secCalc?.autoFill.maxPanelsCount || 0;
+                  const isSel = sec.id === activeSectionId;
+
+                  return (
+                    <div
+                      key={sec.id}
+                      onClick={() => setActiveSectionId(sec.id)}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-extrabold flex items-center gap-2 cursor-pointer shrink-0 transition-all ${
+                        isSel
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : "bg-card hover:bg-secondary border-border text-muted-foreground"
+                      }`}
+                    >
+                      <span>{sec.name} ({count} p.)</span>
+                      {sections.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSection(sec.id);
+                          }}
+                          className="hover:text-red-400 p-0.5 rounded"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Canvas de Renderização SVG com Foto de Satélite Esri HD de Fundo */}
+            {/* Canvas SVG */}
             <div className="relative w-full h-[340px] sm:h-[380px] bg-slate-950 border border-border rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
               
-              {/* Imagem de Satélite Esri World Imagery (Custo ZERO) */}
               {mapMode === 'SATELLITE' && (
                 <div className="absolute inset-0 z-0">
                   <img
@@ -356,16 +401,11 @@ export function RoofLayoutModal({
                     )}/${Math.floor(((centerLng + 180) / 360) * Math.pow(2, 18))}`}
                     alt="Foto de Satélite do Telhado"
                     className="w-full h-full object-cover scale-150 filter brightness-90 contrast-110"
-                    onError={(e) => {
-                      // Fallback se tile de nível 18 falhar
-                      (e.target as HTMLImageElement).src = `https://static-maps.yandex.ru/1.x/?l=sat&ll=${centerLng},${centerLat}&z=17&size=600,450`;
-                    }}
                   />
                   <div className="absolute inset-0 bg-black/20 pointer-events-none"></div>
                 </div>
               )}
 
-              {/* Moldura Vetorial de Fundo (Modo Diagrama) */}
               {mapMode === 'VECTOR' && (
                 <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
               )}
@@ -378,127 +418,120 @@ export function RoofLayoutModal({
                 onMouseLeave={handleSvgMouseUp}
               >
                 <defs>
-                  <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <linearGradient id="panelGradActive" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#2563eb" stopOpacity="0.85" />
                     <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0.95" />
+                  </linearGradient>
+                  <linearGradient id="panelGradInactive" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#475569" stopOpacity="0.75" />
+                    <stop offset="100%" stopColor="#334155" stopOpacity="0.85" />
                   </linearGradient>
                   <pattern id="solarGrid" width="8" height="12" patternUnits="userSpaceOnUse">
                     <path d="M 8 0 L 0 0 0 12" fill="none" stroke="#60a5fa" strokeWidth="0.5" opacity="0.4" />
                   </pattern>
                 </defs>
 
-                {/* Polígono do Telhado (Perímetro Exterior) */}
-                <polygon
-                  points={polygonVertices.map((v) => `${v.x},${v.y}`).join(" ")}
-                  fill="rgba(30, 41, 59, 0.7)"
-                  stroke="#38bdf8"
-                  strokeWidth="2.5"
-                  strokeDasharray="none"
-                />
-
-                {/* Margem de Segurança Interna (Recuo) */}
-                {polygonVertices.length >= 3 && (
-                  <polygon
-                    points={polygonVertices.map((v) => {
-                      // Offset simples em direção ao centro para visualização
-                      const cx = polygonVertices.reduce((a, b) => a + b.x, 0) / polygonVertices.length;
-                      const cy = polygonVertices.reduce((a, b) => a + b.y, 0) / polygonVertices.length;
-                      const factor = 1 - (marginMeters * 0.08);
-                      const vx = cx + (v.x - cx) * factor;
-                      const vy = cy + (v.y - cy) * factor;
-                      return `${vx},${vy}`;
-                    }).join(" ")}
-                    fill="none"
-                    stroke="#f59e0b"
-                    strokeWidth="1.5"
-                    strokeDasharray="4 3"
-                  />
-                )}
-
-                {/* Módulos Encaixados no Telhado */}
-                {autoFillResult.panels.map((panel, idx) => {
-                  // Converter centro em metros para pixels no SVG
-                  const pxX = 200 + panel.center.x * PIXELS_PER_METER;
-                  const pxY = 150 + panel.center.y * PIXELS_PER_METER;
-                  const pWidth = panel.widthMeters * PIXELS_PER_METER;
-                  const pHeight = panel.heightMeters * PIXELS_PER_METER;
+                {sectionCalculations.map((sc) => {
+                  const { section, autoFill } = sc;
+                  const isActive = section.id === activeSectionId;
 
                   return (
-                    <g key={panel.id} transform={`rotate(${azimuthDegrees}, ${pxX}, ${pxY})`}>
-                      <rect
-                        x={pxX - pWidth / 2}
-                        y={pxY - pHeight / 2}
-                        width={pWidth}
-                        height={pHeight}
-                        rx="2"
-                        fill="url(#panelGrad)"
-                        stroke="#93c5fd"
-                        strokeWidth="1"
+                    <g key={section.id} onClick={() => setActiveSectionId(section.id)} className="cursor-pointer">
+                      
+                      {/* Polígono */}
+                      <polygon
+                        points={section.polygonVertices.map((v) => `${v.x},${v.y}`).join(" ")}
+                        fill={isActive ? "rgba(30, 41, 59, 0.7)" : "rgba(15, 23, 42, 0.4)"}
+                        stroke={isActive ? "#38bdf8" : "#64748b"}
+                        strokeWidth={isActive ? "2.5" : "1.5"}
                       />
-                      <rect
-                        x={pxX - pWidth / 2}
-                        y={pxY - pHeight / 2}
-                        width={pWidth}
-                        height={pHeight}
-                        rx="2"
-                        fill="url(#solarGrid)"
-                      />
-                      <text
-                        x={pxX}
-                        y={pxY + 3}
-                        fontSize="8"
-                        fontWeight="bold"
-                        fill="#ffffff"
-                        textAnchor="middle"
-                      >
-                        {idx + 1}
-                      </text>
+
+                      {/* Recuo de Segurança */}
+                      {isActive && section.polygonVertices.length >= 3 && (
+                        <polygon
+                          points={section.polygonVertices.map((v) => {
+                            const cx = section.polygonVertices.reduce((a, b) => a + b.x, 0) / section.polygonVertices.length;
+                            const cy = section.polygonVertices.reduce((a, b) => a + b.y, 0) / section.polygonVertices.length;
+                            const factor = 1 - (section.marginMeters * 0.08);
+                            return `${cx + (v.x - cx) * factor},${cy + (v.y - cy) * factor}`;
+                          }).join(" ")}
+                          fill="none"
+                          stroke="#f59e0b"
+                          strokeWidth="1.5"
+                          strokeDasharray="4 3"
+                        />
+                      )}
+
+                      {/* Módulos */}
+                      {autoFill.panels.map((panel, idx) => {
+                        const pxX = 200 + panel.center.x * PIXELS_PER_METER;
+                        const pxY = 150 + panel.center.y * PIXELS_PER_METER;
+                        const pWidth = panel.widthMeters * PIXELS_PER_METER;
+                        const pHeight = panel.heightMeters * PIXELS_PER_METER;
+
+                        return (
+                          <g key={panel.id} transform={`rotate(${section.azimuthDegrees}, ${pxX}, ${pxY})`}>
+                            <rect
+                              x={pxX - pWidth / 2}
+                              y={pxY - pHeight / 2}
+                              width={pWidth}
+                              height={pHeight}
+                              rx="2"
+                              fill={isActive ? "url(#panelGradActive)" : "url(#panelGradInactive)"}
+                              stroke={isActive ? "#93c5fd" : "#94a3b8"}
+                              strokeWidth="1"
+                            />
+                            <rect
+                              x={pxX - pWidth / 2}
+                              y={pxY - pHeight / 2}
+                              width={pWidth}
+                              height={pHeight}
+                              rx="2"
+                              fill="url(#solarGrid)"
+                            />
+                            <text
+                              x={pxX}
+                              y={pxY + 3}
+                              fontSize="8"
+                              fontWeight="bold"
+                              fill="#ffffff"
+                              textAnchor="middle"
+                            >
+                              {idx + 1}
+                            </text>
+                          </g>
+                        );
+                      })}
+
+                      {/* Vértices Editáveis se For Ativa */}
+                      {isActive && section.polygonVertices.map((v, i) => (
+                        <circle
+                          key={i}
+                          cx={v.x}
+                          cy={v.y}
+                          r={draggingVertexIndex === i ? "7" : "5"}
+                          fill={draggingVertexIndex === i ? "#f59e0b" : "#38bdf8"}
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDraggingVertexIndex(i);
+                          }}
+                          className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
+                        />
+                      ))}
+
                     </g>
                   );
                 })}
-
-                {/* Vértices Editáveis no SVG (Arrastáveis) */}
-                {polygonVertices.map((v, i) => (
-                  <circle
-                    key={i}
-                    cx={v.x}
-                    cy={v.y}
-                    r={draggingVertexIndex === i ? "7" : "5"}
-                    fill={draggingVertexIndex === i ? "#f59e0b" : "#38bdf8"}
-                    stroke="#ffffff"
-                    strokeWidth="1.5"
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      setDraggingVertexIndex(i);
-                    }}
-                    className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
-                  />
-                ))}
               </svg>
 
-              {/* Rosa dos Ventos / Indicador de Orientação */}
               <div className="absolute top-3 right-3 bg-card/90 backdrop-blur-sm border border-border p-2 rounded-xl text-center shadow-lg text-[10px]">
                 <div className="flex items-center gap-1 font-bold text-foreground mb-1">
                   <Compass className="w-3.5 h-3.5 text-primary" /> Azimute
                 </div>
-                <span className="font-extrabold text-primary text-xs">{azimuthDegrees}°</span>
-                <span className="block text-[9px] text-muted-foreground">
-                  {azimuthDegrees === 0 ? "Norte (0°)" : azimuthDegrees === 90 ? "Leste (90°)" : azimuthDegrees === 180 ? "Sul (180°)" : azimuthDegrees === 270 ? "Oeste (270°)" : "Personalizado"}
-                </span>
+                <span className="font-extrabold text-primary text-xs">{activeSection.azimuthDegrees}°</span>
               </div>
-            </div>
-
-            {/* Legenda do SVG */}
-            <div className="flex flex-wrap items-center justify-between text-[11px] font-semibold text-muted-foreground gap-2 px-1">
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-blue-600 border border-blue-400 inline-block"></span> Módulos Fotovoltaicos ({selectedModuleDimensions.powerW}W)
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-0.5 border-t-2 border-dashed border-amber-400 inline-block"></span> Margem de Recuo ({marginMeters}m)
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-0.5 border-t-2 border-sky-400 inline-block"></span> Limite do Telhado
-              </span>
             </div>
 
           </div>
@@ -509,109 +542,107 @@ export function RoofLayoutModal({
             {/* Controles de Parâmetros */}
             <div className="bg-secondary/30 border border-border rounded-2xl p-4 space-y-4">
               <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider flex items-center gap-1.5 border-b border-border/60 pb-2">
-                <Sparkles className="w-4 h-4 text-primary" /> Ajustes Técnicos do Telhado
+                <Sparkles className="w-4 h-4 text-primary" /> Ajustes: {activeSection.name}
               </h4>
 
-              {/* Margem de Recuo de Segurança */}
+              {/* Recuo */}
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1">
-                  <span className="text-muted-foreground">Recuo das Bordas (Margem):</span>
-                  <span className="text-primary font-bold">{marginMeters} metros</span>
+                  <span className="text-muted-foreground">Recuo das Bordas:</span>
+                  <span className="text-primary font-bold">{activeSection.marginMeters} m</span>
                 </div>
                 <input
                   type="range"
                   min={0.1}
                   max={1.5}
                   step={0.1}
-                  value={marginMeters}
-                  onChange={(e) => setMarginMeters(Number(e.target.value))}
+                  value={activeSection.marginMeters}
+                  onChange={(e) => updateActiveSection({ marginMeters: Number(e.target.value) })}
                   className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
                 />
-                <span className="text-[10px] text-muted-foreground block mt-0.5">Afastamento obrigatório de beirais, cumeeiras e rufos</span>
               </div>
 
-              {/* Orientação / Azimute */}
+              {/* Azimute */}
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1">
                   <span className="text-muted-foreground">Orientação (Azimute):</span>
-                  <span className="text-primary font-bold">{azimuthDegrees}°</span>
+                  <span className="text-primary font-bold">{activeSection.azimuthDegrees}°</span>
                 </div>
                 <input
                   type="range"
                   min={0}
                   max={350}
                   step={10}
-                  value={azimuthDegrees}
-                  onChange={(e) => setAzimuthDegrees(Number(e.target.value))}
+                  value={activeSection.azimuthDegrees}
+                  onChange={(e) => updateActiveSection({ azimuthDegrees: Number(e.target.value) })}
                   className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
                 />
               </div>
 
-              {/* Inclinação do Telhado */}
+              {/* Inclinação */}
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1">
-                  <span className="text-muted-foreground">Inclinação do Telhado:</span>
-                  <span className="text-primary font-bold">{pitchDegrees}°</span>
+                  <span className="text-muted-foreground">Inclinação:</span>
+                  <span className="text-primary font-bold">{activeSection.pitchDegrees}°</span>
                 </div>
                 <input
                   type="range"
                   min={0}
                   max={45}
                   step={5}
-                  value={pitchDegrees}
-                  onChange={(e) => setPitchDegrees(Number(e.target.value))}
+                  value={activeSection.pitchDegrees}
+                  onChange={(e) => updateActiveSection({ pitchDegrees: Number(e.target.value) })}
                   className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
                 />
               </div>
 
-              {/* Orientação do Módulo (Retrato / Paisagem) */}
+              {/* Orientação Placa */}
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Orientação das Placas</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Orientação Placas</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setModuleOrientation('PORTRAIT')}
+                    onClick={() => updateActiveSection({ moduleOrientation: 'PORTRAIT' })}
                     className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
-                      moduleOrientation === 'PORTRAIT'
+                      activeSection.moduleOrientation === 'PORTRAIT'
                         ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                         : 'bg-card text-muted-foreground border-border hover:bg-secondary'
                     }`}
                   >
-                    Retrato (Em pé)
+                    Retrato
                   </button>
                   <button
                     type="button"
-                    onClick={() => setModuleOrientation('LANDSCAPE')}
+                    onClick={() => updateActiveSection({ moduleOrientation: 'LANDSCAPE' })}
                     className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
-                      moduleOrientation === 'LANDSCAPE'
+                      activeSection.moduleOrientation === 'LANDSCAPE'
                         ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                         : 'bg-card text-muted-foreground border-border hover:bg-secondary'
                     }`}
                   >
-                    Paisagem (Deitada)
+                    Paisagem
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Quadro de Resultados Espaciais & Comparação */}
+            {/* Resumo Combinado */}
             <div className="bg-card border border-border rounded-2xl p-4 space-y-3 shadow-sm">
               <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider border-b border-border/60 pb-2">
-                Resumo da Capacidade Física
+                Resumo da Capacidade Física Combinada
               </h4>
 
               <div className="bg-primary/10 border border-primary/20 p-3.5 rounded-xl flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] font-bold text-muted-foreground block">Capacidade Física Máxima</span>
-                  <span className="text-2xl font-black text-primary">{maxFitCount} Placas</span>
+                  <span className="text-[11px] font-bold text-muted-foreground block">Capacidade Total</span>
+                  <span className="text-2xl font-black text-primary">{totalMaxPanelsCount} Placas</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[11px] font-bold text-muted-foreground block">Área Útil</span>
-                  <span className="text-sm font-extrabold text-foreground">{autoFillResult.usableAreaM2} m²</span>
+                  <span className="text-[11px] font-bold text-muted-foreground block">Área Útil Total</span>
+                  <span className="text-sm font-extrabold text-foreground">{totalUsableAreaM2} m²</span>
                 </div>
               </div>
 
-              {/* Comparativo de Demanda vs Espaço Físico */}
               {initialRequiredModules > 0 && (
                 <div className={`p-3 rounded-xl border text-xs font-semibold flex items-start gap-2 ${
                   isDeficit
@@ -625,8 +656,8 @@ export function RoofLayoutModal({
                     </span>
                     <span>
                       {isDeficit
-                        ? `Necessidade por consumo: ${initialRequiredModules} placas. Porém cabem apenas ${maxFitCount} placas nesta água do telhado. Sugere-se dividir em 2 águas ou usar módulos de maior potência.`
-                        : `O telhado suporta com folga as ${initialRequiredModules} placas necessárias pelo consumo do cliente.`}
+                        ? `Necessidade por consumo: ${initialRequiredModules} placas. Telhado comporta até ${totalMaxPanelsCount} placas em ${sections.length} águas.`
+                        : `O telhado suporta com folga as ${initialRequiredModules} placas necessárias.`}
                     </span>
                   </div>
                 </div>
@@ -637,12 +668,12 @@ export function RoofLayoutModal({
             <button
               type="button"
               onClick={() => {
-                onApplyCapacity(maxFitCount, autoFillResult.usableAreaM2);
+                onApplyCapacity(totalMaxPanelsCount, totalUsableAreaM2);
                 onClose();
               }}
               className="w-full py-3.5 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-sm rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
             >
-              <span>Aplicar Limite de {maxFitCount} Placas ao Simulador</span>
+              <span>Aplicar Limite de {totalMaxPanelsCount} Placas ao Simulador</span>
               <CheckCircle2 className="w-4 h-4" />
             </button>
 

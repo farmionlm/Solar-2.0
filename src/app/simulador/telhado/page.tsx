@@ -21,7 +21,11 @@ import {
   Loader2,
   Sliders,
   ChevronRight,
-  Maximize2
+  Maximize2,
+  Plus,
+  Trash2,
+  Edit3,
+  Layers3,
 } from "lucide-react";
 import {
   LatLngPoint,
@@ -34,6 +38,18 @@ import { fetchAddressByCep } from "@/utils/cepApi";
 import useSWR from "swr";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+export interface RoofSection {
+  id: string;
+  name: string;
+  polygonMeters: Point2D[];
+  azimuthDegrees: number;
+  pitchDegrees: number;
+  marginMeters: number;
+  moduleOrientation: 'PORTRAIT' | 'LANDSCAPE';
+  arrayStyle: 'UNIFORM_RECTANGLE' | 'MAX_FILL';
+  activePreset: 'RECTANGLE' | 'L_SHAPE' | 'TRAPEZOID';
+}
 
 function RoofStudioContent() {
   const router = useRouter();
@@ -53,25 +69,86 @@ function RoofStudioContent() {
   const [zoomLevel, setZoomLevel] = useState<number>(20); // Default Zoom 20 (Ultra Sharp HD)
   const [mapMode, setMapMode] = useState<'SATELLITE' | 'VECTOR'>('SATELLITE');
 
-  // Estados de Engenharia do Telhado
-  const [marginMeters, setMarginMeters] = useState<number>(0.5);
-  const [azimuthDegrees, setAzimuthDegrees] = useState<number>(0);
-  const [pitchDegrees, setPitchDegrees] = useState<number>(15);
-  const [moduleOrientation, setModuleOrientation] = useState<'PORTRAIT' | 'LANDSCAPE'>('PORTRAIT');
+  // Dimensões Globais do Módulo Selecionado
   const [selectedModulePowerW, setSelectedModulePowerW] = useState<number>(550);
   const [moduleWidthMeters, setModuleWidthMeters] = useState<number>(1.13);
   const [moduleHeightMeters, setModuleHeightMeters] = useState<number>(2.28);
 
-  // Vértices do telhado em METROS reais em relação ao centro do imóvel
-  // Inicialmente um retângulo típico de 10m de largura por 7.2m de comprimento
-  const [polygonMeters, setPolygonMeters] = useState<Point2D[]>([
-    { x: -5, y: -3.6 },
-    { x: 5, y: -3.6 },
-    { x: 5, y: 3.6 },
-    { x: -5, y: 3.6 },
+  // Lista de Águas / Áreas do Telhado (Multi-Seção)
+  const [sections, setSections] = useState<RoofSection[]>([
+    {
+      id: "sec-1",
+      name: "Água 1",
+      polygonMeters: [
+        { x: -5, y: -3.6 },
+        { x: 5, y: -3.6 },
+        { x: 5, y: 3.6 },
+        { x: -5, y: 3.6 },
+      ],
+      azimuthDegrees: 0,
+      pitchDegrees: 15,
+      marginMeters: 0.5,
+      moduleOrientation: "PORTRAIT",
+      arrayStyle: "UNIFORM_RECTANGLE",
+      activePreset: "RECTANGLE",
+    },
   ]);
 
-  const [activePreset, setActivePreset] = useState<'RECTANGLE' | 'L_SHAPE' | 'TRAPEZOID'>('RECTANGLE');
+  const [activeSectionId, setActiveSectionId] = useState<string>("sec-1");
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+
+  // Seção Ativa Atual
+  const activeSection = useMemo(() => {
+    return sections.find((s) => s.id === activeSectionId) || sections[0];
+  }, [sections, activeSectionId]);
+
+  // Atualizador Auxiliar da Seção Ativa
+  const updateActiveSection = (data: Partial<RoofSection>) => {
+    setSections((prev) =>
+      prev.map((s) => (s.id === activeSectionId ? { ...s, ...data } : s))
+    );
+  };
+
+  // Adicionar Nova Área / Água de Telhado
+  const addSection = () => {
+    const newId = `sec-${Date.now()}`;
+    const newNum = sections.length + 1;
+    // Offset inicial para não ficar 100% sobreposto
+    const offsetCount = sections.length;
+    const offsetX = (offsetCount % 3) * 6 - 3;
+    const offsetY = Math.floor(offsetCount / 3) * 6 + 5;
+
+    const newSection: RoofSection = {
+      id: newId,
+      name: `Água ${newNum}`,
+      polygonMeters: [
+        { x: offsetX - 4, y: offsetY - 3 },
+        { x: offsetX + 4, y: offsetY - 3 },
+        { x: offsetX + 4, y: offsetY + 3 },
+        { x: offsetX - 4, y: offsetY + 3 },
+      ],
+      azimuthDegrees: 0,
+      pitchDegrees: 15,
+      marginMeters: 0.5,
+      moduleOrientation: "PORTRAIT",
+      arrayStyle: "UNIFORM_RECTANGLE",
+      activePreset: "RECTANGLE",
+    };
+    setSections((prev) => [...prev, newSection]);
+    setActiveSectionId(newId);
+  };
+
+  // Remover Área / Água do Telhado
+  const removeSection = (id: string) => {
+    if (sections.length <= 1) return;
+    const filtered = sections.filter((s) => s.id !== id);
+    setSections(filtered);
+    if (activeSectionId === id) {
+      setActiveSectionId(filtered[0].id);
+    }
+  };
+
+  // Estados de Arraste / Interação
   const [draggingVertexIndex, setDraggingVertexIndex] = useState<number | null>(null);
   const [dragStartPos, setDragStartPos] = useState<Point2D | null>(null);
   const [initialMetersOnDrag, setInitialMetersOnDrag] = useState<Point2D[]>([]);
@@ -80,21 +157,20 @@ function RoofStudioContent() {
   const [hasDraft, setHasDraft] = useState<boolean>(false);
   const [draftTimestamp, setDraftTimestamp] = useState<number | null>(null);
 
-  // Auto-save draft to localStorage
+  // Auto-save draft to localStorage (com suporte a múltiplas áreas)
   useEffect(() => {
-    if (polygonMeters.length >= 3) {
+    if (sections.length > 0) {
       const draftData = {
-        polygonMeters,
+        sections,
+        activeSectionId,
         centerLat,
         centerLng,
         zoomLevel,
-        azimuthDegrees,
-        marginMeters,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       localStorage.setItem("solar_roof_draft", JSON.stringify(draftData));
     }
-  }, [polygonMeters, centerLat, centerLng, zoomLevel, azimuthDegrees, marginMeters]);
+  }, [sections, activeSectionId, centerLat, centerLng, zoomLevel]);
 
   // Check for saved draft on mount
   useEffect(() => {
@@ -102,8 +178,8 @@ function RoofStudioContent() {
       const saved = localStorage.getItem("solar_roof_draft");
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.polygonMeters && Array.isArray(parsed.polygonMeters) && parsed.timestamp) {
-          if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+        if (parsed.timestamp && Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+          if ((parsed.sections && Array.isArray(parsed.sections)) || parsed.polygonMeters) {
             setHasDraft(true);
             setDraftTimestamp(parsed.timestamp);
           }
@@ -119,12 +195,29 @@ function RoofStudioContent() {
       const saved = localStorage.getItem("solar_roof_draft");
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.polygonMeters) setPolygonMeters(parsed.polygonMeters);
+        if (parsed.sections && Array.isArray(parsed.sections)) {
+          setSections(parsed.sections);
+          if (parsed.activeSectionId) setActiveSectionId(parsed.activeSectionId);
+        } else if (parsed.polygonMeters) {
+          // Retrocompatibilidade com rascunho legado (área única)
+          setSections([
+            {
+              id: "sec-1",
+              name: "Água 1",
+              polygonMeters: parsed.polygonMeters,
+              azimuthDegrees: parsed.azimuthDegrees ?? 0,
+              pitchDegrees: 15,
+              marginMeters: parsed.marginMeters ?? 0.5,
+              moduleOrientation: "PORTRAIT",
+              arrayStyle: "UNIFORM_RECTANGLE",
+              activePreset: "RECTANGLE",
+            },
+          ]);
+          setActiveSectionId("sec-1");
+        }
         if (parsed.centerLat) setCenterLat(parsed.centerLat);
         if (parsed.centerLng) setCenterLng(parsed.centerLng);
         if (parsed.zoomLevel) setZoomLevel(parsed.zoomLevel);
-        if (parsed.azimuthDegrees !== undefined) setAzimuthDegrees(parsed.azimuthDegrees);
-        if (parsed.marginMeters !== undefined) setMarginMeters(parsed.marginMeters);
       }
     } catch (err) {
       console.error("Erro ao restaurar rascunho:", err);
@@ -247,83 +340,113 @@ function RoofStudioContent() {
     }
   };
 
-  // Presets de Formatos em METROS Reais
+  // Presets de Formatos em METROS Reais para a Seção Ativa
   const applyPresetShape = (shape: 'RECTANGLE' | 'L_SHAPE' | 'TRAPEZOID') => {
-    setActivePreset(shape);
+    if (!activeSection) return;
+    const c = getSectionCentroidMeters(activeSection);
+    let newPolygon: Point2D[] = [];
     if (shape === 'RECTANGLE') {
-      setPolygonMeters([
-        { x: -5, y: -3.6 },
-        { x: 5, y: -3.6 },
-        { x: 5, y: 3.6 },
-        { x: -5, y: 3.6 },
-      ]);
+      newPolygon = [
+        { x: c.x - 5, y: c.y - 3.6 },
+        { x: c.x + 5, y: c.y - 3.6 },
+        { x: c.x + 5, y: c.y + 3.6 },
+        { x: c.x - 5, y: c.y + 3.6 },
+      ];
     } else if (shape === 'L_SHAPE') {
-      setPolygonMeters([
-        { x: -5, y: -3.6 },
-        { x: 5, y: -3.6 },
-        { x: 5, y: 0 },
-        { x: 0, y: 0 },
-        { x: 0, y: 3.6 },
-        { x: -5, y: 3.6 },
-      ]);
+      newPolygon = [
+        { x: c.x - 5, y: c.y - 3.6 },
+        { x: c.x + 5, y: c.y - 3.6 },
+        { x: c.x + 5, y: c.y },
+        { x: c.x, y: c.y },
+        { x: c.x, y: c.y + 3.6 },
+        { x: c.x - 5, y: c.y + 3.6 },
+      ];
     } else if (shape === 'TRAPEZOID') {
-      setPolygonMeters([
-        { x: -3.2, y: -3.6 },
-        { x: 3.2, y: -3.6 },
-        { x: 5.6, y: 3.6 },
-        { x: -5.6, y: 3.6 },
-      ]);
+      newPolygon = [
+        { x: c.x - 3.2, y: c.y - 3.6 },
+        { x: c.x + 3.2, y: c.y - 3.6 },
+        { x: c.x + 5.6, y: c.y + 3.6 },
+        { x: c.x - 5.6, y: c.y + 3.6 },
+      ];
     }
+    updateActiveSection({
+      activePreset: shape,
+      polygonMeters: newPolygon,
+    });
   };
 
-  // Converte vértices em metros para pixels no canvas SVG
-  const polygonVerticesPixels: Point2D[] = useMemo(() => {
-    return polygonMeters.map((m) => ({
-      x: centerCanvasX + m.x * pixelsPerMeter,
-      y: centerCanvasY + m.y * pixelsPerMeter,
-    }));
-  }, [polygonMeters, centerCanvasX, centerCanvasY, pixelsPerMeter]);
+  // Helper para centroide de seções
+  function getSectionCentroidMeters(sec: RoofSection): Point2D {
+    if (!sec.polygonMeters || sec.polygonMeters.length === 0) return { x: 0, y: 0 };
+    const sumX = sec.polygonMeters.reduce((acc, v) => acc + v.x, 0);
+    const sumY = sec.polygonMeters.reduce((acc, v) => acc + v.y, 0);
+    return {
+      x: sumX / sec.polygonMeters.length,
+      y: sumY / sec.polygonMeters.length,
+    };
+  }
 
-  // Converter metros locais para LatLng reais relativos à localização pesquisada
-  const latLngPoints: LatLngPoint[] = useMemo(() => {
-    return polygonMeters.map((m) => ({
-      lat: centerLat + (m.y / 111000),
-      lng: centerLng + (m.x / (111000 * Math.cos((centerLat * Math.PI) / 180))),
-    }));
-  }, [polygonMeters, centerLat, centerLng]);
+  function getSectionCentroidPixels(sec: RoofSection): Point2D {
+    const c = getSectionCentroidMeters(sec);
+    return {
+      x: centerCanvasX + c.x * pixelsPerMeter,
+      y: centerCanvasY + c.y * pixelsPerMeter,
+    };
+  }
 
-  const [arrayStyle, setArrayStyle] = useState<'UNIFORM_RECTANGLE' | 'MAX_FILL'>('UNIFORM_RECTANGLE');
+  // Motor de Auto-Fill por Seção
+  const sectionCalculations = useMemo(() => {
+    return sections.map((sec) => {
+      const latLngPoints: LatLngPoint[] = sec.polygonMeters.map((m) => ({
+        lat: centerLat + m.y / 111000,
+        lng: centerLng + m.x / (111000 * Math.cos((centerLat * Math.PI) / 180)),
+      }));
 
-  // Motor de auto-fill
-  const autoFillResult: AutoFillResult = useMemo(() => {
-    return autoFillRoofLayout({
-      roofPolygon: latLngPoints,
-      moduleWidthMeters,
-      moduleHeightMeters,
-      azimuthDegrees: 0, // A rotação do telhado + módulos é unificada na camada SVG <g>
-      pitchDegrees,
-      marginMeters,
-      panelSpacingMeters: 0.05,
-      orientation: moduleOrientation,
-      arrayStyle,
+      const autoFill: AutoFillResult = autoFillRoofLayout({
+        roofPolygon: latLngPoints,
+        moduleWidthMeters,
+        moduleHeightMeters,
+        azimuthDegrees: 0, // A rotação é gerenciada via SVG <g transform="rotate(...)">
+        pitchDegrees: sec.pitchDegrees,
+        marginMeters: sec.marginMeters,
+        panelSpacingMeters: 0.05,
+        orientation: sec.moduleOrientation,
+        arrayStyle: sec.arrayStyle,
+      });
+
+      const polygonVerticesPixels: Point2D[] = sec.polygonMeters.map((m) => ({
+        x: centerCanvasX + m.x * pixelsPerMeter,
+        y: centerCanvasY + m.y * pixelsPerMeter,
+      }));
+
+      const centroidMeters = getSectionCentroidMeters(sec);
+      const centroidPixels = getSectionCentroidPixels(sec);
+
+      return {
+        section: sec,
+        autoFill,
+        polygonVerticesPixels,
+        centroidMeters,
+        centroidPixels,
+      };
     });
-  }, [
-    latLngPoints,
-    moduleWidthMeters,
-    moduleHeightMeters,
-    pitchDegrees,
-    marginMeters,
-    moduleOrientation,
-    arrayStyle,
-  ]);
+  }, [sections, centerLat, centerLng, centerCanvasX, centerCanvasY, pixelsPerMeter, moduleWidthMeters, moduleHeightMeters]);
 
-  const maxFitCount = autoFillResult.maxPanelsCount;
-  const isDeficit = initialRequiredModules > 0 && maxFitCount < initialRequiredModules;
+  // Somatório Total Acumulado de Múltiplas Seções
+  const totalMaxPanelsCount = useMemo(() => {
+    return sectionCalculations.reduce((acc, curr) => acc + curr.autoFill.maxPanelsCount, 0);
+  }, [sectionCalculations]);
+
+  const totalUsableAreaM2 = useMemo(() => {
+    return Number(sectionCalculations.reduce((acc, curr) => acc + curr.autoFill.usableAreaM2, 0).toFixed(2));
+  }, [sectionCalculations]);
+
+  const isDeficit = initialRequiredModules > 0 && totalMaxPanelsCount < initialRequiredModules;
 
   const mapRef = useRef<HTMLDivElement | null>(null);
   const leafletInstanceRef = useRef<any>(null);
 
-  // Carregador Dinâmico do Mapa de Satélite Leaflet Contínuo (Sem cortes nem emendas)
+  // Carregador Dinâmico do Mapa de Satélite Leaflet Contínuo
   useEffect(() => {
     if (typeof window === "undefined" || mapMode !== "SATELLITE") return;
 
@@ -399,33 +522,36 @@ function RoofStudioContent() {
     };
   };
 
-  // Movimentação do Telhado Inteiro (Pan Polygon) em Metros Desrotacionados
-  const handlePolygonPointerDown = (e: React.PointerEvent<SVGPolygonElement>) => {
+  // Movimentação de uma Seção Inteira (Pan Polygon)
+  const handlePolygonPointerDown = (secId: string, e: React.PointerEvent<SVGPolygonElement>) => {
     e.stopPropagation();
+    setActiveSectionId(secId);
     const target = e.currentTarget;
     try { target.setPointerCapture(e.pointerId); } catch {}
+    const sec = sections.find((s) => s.id === secId);
+    if (!sec) return;
     setDragStartPos({ x: e.clientX, y: e.clientY });
-    setInitialMetersOnDrag([...polygonMeters]);
+    setInitialMetersOnDrag([...sec.polygonMeters]);
   };
 
   const handlePolygonPointerMove = (e: React.PointerEvent<any>) => {
-    if (!dragStartPos) return;
+    if (!dragStartPos || !activeSection) return;
     const dxScreen = e.clientX - dragStartPos.x;
     const dyScreen = e.clientY - dragStartPos.y;
 
-    const rad = (-azimuthDegrees * Math.PI) / 180;
+    const rad = (-activeSection.azimuthDegrees * Math.PI) / 180;
     const dxUnrotated = dxScreen * Math.cos(rad) - dyScreen * Math.sin(rad);
     const dyUnrotated = dxScreen * Math.sin(rad) + dyScreen * Math.cos(rad);
 
     const dxMeters = dxUnrotated / pixelsPerMeter;
     const dyMeters = dyUnrotated / pixelsPerMeter;
 
-    setPolygonMeters(
-      initialMetersOnDrag.map((v) => ({
-        x: Number((v.x + dxMeters).toFixed(2)),
-        y: Number((v.y + dyMeters).toFixed(2)),
-      }))
-    );
+    const updatedPolygon = initialMetersOnDrag.map((v) => ({
+      x: Number((v.x + dxMeters).toFixed(2)),
+      y: Number((v.y + dyMeters).toFixed(2)),
+    }));
+
+    updateActiveSection({ polygonMeters: updatedPolygon });
   };
 
   const handlePolygonPointerUp = (e?: React.PointerEvent<any>) => {
@@ -437,7 +563,7 @@ function RoofStudioContent() {
     }
   };
 
-  // Arraste Fluído, Preciso e Sem Flickering dos Vértices em Metros
+  // Arraste de Vértices da Seção Ativa
   const handleVertexPointerDown = (index: number, e: React.PointerEvent<SVGCircleElement>) => {
     e.stopPropagation();
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
@@ -445,30 +571,32 @@ function RoofStudioContent() {
   };
 
   const handleVertexPointerMove = (index: number, e: React.PointerEvent<any>) => {
-    if (draggingVertexIndex !== index) return;
+    if (draggingVertexIndex !== index || !activeSection) return;
     const svg = e.currentTarget.ownerSVGElement || (e.currentTarget as SVGElement);
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     const clientX = e.clientX - rect.left;
     const clientY = e.clientY - rect.top;
 
-    // Desrotaciona a posição do mouse em relação ao centroide do polígono
+    const activeCalc = sectionCalculations.find((sc) => sc.section.id === activeSectionId);
+    if (!activeCalc) return;
+
     const unrotated = getUnrotatedPoint(
       clientX,
       clientY,
-      polygonCentroidPixels.x,
-      polygonCentroidPixels.y,
-      azimuthDegrees
+      activeCalc.centroidPixels.x,
+      activeCalc.centroidPixels.y,
+      activeSection.azimuthDegrees
     );
 
     const mX = (unrotated.x - centerCanvasX) / pixelsPerMeter;
     const mY = (unrotated.y - centerCanvasY) / pixelsPerMeter;
 
-    setPolygonMeters((prev) => {
-      const updated = [...prev];
-      updated[index] = { x: Number(mX.toFixed(2)), y: Number(mY.toFixed(2)) };
-      return updated;
-    });
+    const updatedPolygon = activeSection.polygonMeters.map((v, i) =>
+      i === index ? { x: Number(mX.toFixed(2)), y: Number(mY.toFixed(2)) } : v
+    );
+
+    updateActiveSection({ polygonMeters: updatedPolygon });
   };
 
   const handleVertexPointerUp = (index: number, e?: React.PointerEvent<any>) => {
@@ -484,7 +612,6 @@ function RoofStudioContent() {
   const [mapDragStart, setMapDragStart] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
 
   const handleMapPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    // Inicia o arraste do mapa apenas se o clique for no fundo do SVG (não nos vértices/polígono)
     if ((e.target as HTMLElement).tagName === 'svg') {
       setMapDragStart({
         x: e.clientX,
@@ -525,7 +652,7 @@ function RoofStudioContent() {
     }
   };
 
-  // Handler Global de PointerMove/Up no SVG Canvas para evitar perda de evento durante drag rápido
+  // Handler Global de PointerMove/Up no SVG Canvas
   const handleSvgPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     if (draggingVertexIndex !== null) {
       handleVertexPointerMove(draggingVertexIndex, e);
@@ -545,27 +672,9 @@ function RoofStudioContent() {
     if (mapDragStart) handleMapPointerUp();
   };
 
-  // Centroide em Metros e em Pixels
-  const polygonCentroidMeters = useMemo(() => {
-    if (!polygonMeters || polygonMeters.length === 0) return { x: 0, y: 0 };
-    const sumX = polygonMeters.reduce((acc, v) => acc + v.x, 0);
-    const sumY = polygonMeters.reduce((acc, v) => acc + v.y, 0);
-    return {
-      x: sumX / polygonMeters.length,
-      y: sumY / polygonMeters.length,
-    };
-  }, [polygonMeters]);
-
-  const polygonCentroidPixels = useMemo(() => {
-    return {
-      x: centerCanvasX + polygonCentroidMeters.x * pixelsPerMeter,
-      y: centerCanvasY + polygonCentroidMeters.y * pixelsPerMeter,
-    };
-  }, [centerCanvasX, centerCanvasY, polygonCentroidMeters, pixelsPerMeter]);
-
   const [isRotating, setIsRotating] = useState(false);
 
-  // Rotação Interativa da Estrutura Completa do Telhado (Alça ↻) em relação ao Centroide do Polígono
+  // Rotação Interativa da Seção Ativa (Alça ↻)
   const handleRotatePointerDown = (e: React.PointerEvent<SVGGElement>) => {
     e.stopPropagation();
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
@@ -573,19 +682,22 @@ function RoofStudioContent() {
   };
 
   const handleRotatePointerMove = (e: React.PointerEvent<any>) => {
-    if (!isRotating) return;
+    if (!isRotating || !activeSection) return;
     const svg = e.currentTarget.ownerSVGElement || (e.currentTarget as SVGElement);
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    const dx = mouseX - polygonCentroidPixels.x;
-    const dy = mouseY - polygonCentroidPixels.y;
+    const activeCalc = sectionCalculations.find((sc) => sc.section.id === activeSectionId);
+    if (!activeCalc) return;
+
+    const dx = mouseX - activeCalc.centroidPixels.x;
+    const dy = mouseY - activeCalc.centroidPixels.y;
     let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
     if (angle < 0) angle += 360;
 
-    setAzimuthDegrees(Math.round(angle));
+    updateActiveSection({ azimuthDegrees: Math.round(angle) });
   };
 
   const handleRotatePointerUp = (e?: React.PointerEvent<any>) => {
@@ -627,13 +739,13 @@ function RoofStudioContent() {
           <div>
             <h1 className="text-sm sm:text-base font-black text-foreground flex items-center gap-2">
               <Grid className="w-5 h-5 text-primary animate-pulse" />
-              Estudo de Telhado & Arranjo Espacial 2D
+              Estudo do Telhado Multi-Águas
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                Ultra HD Satélite
+                {sections.length} {sections.length === 1 ? 'Área' : 'Áreas/Águas'}
               </span>
             </h1>
             <p className="text-[11px] text-muted-foreground hidden md:block">
-              Área de trabalho expandida em tela cheia para desenho preciso do telhado.
+              Desenho preciso de múltiplas áreas de telhado para cálculo da capacidade física acumulada.
             </p>
           </div>
         </div>
@@ -679,7 +791,7 @@ function RoofStudioContent() {
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Map className="w-3.5 h-3.5" /> Satélite Google HD
+              <Map className="w-3.5 h-3.5" /> Satélite Google
             </button>
             <button
               type="button"
@@ -693,7 +805,7 @@ function RoofStudioContent() {
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <MapPin className="w-3.5 h-3.5" /> Híbrido (Ruas)
+              <MapPin className="w-3.5 h-3.5" /> Híbrido
             </button>
             <button
               type="button"
@@ -747,7 +859,7 @@ function RoofStudioContent() {
       {/* 2. Área Principal de Trabalho (Canvas 100vh Fullscreen) */}
       <div className="relative flex-1 w-full h-[calc(100vh-64px)] flex overflow-hidden">
         
-        {/* Workspace do Desenho (Takes entire remaining space) */}
+        {/* Workspace do Desenho */}
         <div
           ref={containerRef}
           onWheel={handleWheelZoom}
@@ -762,11 +874,11 @@ function RoofStudioContent() {
             </div>
             <div className="h-4 w-px bg-border" />
             <span className="text-[11px] font-bold text-muted-foreground">
-              Módulo Sol: {moduleWidthMeters}m × {moduleHeightMeters}m (~{(moduleWidthMeters * moduleHeightMeters).toFixed(2)} m²)
+              Módulo: {moduleWidthMeters}m × {moduleHeightMeters}m (~{(moduleWidthMeters * moduleHeightMeters).toFixed(2)} m²)
             </span>
           </div>
 
-          {/* Fundo 1: Imagem de Satélite Contínua Nível de Produção (Leaflet HD - Custo ZERO, Sem Cortes) */}
+          {/* Fundo 1: Imagem de Satélite Contínua (Leaflet HD) */}
           {mapMode === 'SATELLITE' && (
             <div
               ref={mapRef}
@@ -774,12 +886,12 @@ function RoofStudioContent() {
             />
           )}
 
-          {/* Fundo 2: Moldura de Grid Vetorial Blueprint (Modo Diagrama) */}
+          {/* Fundo 2: Grid Vetorial Blueprint */}
           {mapMode === 'VECTOR' && (
             <div className="absolute inset-0 bg-[radial-gradient(#334155_1.5px,transparent_1.5px)] [background-size:24px_24px] opacity-50"></div>
           )}
 
-          {/* Canvas SVG Interativo para Telhado e Módulos */}
+          {/* Canvas SVG Interativo para Telhados Multi-Áreas e Módulos */}
           <svg
             className={`w-full h-full relative z-10 select-none ${
               mapDragStart ? 'cursor-grabbing' : 'cursor-grab'
@@ -790,194 +902,242 @@ function RoofStudioContent() {
             onPointerUp={handleSvgPointerUp}
           >
             <defs>
-              <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient id="panelGradActive" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#2563eb" stopOpacity="0.9" />
                 <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0.95" />
+              </linearGradient>
+              <linearGradient id="panelGradInactive" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#475569" stopOpacity="0.75" />
+                <stop offset="100%" stopColor="#334155" stopOpacity="0.85" />
               </linearGradient>
               <pattern id="solarGrid" width="10" height="14" patternUnits="userSpaceOnUse">
                 <path d="M 10 0 L 0 0 0 14" fill="none" stroke="#60a5fa" strokeWidth="0.6" opacity="0.45" />
               </pattern>
             </defs>
 
-            {/* Grupo Rígido Unificado: Telhado, Módulos, Margem, Cotas e Alça Rotacionados pelo Azimute */}
-            <g transform={`rotate(${azimuthDegrees}, ${polygonCentroidPixels.x}, ${polygonCentroidPixels.y})`}>
-              
-              {/* Polígono do Telhado (Perímetro Exterior em Metros Reais - Arrastável) */}
-              <polygon
-                points={polygonVerticesPixels.map((v) => `${v.x},${v.y}`).join(" ")}
-                fill="rgba(15, 23, 42, 0.60)"
-                stroke="#38bdf8"
-                strokeWidth="3"
-                strokeDasharray="none"
-                onPointerDown={handlePolygonPointerDown}
-                className="cursor-move hover:fill-slate-900/75 transition-colors"
-              />
+            {/* Loop sobre Todas as Seções de Telhado (Águas) */}
+            {sectionCalculations.map((secCalc) => {
+              const { section, autoFill, polygonVerticesPixels, centroidPixels } = secCalc;
+              const isActive = section.id === activeSectionId;
 
-              {/* Margem de Segurança Interna (Recuo) */}
-              {polygonVerticesPixels.length >= 3 && (
-                <polygon
-                  points={polygonVerticesPixels.map((v) => {
-                    const cx = polygonCentroidPixels.x;
-                    const cy = polygonCentroidPixels.y;
-                    const distToCenter = Math.hypot(v.x - cx, v.y - cy);
-                    const marginPx = marginMeters * pixelsPerMeter;
-                    const factor = Math.max(0.2, 1 - marginPx / Math.max(1, distToCenter));
-                    const vx = cx + (v.x - cx) * factor;
-                    const vy = cy + (v.y - cy) * factor;
-                    return `${vx},${vy}`;
-                  }).join(" ")}
-                  fill="none"
-                  stroke="#f59e0b"
-                  strokeWidth="2"
-                  strokeDasharray="5 4"
-                  className="pointer-events-none"
-                />
-              )}
+              return (
+                <g key={section.id} transform={`rotate(${section.azimuthDegrees}, ${centroidPixels.x}, ${centroidPixels.y})`}>
+                  
+                  {/* Polígono do Telhado (Perímetro Exterior) */}
+                  <polygon
+                    points={polygonVerticesPixels.map((v) => `${v.x},${v.y}`).join(" ")}
+                    fill={isActive ? "rgba(15, 23, 42, 0.60)" : "rgba(30, 41, 59, 0.40)"}
+                    stroke={isActive ? "#38bdf8" : "#64748b"}
+                    strokeWidth={isActive ? "3" : "1.8"}
+                    strokeDasharray={isActive ? "none" : "4 2"}
+                    onPointerDown={(e) => handlePolygonPointerDown(section.id, e)}
+                    className="cursor-pointer hover:fill-slate-900/75 transition-colors"
+                  />
 
-              {/* Módulos Encaixados no Telhado */}
-              {autoFillResult.panels.map((panel, idx) => {
-                const ac = panel.alignedCenter || panel.center;
-                const pxX = polygonCentroidPixels.x + ac.x * pixelsPerMeter;
-                const pxY = polygonCentroidPixels.y + ac.y * pixelsPerMeter;
-                const pWidth = panel.widthMeters * pixelsPerMeter;
-                const pHeight = panel.heightMeters * pixelsPerMeter;
-
-                return (
-                  <g key={panel.id} className="pointer-events-none">
-                    <rect
-                      x={pxX - pWidth / 2}
-                      y={pxY - pHeight / 2}
-                      width={pWidth}
-                      height={pHeight}
-                      rx="2"
-                      fill="url(#panelGrad)"
-                      stroke="#93c5fd"
-                      strokeWidth="1.2"
+                  {/* Recuo de Segurança Interna (Margem) */}
+                  {isActive && polygonVerticesPixels.length >= 3 && (
+                    <polygon
+                      points={polygonVerticesPixels.map((v) => {
+                        const cx = centroidPixels.x;
+                        const cy = centroidPixels.y;
+                        const distToCenter = Math.hypot(v.x - cx, v.y - cy);
+                        const marginPx = section.marginMeters * pixelsPerMeter;
+                        const factor = Math.max(0.2, 1 - marginPx / Math.max(1, distToCenter));
+                        const vx = cx + (v.x - cx) * factor;
+                        const vy = cy + (v.y - cy) * factor;
+                        return `${vx},${vy}`;
+                      }).join(" ")}
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth="2"
+                      strokeDasharray="5 4"
+                      className="pointer-events-none"
                     />
-                    <rect
-                      x={pxX - pWidth / 2}
-                      y={pxY - pHeight / 2}
-                      width={pWidth}
-                      height={pHeight}
-                      rx="2"
-                      fill="url(#solarGrid)"
+                  )}
+
+                  {/* Módulos Encaixados nesta Seção */}
+                  {autoFill.panels.map((panel, idx) => {
+                    const ac = panel.alignedCenter || panel.center;
+                    const pxX = centroidPixels.x + ac.x * pixelsPerMeter;
+                    const pxY = centroidPixels.y + ac.y * pixelsPerMeter;
+                    const pWidth = panel.widthMeters * pixelsPerMeter;
+                    const pHeight = panel.heightMeters * pixelsPerMeter;
+
+                    return (
+                      <g key={panel.id} className="pointer-events-none">
+                        <rect
+                          x={pxX - pWidth / 2}
+                          y={pxY - pHeight / 2}
+                          width={pWidth}
+                          height={pHeight}
+                          rx="2"
+                          fill={isActive ? "url(#panelGradActive)" : "url(#panelGradInactive)"}
+                          stroke={isActive ? "#93c5fd" : "#94a3b8"}
+                          strokeWidth="1.2"
+                        />
+                        <rect
+                          x={pxX - pWidth / 2}
+                          y={pxY - pHeight / 2}
+                          width={pWidth}
+                          height={pHeight}
+                          rx="2"
+                          fill="url(#solarGrid)"
+                        />
+                        {pWidth > 14 && (
+                          <text
+                            x={pxX}
+                            y={pxY + 4}
+                            fontSize={Math.max(8, Math.min(12, pWidth * 0.45))}
+                            fontWeight="bold"
+                            fill="#ffffff"
+                            textAnchor="middle"
+                          >
+                            {idx + 1}
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })}
+
+                  {/* Cotações em Metros das Arestas (apenas se for a seção ativa) */}
+                  {isActive && section.polygonMeters.map((v1, i) => {
+                    const v2 = section.polygonMeters[(i + 1) % section.polygonMeters.length];
+                    const edgeLength = Math.hypot(v2.x - v1.x, v2.y - v1.y).toFixed(1);
+                    const p1 = polygonVerticesPixels[i];
+                    const p2 = polygonVerticesPixels[(i + 1) % polygonVerticesPixels.length];
+                    const midX = (p1.x + p2.x) / 2;
+                    const midY = (p1.y + p2.y) / 2;
+
+                    return (
+                      <g key={`edge-${i}`} className="pointer-events-none">
+                        <rect
+                          x={midX - 18}
+                          y={midY - 8}
+                          width="36"
+                          height="16"
+                          rx="4"
+                          fill="rgba(15, 23, 42, 0.9)"
+                          stroke="#38bdf8"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x={midX}
+                          y={midY + 3}
+                          fontSize="9"
+                          fontWeight="black"
+                          fill="#38bdf8"
+                          textAnchor="middle"
+                        >
+                          {edgeLength}m
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Vértices Editáveis (Apenas Seção Ativa) */}
+                  {isActive && polygonVerticesPixels.map((v, i) => (
+                    <circle
+                      key={i}
+                      cx={v.x}
+                      cy={v.y}
+                      r={draggingVertexIndex === i ? "6" : "4.5"}
+                      fill={draggingVertexIndex === i ? "#f59e0b" : "#38bdf8"}
+                      stroke="#ffffff"
+                      strokeWidth="1.5"
+                      onPointerDown={(e) => handleVertexPointerDown(i, e)}
+                      className="cursor-pointer hover:fill-amber-400 drop-shadow-sm"
                     />
-                    {pWidth > 14 && (
+                  ))}
+
+                  {/* Alça Interativa de Rotação (↻) no Topo da Seção Ativa */}
+                  {isActive && (
+                    <g
+                      onPointerDown={handleRotatePointerDown}
+                      className="cursor-pointer hover:opacity-90"
+                    >
+                      <line
+                        x1={centroidPixels.x}
+                        y1={centroidPixels.y - 80}
+                        x2={centroidPixels.x}
+                        y2={centroidPixels.y - 105}
+                        stroke="#f59e0b"
+                        strokeWidth="2"
+                        strokeDasharray="4 3"
+                      />
+                      <circle
+                        cx={centroidPixels.x}
+                        cy={centroidPixels.y - 105}
+                        r="9"
+                        fill="#f59e0b"
+                        stroke="#ffffff"
+                        strokeWidth="2"
+                        className="shadow-md"
+                      />
                       <text
-                        x={pxX}
-                        y={pxY + 4}
-                        fontSize={Math.max(8, Math.min(12, pWidth * 0.45))}
-                        fontWeight="bold"
+                        x={centroidPixels.x}
+                        y={centroidPixels.y - 102}
+                        fontSize="10"
+                        fontWeight="black"
                         fill="#ffffff"
                         textAnchor="middle"
                       >
-                        {idx + 1}
+                        ↻
                       </text>
-                    )}
-                  </g>
-                );
-              })}
+                    </g>
+                  )}
 
-              {/* Cotações em Metros das Arestas do Telhado */}
-              {polygonMeters.map((v1, i) => {
-                const v2 = polygonMeters[(i + 1) % polygonMeters.length];
-                const edgeLength = Math.hypot(v2.x - v1.x, v2.y - v1.y).toFixed(1);
-                const p1 = polygonVerticesPixels[i];
-                const p2 = polygonVerticesPixels[(i + 1) % polygonVerticesPixels.length];
-                const midX = (p1.x + p2.x) / 2;
-                const midY = (p1.y + p2.y) / 2;
-
-                return (
-                  <g key={`edge-${i}`} className="pointer-events-none">
+                  {/* Crachá / Etiqueta de Identificação da Área sobre o Centroide */}
+                  <g
+                    onClick={() => setActiveSectionId(section.id)}
+                    className="cursor-pointer"
+                  >
                     <rect
-                      x={midX - 18}
-                      y={midY - 8}
-                      width="36"
-                      height="16"
-                      rx="4"
-                      fill="rgba(15, 23, 42, 0.9)"
-                      stroke="#38bdf8"
-                      strokeWidth="1"
+                      x={centroidPixels.x - 45}
+                      y={centroidPixels.y - 12}
+                      width="90"
+                      height="24"
+                      rx="6"
+                      fill={isActive ? "rgba(14, 165, 233, 0.95)" : "rgba(30, 41, 59, 0.90)"}
+                      stroke={isActive ? "#38bdf8" : "#64748b"}
+                      strokeWidth="1.2"
                     />
                     <text
-                      x={midX}
-                      y={midY + 3}
-                      fontSize="9"
-                      fontWeight="black"
-                      fill="#38bdf8"
+                      x={centroidPixels.x}
+                      y={centroidPixels.y + 4}
+                      fontSize="10"
+                      fontWeight="extrabold"
+                      fill="#ffffff"
                       textAnchor="middle"
                     >
-                      {edgeLength}m
+                      {section.name}: {autoFill.maxPanelsCount} p.
                     </text>
                   </g>
-                );
-              })}
 
-              {/* Vértices Editáveis do Telhado */}
-              {polygonVerticesPixels.map((v, i) => (
-                <circle
-                  key={i}
-                  cx={v.x}
-                  cy={v.y}
-                  r={draggingVertexIndex === i ? "6" : "4.5"}
-                  fill={draggingVertexIndex === i ? "#f59e0b" : "#38bdf8"}
-                  stroke="#ffffff"
-                  strokeWidth="1.5"
-                  onPointerDown={(e) => handleVertexPointerDown(i, e)}
-                  className="cursor-pointer hover:fill-amber-400 drop-shadow-sm"
-                />
-              ))}
-
-              {/* Alça Interativa de Rotação (↻) no Topo do Telhado */}
-              <g
-                onPointerDown={handleRotatePointerDown}
-                className="cursor-pointer hover:opacity-90"
-              >
-                <line
-                  x1={polygonCentroidPixels.x}
-                  y1={polygonCentroidPixels.y - 80}
-                  x2={polygonCentroidPixels.x}
-                  y2={polygonCentroidPixels.y - 105}
-                  stroke="#f59e0b"
-                  strokeWidth="2"
-                  strokeDasharray="4 3"
-                />
-                <circle
-                  cx={polygonCentroidPixels.x}
-                  cy={polygonCentroidPixels.y - 105}
-                  r="9"
-                  fill="#f59e0b"
-                  stroke="#ffffff"
-                  strokeWidth="2"
-                  className="shadow-md"
-                />
-                <text
-                  x={polygonCentroidPixels.x}
-                  y={polygonCentroidPixels.y - 102}
-                  fontSize="10"
-                  fontWeight="black"
-                  fill="#ffffff"
-                  textAnchor="middle"
-                >
-                  ↻
-                </text>
-              </g>
-
-            </g>
+                </g>
+              );
+            })}
           </svg>
 
-          {/* Rosa dos Ventos & Indicador de Orientação */}
+          {/* Indicador de Azimute da Área Selecionada */}
           <div className="absolute top-4 right-4 z-20 bg-card/90 backdrop-blur-md border border-border p-3 rounded-2xl text-center shadow-xl">
             <div className="flex items-center gap-1.5 font-extrabold text-xs text-foreground mb-1">
-              <Compass className="w-4 h-4 text-primary" /> Azimute
+              <Compass className="w-4 h-4 text-primary" /> Azimute ({activeSection.name})
             </div>
-            <span className="font-black text-primary text-base">{azimuthDegrees}°</span>
+            <span className="font-black text-primary text-base">{activeSection.azimuthDegrees}°</span>
             <span className="block text-[10px] text-muted-foreground font-bold mt-0.5">
-              {azimuthDegrees === 0 ? "Norte (0°)" : azimuthDegrees === 90 ? "Leste (90°)" : azimuthDegrees === 180 ? "Sul (180°)" : azimuthDegrees === 270 ? "Oeste (270°)" : "Personalizado"}
+              {activeSection.azimuthDegrees === 0
+                ? "Norte (0°)"
+                : activeSection.azimuthDegrees === 90
+                ? "Leste (90°)"
+                : activeSection.azimuthDegrees === 180
+                ? "Sul (180°)"
+                : activeSection.azimuthDegrees === 270
+                ? "Oeste (270°)"
+                : "Personalizado"}
             </span>
           </div>
 
-          {/* Controle de NAVEGAÇÃO DO MAPA & ZOOM */}
+          {/* NAVEGAÇÃO DO MAPA & ZOOM */}
           <div className="absolute bottom-6 left-6 z-20 bg-card/90 backdrop-blur-md border border-border p-2 rounded-2xl shadow-xl flex items-center gap-3">
             
             {/* Pad Direcional para Mover o Mapa de Satélite */}
@@ -1049,17 +1209,122 @@ function RoofStudioContent() {
             
             <div className="space-y-5">
               
-              {/* Presets de Formatos Rápidos */}
+              {/* SELEÇÃO E GERENCIAMENTO DE ÁREAS / ÁGUAS DE TELHADO */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Layers3 className="w-4 h-4 text-primary" /> Águas do Telhado ({sections.length})
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addSection}
+                    className="px-2.5 py-1 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Nova Área
+                  </button>
+                </div>
+
+                {/* Lista de Abas / Pílulas de Águas */}
+                <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                  {sections.map((sec, idx) => {
+                    const secCalc = sectionCalculations.find((sc) => sc.section.id === sec.id);
+                    const panelsCount = secCalc?.autoFill.maxPanelsCount || 0;
+                    const isSelected = sec.id === activeSectionId;
+
+                    return (
+                      <div
+                        key={sec.id}
+                        onClick={() => setActiveSectionId(sec.id)}
+                        className={`p-2.5 rounded-xl border transition-all flex items-center justify-between cursor-pointer ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground border-primary shadow-md"
+                            : "bg-secondary/60 hover:bg-secondary border-border text-foreground"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span
+                            className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${
+                              isSelected ? "bg-primary-foreground text-primary" : "bg-primary/20 text-primary"
+                            }`}
+                          >
+                            {idx + 1}
+                          </span>
+
+                          {editingNameId === sec.id ? (
+                            <input
+                              type="text"
+                              value={sec.name}
+                              onChange={(e) => updateActiveSection({ name: e.target.value })}
+                              onBlur={() => setEditingNameId(null)}
+                              onKeyDown={(e) => e.key === 'Enter' && setEditingNameId(null)}
+                              autoFocus
+                              className="px-2 py-0.5 text-xs font-bold bg-background text-foreground border border-primary rounded focus:outline-none w-full"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <span className="text-xs font-black truncate">{sec.name}</span>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveSectionId(sec.id);
+                              setEditingNameId(sec.id);
+                            }}
+                            className={`p-1 rounded hover:bg-black/10 transition-colors ${
+                              isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                            }`}
+                            title="Renomear área"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={`text-xs font-black px-2 py-0.5 rounded-md ${
+                              isSelected
+                                ? "bg-primary-foreground/20 text-primary-foreground"
+                                : "bg-card text-foreground border border-border"
+                            }`}
+                          >
+                            {panelsCount} p.
+                          </span>
+
+                          {sections.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeSection(sec.id);
+                              }}
+                              className={`p-1 rounded hover:bg-red-500/20 hover:text-red-400 transition-colors ${
+                                isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                              }`}
+                              title="Remover área"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Presets de Formatos da Área Ativa */}
               <div>
                 <label className="block text-xs font-extrabold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Layers className="w-4 h-4 text-primary" /> Geometria do Telhado
+                  <Layers className="w-4 h-4 text-primary" /> Geometria ({activeSection.name})
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => applyPresetShape('RECTANGLE')}
                     className={`py-2 px-3 rounded-xl text-xs font-extrabold transition-all border ${
-                      activePreset === 'RECTANGLE'
+                      activeSection.activePreset === 'RECTANGLE'
                         ? 'bg-primary text-primary-foreground border-primary shadow-md'
                         : 'bg-secondary text-muted-foreground border-border hover:bg-secondary/80'
                     }`}
@@ -1070,7 +1335,7 @@ function RoofStudioContent() {
                     type="button"
                     onClick={() => applyPresetShape('L_SHAPE')}
                     className={`py-2 px-3 rounded-xl text-xs font-extrabold transition-all border ${
-                      activePreset === 'L_SHAPE'
+                      activeSection.activePreset === 'L_SHAPE'
                         ? 'bg-primary text-primary-foreground border-primary shadow-md'
                         : 'bg-secondary text-muted-foreground border-border hover:bg-secondary/80'
                     }`}
@@ -1081,7 +1346,7 @@ function RoofStudioContent() {
                     type="button"
                     onClick={() => applyPresetShape('TRAPEZOID')}
                     className={`py-2 px-3 rounded-xl text-xs font-extrabold transition-all border ${
-                      activePreset === 'TRAPEZOID'
+                      activeSection.activePreset === 'TRAPEZOID'
                         ? 'bg-primary text-primary-foreground border-primary shadow-md'
                         : 'bg-secondary text-muted-foreground border-border hover:bg-secondary/80'
                     }`}
@@ -1091,25 +1356,25 @@ function RoofStudioContent() {
                 </div>
               </div>
 
-              {/* Ajustes Técnicos (Sliders) */}
+              {/* Ajustes Técnicos da Área Ativa (Sliders) */}
               <div className="space-y-4 bg-secondary/30 p-4 rounded-2xl border border-border">
                 <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider border-b border-border/60 pb-2 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-primary" /> Ajustes de Engenharia
+                  <Sparkles className="w-4 h-4 text-primary" /> Ajustes: {activeSection.name}
                 </h4>
 
                 {/* Recuo de Segurança */}
                 <div>
                   <div className="flex justify-between text-xs font-bold mb-1">
                     <span className="text-muted-foreground">Recuo das Bordas:</span>
-                    <span className="text-primary">{marginMeters} m</span>
+                    <span className="text-primary">{activeSection.marginMeters} m</span>
                   </div>
                   <input
                     type="range"
                     min={0.1}
                     max={1.5}
                     step={0.1}
-                    value={marginMeters}
-                    onChange={(e) => setMarginMeters(Number(e.target.value))}
+                    value={activeSection.marginMeters}
+                    onChange={(e) => updateActiveSection({ marginMeters: Number(e.target.value) })}
                     className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
                   />
                   <span className="text-[10px] text-muted-foreground block mt-0.5">Afastamento de cumeeiras e rufos</span>
@@ -1119,15 +1384,15 @@ function RoofStudioContent() {
                 <div>
                   <div className="flex justify-between text-xs font-bold mb-1">
                     <span className="text-muted-foreground">Orientação (Azimute):</span>
-                    <span className="text-primary">{azimuthDegrees}°</span>
+                    <span className="text-primary">{activeSection.azimuthDegrees}°</span>
                   </div>
                   <input
                     type="range"
                     min={0}
                     max={350}
                     step={10}
-                    value={azimuthDegrees}
-                    onChange={(e) => setAzimuthDegrees(Number(e.target.value))}
+                    value={activeSection.azimuthDegrees}
+                    onChange={(e) => updateActiveSection({ azimuthDegrees: Number(e.target.value) })}
                     className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
                   />
                 </div>
@@ -1136,15 +1401,15 @@ function RoofStudioContent() {
                 <div>
                   <div className="flex justify-between text-xs font-bold mb-1">
                     <span className="text-muted-foreground">Inclinação do Telhado:</span>
-                    <span className="text-primary">{pitchDegrees}°</span>
+                    <span className="text-primary">{activeSection.pitchDegrees}°</span>
                   </div>
                   <input
                     type="range"
                     min={0}
                     max={45}
                     step={5}
-                    value={pitchDegrees}
-                    onChange={(e) => setPitchDegrees(Number(e.target.value))}
+                    value={activeSection.pitchDegrees}
+                    onChange={(e) => updateActiveSection({ pitchDegrees: Number(e.target.value) })}
                     className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
                   />
                 </div>
@@ -1155,9 +1420,9 @@ function RoofStudioContent() {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => setModuleOrientation('PORTRAIT')}
+                      onClick={() => updateActiveSection({ moduleOrientation: 'PORTRAIT' })}
                       className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
-                        moduleOrientation === 'PORTRAIT'
+                        activeSection.moduleOrientation === 'PORTRAIT'
                           ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                           : 'bg-card text-muted-foreground border-border hover:bg-secondary'
                       }`}
@@ -1166,9 +1431,9 @@ function RoofStudioContent() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setModuleOrientation('LANDSCAPE')}
+                      onClick={() => updateActiveSection({ moduleOrientation: 'LANDSCAPE' })}
                       className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
-                        moduleOrientation === 'LANDSCAPE'
+                        activeSection.moduleOrientation === 'LANDSCAPE'
                           ? 'bg-primary text-primary-foreground shadow-sm'
                           : 'bg-card text-muted-foreground border-border hover:bg-secondary'
                       }`}
@@ -1184,9 +1449,9 @@ function RoofStudioContent() {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => setArrayStyle('UNIFORM_RECTANGLE')}
+                      onClick={() => updateActiveSection({ arrayStyle: 'UNIFORM_RECTANGLE' })}
                       className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border ${
-                        arrayStyle === 'UNIFORM_RECTANGLE'
+                        activeSection.arrayStyle === 'UNIFORM_RECTANGLE'
                           ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                           : 'bg-card text-muted-foreground border-border hover:bg-secondary'
                       }`}
@@ -1195,9 +1460,9 @@ function RoofStudioContent() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setArrayStyle('MAX_FILL')}
+                      onClick={() => updateActiveSection({ arrayStyle: 'MAX_FILL' })}
                       className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border ${
-                        arrayStyle === 'MAX_FILL'
+                        activeSection.arrayStyle === 'MAX_FILL'
                           ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                           : 'bg-card text-muted-foreground border-border hover:bg-secondary'
                       }`}
@@ -1205,25 +1470,33 @@ function RoofStudioContent() {
                       Preencher Tudo
                     </button>
                   </div>
-                  <span className="text-[10px] text-muted-foreground block mt-1">
-                    {arrayStyle === 'UNIFORM_RECTANGLE'
-                      ? 'Gera linhas e colunas simétricas de tamanho homogêneo (Recomendado).'
-                      : 'Preenche cada canto do telhado maximizando a área.'}
-                  </span>
                 </div>
 
               </div>
 
-              {/* Card de Resumo da Capacidade Física */}
+              {/* Card de Resumo Combinado de Todas as Águas */}
               <div className="bg-primary/10 border border-primary/20 p-4 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-bold text-muted-foreground block">Capacidade Física Máxima</span>
-                    <span className="text-3xl font-black text-primary">{maxFitCount} Placas</span>
+                    <span className="text-xs font-bold text-muted-foreground block">Capacidade Total Combinada</span>
+                    <span className="text-3xl font-black text-primary">{totalMaxPanelsCount} Placas</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-xs font-bold text-muted-foreground block">Área Útil Real</span>
-                    <span className="text-sm font-extrabold text-foreground">{autoFillResult.usableAreaM2} m²</span>
+                    <span className="text-xs font-bold text-muted-foreground block">Área Útil Total</span>
+                    <span className="text-sm font-extrabold text-foreground">{totalUsableAreaM2} m²</span>
+                  </div>
+                </div>
+
+                {/* Detalhamento por Área */}
+                <div className="pt-2 border-t border-primary/20 space-y-1">
+                  <span className="text-[10px] font-extrabold text-muted-foreground uppercase block">Distribuição por Área:</span>
+                  <div className="grid grid-cols-2 gap-1 max-h-24 overflow-y-auto pr-1">
+                    {sectionCalculations.map((sc) => (
+                      <div key={sc.section.id} className="text-[11px] font-semibold bg-background/50 p-1.5 rounded-lg flex justify-between border border-border/40">
+                        <span className="truncate text-foreground font-bold">{sc.section.name}:</span>
+                        <span className="text-primary font-black ml-1">{sc.autoFill.maxPanelsCount} p.</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -1240,8 +1513,8 @@ function RoofStudioContent() {
                       </span>
                       <span>
                         {isDeficit
-                          ? `Necessidade por consumo: ${initialRequiredModules} placas. Telhado comporta até ${maxFitCount} placas.`
-                          : `Suporta as ${initialRequiredModules} placas necessárias pelo consumo.`}
+                          ? `Necessidade por consumo: ${initialRequiredModules} placas. O telhado comporta até ${totalMaxPanelsCount} placas no total.`
+                          : `Suporta as ${initialRequiredModules} placas necessárias pelo consumo do cliente.`}
                       </span>
                     </div>
                   </div>
@@ -1255,11 +1528,11 @@ function RoofStudioContent() {
               <button
                 type="button"
                 onClick={() => {
-                  router.push(`/simulador?roofLimit=${maxFitCount}`);
+                  router.push(`/simulador?roofLimit=${totalMaxPanelsCount}`);
                 }}
                 className="w-full py-4 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-sm rounded-2xl transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-2 active:scale-95"
               >
-                <span>Aplicar {maxFitCount} Placas ao Simulador</span>
+                <span>Aplicar {totalMaxPanelsCount} Placas ao Simulador</span>
                 <CheckCircle2 className="w-5 h-5" />
               </button>
             </div>
@@ -1277,7 +1550,7 @@ export default function RoofStudioPage() {
   return (
     <Suspense fallback={
       <div className="w-screen h-screen bg-slate-950 flex items-center justify-center text-primary font-extrabold text-sm gap-2">
-        <Loader2 className="w-6 h-6 animate-spin" /> Carregando Estudo de Telhado Ultra HD...
+        <Loader2 className="w-6 h-6 animate-spin" /> Carregando Estudo de Telhado Multi-Águas...
       </div>
     }>
       <RoofStudioContent />
