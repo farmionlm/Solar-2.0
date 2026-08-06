@@ -1147,7 +1147,7 @@ function RoofStudioContent() {
                           setEditingEdge({ sectionId: section.id, edgeIndex: i, currentLength: Number(edgeLength) });
                           setInputEdgeLength(edgeLength);
                         }}
-                        className="cursor-pointer hover:scale-110 transition-transform"
+                        className="cursor-pointer group"
                       >
                         <title>{`Clique para digitar o novo tamanho deste lado (${edgeLength}m)`}</title>
                         <rect
@@ -1159,7 +1159,7 @@ function RoofStudioContent() {
                           fill="rgba(15, 23, 42, 0.95)"
                           stroke="#38bdf8"
                           strokeWidth="1.2"
-                          className="drop-shadow-sm hover:fill-slate-900 hover:stroke-amber-400"
+                          className="drop-shadow-sm transition-colors group-hover:fill-slate-900 group-hover:stroke-amber-400 group-hover:stroke-[1.8]"
                         />
                         <text
                           x={offsetX}
@@ -1168,6 +1168,7 @@ function RoofStudioContent() {
                           fontWeight="black"
                           fill="#38bdf8"
                           textAnchor="middle"
+                          className="transition-colors group-hover:fill-amber-400"
                         >
                           {edgeLength}m
                         </text>
