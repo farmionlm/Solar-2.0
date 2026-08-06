@@ -171,14 +171,44 @@ export function RoofLayoutModal({
     }
   };
 
+  const getUnrotatedPoint = (
+    screenX: number,
+    screenY: number,
+    originX: number,
+    originY: number,
+    angleDegrees: number
+  ) => {
+    const rad = (angleDegrees * Math.PI) / 180;
+    const dx = screenX - originX;
+    const dy = screenY - originY;
+    return {
+      x: originX + (dx * Math.cos(rad) + dy * Math.sin(rad)),
+      y: originY + (-dx * Math.sin(rad) + dy * Math.cos(rad)),
+    };
+  };
+
   const [draggingVertexIndex, setDraggingVertexIndex] = useState<number | null>(null);
 
   const handleSvgMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (draggingVertexIndex === null || !activeSection) return;
     const svg = e.currentTarget;
     const rect = svg.getBoundingClientRect();
-    const x = Math.max(10, Math.min(390, (e.clientX - rect.left) * (400 / rect.width)));
-    const y = Math.max(10, Math.min(290, (e.clientY - rect.top) * (300 / rect.height)));
+    const clientX = (e.clientX - rect.left) * (400 / rect.width);
+    const clientY = (e.clientY - rect.top) * (300 / rect.height);
+
+    const cx = activeSection.polygonVertices.reduce((a, b) => a + b.x, 0) / activeSection.polygonVertices.length;
+    const cy = activeSection.polygonVertices.reduce((a, b) => a + b.y, 0) / activeSection.polygonVertices.length;
+
+    const unrotated = getUnrotatedPoint(
+      clientX,
+      clientY,
+      cx,
+      cy,
+      activeSection.azimuthDegrees
+    );
+
+    const x = Math.max(10, Math.min(390, unrotated.x));
+    const y = Math.max(10, Math.min(290, unrotated.y));
 
     const updatedVertices = [...activeSection.polygonVertices];
     updatedVertices[draggingVertexIndex] = { x: Math.round(x), y: Math.round(y) };

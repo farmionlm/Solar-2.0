@@ -513,12 +513,12 @@ function RoofStudioContent() {
     originY: number,
     angleDegrees: number
   ) => {
-    const rad = (-angleDegrees * Math.PI) / 180;
+    const rad = (angleDegrees * Math.PI) / 180;
     const dx = screenX - originX;
     const dy = screenY - originY;
     return {
-      x: originX + (dx * Math.cos(rad) - dy * Math.sin(rad)),
-      y: originY + (dx * Math.sin(rad) + dy * Math.cos(rad)),
+      x: originX + (dx * Math.cos(rad) + dy * Math.sin(rad)),
+      y: originY + (-dx * Math.sin(rad) + dy * Math.cos(rad)),
     };
   };
 
@@ -539,12 +539,8 @@ function RoofStudioContent() {
     const dxScreen = e.clientX - dragStartPos.x;
     const dyScreen = e.clientY - dragStartPos.y;
 
-    const rad = (-activeSection.azimuthDegrees * Math.PI) / 180;
-    const dxUnrotated = dxScreen * Math.cos(rad) - dyScreen * Math.sin(rad);
-    const dyUnrotated = dxScreen * Math.sin(rad) + dyScreen * Math.cos(rad);
-
-    const dxMeters = dxUnrotated / pixelsPerMeter;
-    const dyMeters = dyUnrotated / pixelsPerMeter;
+    const dxMeters = dxScreen / pixelsPerMeter;
+    const dyMeters = dyScreen / pixelsPerMeter;
 
     const updatedPolygon = initialMetersOnDrag.map((v) => ({
       x: Number((v.x + dxMeters).toFixed(2)),
