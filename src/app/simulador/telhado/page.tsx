@@ -1147,8 +1147,8 @@ function RoofStudioContent() {
                           setInputEdgeLength(edgeLength);
                         }}
                         className="cursor-pointer hover:scale-110 transition-transform"
-                        title={`Clique para digitar o novo tamanho deste lado (${edgeLength}m)`}
                       >
+                        <title>{`Clique para digitar o novo tamanho deste lado (${edgeLength}m)`}</title>
                         <rect
                           x={offsetX - 17}
                           y={offsetY - 8}
