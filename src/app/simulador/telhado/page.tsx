@@ -1096,7 +1096,37 @@ function RoofStudioContent() {
                     />
                   ))}
 
-                  {/* Alça Interativa de Rotação (↻) no Topo da Seção Ativa */}
+                  {/* Pílula / Rótulo Flutuante Externo (20px acima da borda superior local, rotacionando junto com a seção) */}
+                  {showLabels && (
+                    <g
+                      transform={`translate(${centroidPixels.x}, ${secCalc.minYLocal - 20})`}
+                      className="pointer-events-none select-none"
+                    >
+                      <rect
+                        x="-38"
+                        y="-10"
+                        width="76"
+                        height="20"
+                        rx="10"
+                        fill={isActive ? "rgba(15, 23, 42, 0.94)" : "rgba(30, 41, 59, 0.88)"}
+                        stroke={isActive ? "#38bdf8" : "#64748b"}
+                        strokeWidth="1.2"
+                        className="shadow-lg"
+                      />
+                      <text
+                        x="0"
+                        y="3"
+                        fontSize="9"
+                        fontWeight="black"
+                        fill={isActive ? "#38bdf8" : "#e2e8f0"}
+                        textAnchor="middle"
+                      >
+                        {section.name}: {autoFill.maxPanelsCount}p.
+                      </text>
+                    </g>
+                  )}
+
+                  {/* Alça Interativa de Rotação (↻) (48px acima da borda superior local, rotacionando junto com a seção) */}
                   {isActive && (
                     <g
                       onPointerDown={handleRotatePointerDown}
@@ -1104,16 +1134,16 @@ function RoofStudioContent() {
                     >
                       <line
                         x1={centroidPixels.x}
-                        y1={secCalc.minYLocal - 8}
+                        y1={secCalc.minYLocal - 30}
                         x2={centroidPixels.x}
-                        y2={secCalc.minYLocal - 32}
+                        y2={secCalc.minYLocal - 48}
                         stroke="#f59e0b"
                         strokeWidth="2"
                         strokeDasharray="4 3"
                       />
                       <circle
                         cx={centroidPixels.x}
-                        cy={secCalc.minYLocal - 32}
+                        cy={secCalc.minYLocal - 48}
                         r="9"
                         fill="#f59e0b"
                         stroke="#ffffff"
@@ -1122,7 +1152,7 @@ function RoofStudioContent() {
                       />
                       <text
                         x={centroidPixels.x}
-                        y={secCalc.minYLocal - 29}
+                        y={secCalc.minYLocal - 45}
                         fontSize="10"
                         fontWeight="black"
                         fill="#ffffff"
@@ -1136,44 +1166,6 @@ function RoofStudioContent() {
                 </g>
               );
             })}
-
-            {/* Camada de Rótulos de Seção (Posicionados em Tela 22px Acima do Ponto Mais Alto do Polígono Rotacionado, 0° Horizontal) */}
-            {showLabels && sectionCalculations.map((sc) => {
-              const isActive = sc.section.id === activeSectionId;
-              return (
-                <g
-                  key={`label-${sc.section.id}`}
-                  transform={`translate(${sc.screenCenterX}, ${sc.screenMinY - 22})`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveSectionId(sc.section.id);
-                  }}
-                  className="cursor-pointer hover:scale-105 transition-transform"
-                >
-                  <rect
-                    x="-40"
-                    y="-11"
-                    width="80"
-                    height="22"
-                    rx="11"
-                    fill={isActive ? "rgba(15, 23, 42, 0.92)" : "rgba(30, 41, 59, 0.88)"}
-                    stroke={isActive ? "#38bdf8" : "#64748b"}
-                    strokeWidth="1.2"
-                    className="shadow-lg"
-                  />
-                  <text
-                    x="0"
-                    y="3"
-                    fontSize="9.5"
-                    fontWeight="black"
-                    fill={isActive ? "#38bdf8" : "#e2e8f0"}
-                    textAnchor="middle"
-                  >
-                    {sc.section.name}: {sc.autoFill.maxPanelsCount}p.
-                  </text>
-                  </g>
-                );
-              })}
           </svg>
 
           {/* Indicador de Azimute da Área Selecionada */}

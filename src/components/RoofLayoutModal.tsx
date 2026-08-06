@@ -551,14 +551,10 @@ export function RoofLayoutModal({
                         />
                       ))}
 
-                      {/* Pílula / Rótulo Flutuante Externo (Fora do Desenho dos Módulos) */}
+                      {/* Pílula / Rótulo Flutuante Externo (18px acima da borda superior local, rotacionando junto com a seção) */}
                       <g
-                        transform={`translate(${section.polygonVertices.reduce((a,b)=>a+b.x,0)/section.polygonVertices.length}, ${Math.min(...section.polygonVertices.map(v=>v.y)) - 14}) rotate(${-section.azimuthDegrees})`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveSectionId(section.id);
-                        }}
-                        className="cursor-pointer hover:scale-105 transition-transform"
+                        transform={`translate(${section.polygonVertices.reduce((a,b)=>a+b.x,0)/section.polygonVertices.length}, ${Math.min(...section.polygonVertices.map(v=>v.y)) - 18})`}
+                        className="pointer-events-none select-none"
                       >
                         <rect
                           x="-34"
@@ -566,7 +562,7 @@ export function RoofLayoutModal({
                           width="68"
                           height="18"
                           rx="9"
-                          fill={isActive ? "rgba(15, 23, 42, 0.92)" : "rgba(30, 41, 59, 0.85)"}
+                          fill={isActive ? "rgba(15, 23, 42, 0.94)" : "rgba(30, 41, 59, 0.88)"}
                           stroke={isActive ? "#38bdf8" : "#64748b"}
                           strokeWidth="1.2"
                           className="shadow-md"
