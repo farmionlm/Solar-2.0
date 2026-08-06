@@ -831,10 +831,10 @@ function RoofStudioContent() {
   };
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-slate-950 text-foreground flex flex-col font-sans select-none">
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-slate-950 text-foreground font-sans select-none">
       
       {/* 1. Header de Controle Superior */}
-      <header className="relative z-30 h-16 bg-card/90 backdrop-blur-md border-b border-border/80 px-4 sm:px-6 flex items-center justify-between gap-4 shadow-lg">
+      <header className="relative z-30 h-16 shrink-0 bg-card/90 backdrop-blur-md border-b border-border/80 px-4 sm:px-6 flex items-center justify-between gap-4 shadow-lg">
         
         {/* Lado Esquerdo: Voltar & Título */}
         <div className="flex items-center gap-3">
@@ -980,8 +980,8 @@ function RoofStudioContent() {
         </div>
       )}
 
-      {/* 2. Área Principal de Trabalho (Canvas 100vh Fullscreen) */}
-      <div className="relative flex-1 w-full h-[calc(100vh-64px)] flex overflow-hidden">
+      {/* 2. Área Principal de Trabalho (Canvas Fullscreen) */}
+      <div className="relative flex-1 w-full min-h-0 flex overflow-hidden">
         
         {/* Workspace do Desenho */}
         <div
@@ -1786,7 +1786,7 @@ function RoofStudioContent() {
 export default function RoofStudioPage() {
   return (
     <Suspense fallback={
-      <div className="w-screen h-screen bg-slate-950 flex items-center justify-center text-primary font-extrabold text-sm gap-2">
+      <div className="w-full h-full min-h-[400px] bg-slate-950 flex items-center justify-center text-primary font-extrabold text-sm gap-2">
         <Loader2 className="w-6 h-6 animate-spin" /> Carregando Estudo de Telhado Multi-Águas...
       </div>
     }>
