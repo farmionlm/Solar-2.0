@@ -97,6 +97,7 @@ function RoofStudioContent() {
   ]);
 
   const [activeSectionId, setActiveSectionId] = useState<string>("sec-1");
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [editingEdge, setEditingEdge] = useState<{ sectionId: string; edgeIndex: number; currentLength: number } | null>(null);
   const [inputEdgeLength, setInputEdgeLength] = useState<string>("");
 
