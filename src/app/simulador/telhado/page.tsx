@@ -97,7 +97,89 @@ function RoofStudioContent() {
   ]);
 
   const [activeSectionId, setActiveSectionId] = useState<string>("sec-1");
-  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [editingEdge, setEditingEdge] = useState<{ sectionId: string; edgeIndex: number; currentLength: number } | null>(null);
+  const [inputEdgeLength, setInputEdgeLength] = useState<string>("");
+
+  const handleApplyEdgeLength = (newLength: number) => {
+    if (!editingEdge || newLength <= 0 || isNaN(newLength)) return;
+    const sec = sections.find((s) => s.id === editingEdge.sectionId);
+    if (!sec) return;
+
+    const poly = [...sec.polygonMeters];
+    const n = poly.length;
+    const i = editingEdge.edgeIndex;
+    const j = (i + 1) % n;
+
+    const v1 = poly[i];
+    const v2 = poly[j];
+    const currentLen = Math.hypot(v2.x - v1.x, v2.y - v1.y);
+    if (currentLen === 0) return;
+
+    const ratio = newLength / currentLen;
+    const midX = (v1.x + v2.x) / 2;
+    const midY = (v1.y + v2.y) / 2;
+    const dx = (v2.x - v1.x) / 2;
+    const dy = (v2.y - v1.y) / 2;
+
+    poly[i] = {
+      x: Number((midX - dx * ratio).toFixed(2)),
+      y: Number((midY - dy * ratio).toFixed(2)),
+    };
+    poly[j] = {
+      x: Number((midX + dx * ratio).toFixed(2)),
+      y: Number((midY + dy * ratio).toFixed(2)),
+    };
+
+    if (n === 4) {
+      const oppI = (i + 2) % 4;
+      const oppJ = (i + 3) % 4;
+      const oppV1 = poly[oppI];
+      const oppV2 = poly[oppJ];
+      const oppMidX = (oppV1.x + oppV2.x) / 2;
+      const oppMidY = (oppV1.y + oppV2.y) / 2;
+      const oppDx = (oppV1.x - oppV2.x) / 2;
+      const oppDy = (oppV1.y - oppV2.y) / 2;
+
+      poly[oppI] = {
+        x: Number((oppMidX + oppDx * ratio).toFixed(2)),
+        y: Number((oppMidY + oppDy * ratio).toFixed(2)),
+      };
+      poly[oppJ] = {
+        x: Number((oppMidX - oppDx * ratio).toFixed(2)),
+        y: Number((oppMidY - oppDy * ratio).toFixed(2)),
+      };
+    }
+
+    setSections((prev) =>
+      prev.map((s) => (s.id === editingEdge.sectionId ? { ...s, polygonMeters: poly } : s))
+    );
+    setEditingEdge(null);
+  };
+
+  const activeDimensions = useMemo(() => {
+    if (!activeSection || !activeSection.polygonMeters || activeSection.polygonMeters.length === 0) {
+      return { width: 10, length: 7.2 };
+    }
+    const xs = activeSection.polygonMeters.map((p) => p.x);
+    const ys = activeSection.polygonMeters.map((p) => p.y);
+    const w = Number((Math.max(...xs) - Math.min(...xs)).toFixed(1));
+    const l = Number((Math.max(...ys) - Math.min(...ys)).toFixed(1));
+    return { width: w || 10, length: l || 7.2 };
+  }, [activeSection]);
+
+  const handleSetDirectDimensions = (newW: number, newL: number) => {
+    if (!activeSection || newW <= 0 || newL <= 0 || isNaN(newW) || isNaN(newL)) return;
+    const c = getSectionCentroidMeters(activeSection);
+    const halfW = newW / 2;
+    const halfL = newL / 2;
+    const updatedPolygon: Point2D[] = [
+      { x: Number((c.x - halfW).toFixed(2)), y: Number((c.y - halfL).toFixed(2)) },
+      { x: Number((c.x + halfW).toFixed(2)), y: Number((c.y - halfL).toFixed(2)) },
+      { x: Number((c.x + halfW).toFixed(2)), y: Number((c.y + halfL).toFixed(2)) },
+      { x: Number((c.x - halfW).toFixed(2)), y: Number((c.y + halfL).toFixed(2)) },
+    ];
+    updateActiveSection({ polygonMeters: updatedPolygon });
+  };
 
   // Seção Ativa Atual
   const activeSection = useMemo(() => {
@@ -1040,7 +1122,7 @@ function RoofStudioContent() {
                     );
                   })}
 
-                  {/* Cotações em Metros das Arestas (Afastadas 12px para fora do polígono) */}
+                  {/* Cotações Interativas em Metros das Arestas (Clique para digitar novo tamanho) */}
                   {isActive && section.polygonMeters.map((v1, i) => {
                     const v2 = section.polygonMeters[(i + 1) % section.polygonMeters.length];
                     const edgeLength = Math.hypot(v2.x - v1.x, v2.y - v1.y).toFixed(1);
@@ -1056,20 +1138,31 @@ function RoofStudioContent() {
                     const offsetY = midY + (dy / dist) * 12;
 
                     return (
-                      <g key={`edge-${i}`} className="pointer-events-none">
+                      <g
+                        key={`edge-${i}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveSectionId(section.id);
+                          setEditingEdge({ sectionId: section.id, edgeIndex: i, currentLength: Number(edgeLength) });
+                          setInputEdgeLength(edgeLength);
+                        }}
+                        className="cursor-pointer hover:scale-110 transition-transform"
+                        title={`Clique para digitar o novo tamanho deste lado (${edgeLength}m)`}
+                      >
                         <rect
-                          x={offsetX - 16}
-                          y={offsetY - 7}
-                          width="32"
-                          height="14"
-                          rx="4"
-                          fill="rgba(15, 23, 42, 0.9)"
+                          x={offsetX - 17}
+                          y={offsetY - 8}
+                          width="34"
+                          height="16"
+                          rx="5"
+                          fill="rgba(15, 23, 42, 0.95)"
                           stroke="#38bdf8"
-                          strokeWidth="1"
+                          strokeWidth="1.2"
+                          className="drop-shadow-sm hover:fill-slate-900 hover:stroke-amber-400"
                         />
                         <text
                           x={offsetX}
-                          y={offsetY + 3}
+                          y={offsetY + 3.5}
                           fontSize="8.5"
                           fontWeight="black"
                           fill="#38bdf8"
@@ -1430,6 +1523,40 @@ function RoofStudioContent() {
                   <span className="text-[10px] text-muted-foreground block mt-0.5">Afastamento de cumeeiras e rufos</span>
                 </div>
 
+                {/* Dimensões Físicas Numéricas (Largura × Comprimento em Metros) */}
+                <div className="bg-secondary/40 p-2.5 rounded-xl border border-border space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
+                    <span>Dimensões Exatas em Metros:</span>
+                    <span className="text-primary font-black">{activeDimensions.width}m × {activeDimensions.length}m</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-extrabold text-muted-foreground uppercase block mb-1">Largura (m)</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="1"
+                        max="100"
+                        value={activeDimensions.width}
+                        onChange={(e) => handleSetDirectDimensions(Number(e.target.value), activeDimensions.length)}
+                        className="w-full h-8 px-2 bg-background border border-border rounded-lg text-xs font-black text-foreground text-center focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-extrabold text-muted-foreground uppercase block mb-1">Comprimento (m)</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="1"
+                        max="100"
+                        value={activeDimensions.length}
+                        onChange={(e) => handleSetDirectDimensions(activeDimensions.width, Number(e.target.value))}
+                        className="w-full h-8 px-2 bg-background border border-border rounded-lg text-xs font-black text-foreground text-center focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Orientação (Azimute) */}
                 <div>
                   <div className="flex justify-between text-xs font-bold mb-1">
@@ -1591,6 +1718,64 @@ function RoofStudioContent() {
         )}
 
       </div>
+
+      {/* Modal Popover para Ajuste Direto de Tamanho do Lado ao Clicar na Cota */}
+      {editingEdge && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-card border border-border p-5 rounded-2xl shadow-2xl max-w-xs w-full space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Sliders className="w-4 h-4 text-primary" /> Ajustar Tamanho do Lado
+              </h4>
+              <button
+                type="button"
+                onClick={() => setEditingEdge(null)}
+                className="text-muted-foreground hover:text-foreground text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Digite a dimensão exata deste lado (em metros) para ajustar a geometria do telhado:
+            </p>
+
+            <div>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.5"
+                  max="100"
+                  value={inputEdgeLength}
+                  onChange={(e) => setInputEdgeLength(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleApplyEdgeLength(Number(inputEdgeLength))}
+                  autoFocus
+                  className="w-full h-12 pl-3 pr-8 bg-secondary border border-border rounded-xl font-black text-xl text-primary focus:outline-none focus:ring-1 focus:ring-primary text-center"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-muted-foreground">m</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => handleApplyEdgeLength(Number(inputEdgeLength))}
+                className="flex-1 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs rounded-xl transition-all shadow-md active:scale-95"
+              >
+                Aplicar Tamanho
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingEdge(null)}
+                className="py-2.5 px-3 bg-secondary hover:bg-secondary/80 text-muted-foreground font-bold text-xs rounded-xl transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
