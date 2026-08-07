@@ -133,3 +133,74 @@ export type AppNotification = {
   userId: string;
 };
 
+// ─── Dashboard / Analytics Types ──────────────────────────────────────────────
+
+export type MonthlyDataPoint = {
+  name: string;   // Ex: "Jan/25"
+  projetos: number;
+};
+
+export type StatusDataPoint = {
+  name: string;   // Ex: "Simulação", "Negociação", ...
+  value: number;
+};
+
+export type LossReasonDataPoint = {
+  name: string;   // Ex: "Preço Alto", "Concorrência"
+  value: number;
+};
+
+export type ConcessionariaDataPoint = {
+  name: string;
+  total: number;
+  simulacao: number;
+  negociacao: number;
+  homologacao: number;
+  concluido: number;
+  kwpTotal: number;
+};
+
+export type TeamMemberPerformance = {
+  id: string;
+  name: string;
+  role: string;
+  totalProjects: number;
+  closedProjects: number;
+  conversionRate: number;
+  totalKwp: number;
+  totalRevenue: number;
+};
+
+export type CanceledProject = {
+  id: string;
+  name: string;
+  totalKwp: number;
+  clientId?: string | null;
+  clientName?: string | null;
+  lossReason?: string | null;
+  createdAt: string;
+};
+
+export type ProcuracaoAlert = {
+  id: string;
+  clientName: string;
+  daysRemaining: number;
+  isExpired: boolean;
+};
+
+export type AnalyticsMetrics = {
+  openEstimatedRevenue: number;
+  totalKwp: number;
+  totalProjects: number;
+  conversionRatePercent: number;
+  closedProjects: number;
+  averageTicket: number;
+  canceledProjectsCount: number;
+  canceledProjectsList: CanceledProject[];
+  monthlyData: MonthlyDataPoint[];
+  statusData: StatusDataPoint[];
+  lossReasonData: LossReasonDataPoint[];
+  concessionariaData: ConcessionariaDataPoint[];
+  teamPerformance: TeamMemberPerformance[];
+  procuracaoAlerts: ProcuracaoAlert[];
+};

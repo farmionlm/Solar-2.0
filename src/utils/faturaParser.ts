@@ -95,7 +95,7 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
   };
 
   // 1. Identificar Concessionária
-  let concessionaria = "EDP Espírito Santo";
+  let concessionaria: string | undefined;
   if (/LIGHT/i.test(cleanText)) {
     concessionaria = "Light";
   } else if (/ENEL/i.test(cleanText)) {
@@ -111,6 +111,8 @@ export function parseFaturaTexto(texto: string): FaturaExtraida {
   } else if (/EDP|Escri\s*Energia|ESCELSA|EDP\s*ES|EDP\s*SP/i.test(cleanText)) {
     concessionaria = "EDP Espírito Santo";
   }
+  // Se nenhuma for detectada, concessionaria permanece undefined —
+  // o usuário deverá preencher manualmente em vez de receber "EDP ES" como padrão silencioso.
 
   let clienteNome: string | undefined;
   let cpfCnpj: string | undefined;

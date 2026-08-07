@@ -5,6 +5,13 @@ import { NextRequest, NextResponse } from "next/server";
  * Usado pelo downloadStudyImage() no estudo de telhado para contornar
  * o bloqueio de CORS ao desenhar tiles do Google/ESRI em um <canvas> HTML.
  * GET /api/proxy-tile?url=<encoded_tile_url>
+ *
+ * Segurança:
+ * - allowlist de domínios conhecidos (Google Maps / ESRI ArcGIS)
+ * - timeout de 8s via AbortSignal
+ * - Cache-Control immutable (86400s) para reduzir requisições repetidas
+ * - TODO: adicionar rate-limiting via middleware Next.js (ex: Upstash Redis)
+ *   caso este endpoint fique exposto a tráfego público significativo.
  */
 export async function GET(req: NextRequest) {
   const tileUrl = req.nextUrl.searchParams.get("url");

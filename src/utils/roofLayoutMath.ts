@@ -153,7 +153,14 @@ export function rotatePoint(point: Point2D, angleRadian: number): Point2D {
 }
 
 /**
- * Aplica recuo/margem de segurança interna a um polígono retangular/regular (shrink).
+ * Aplica recuo/margem de segurança interna a um polígono (shrink aproximado por centroide).
+ *
+ * LIMITAÇÃO GEOMÉTRICA: esta função move cada vértice em direção ao centroide por
+ * `marginMeters`. Isso funciona bem para polígonos regulares (retângulos, quadrados),
+ * mas NÃO produz um offset de borda constante para polígonos irregulares (L, trapézio).
+ * Nesses casos, o recuo nas bordas oblíquas pode ser maior ou menor que o valor declarado.
+ * Para aplicações de projeto ANEEL que exijam precisão milimétrica, substitua por
+ * um algoritmo de straight skeleton ou Minkowski sum.
  */
 export function bufferPolygonInward(polygon: Point2D[], marginMeters: number): Point2D[] {
   if (marginMeters <= 0 || !polygon || polygon.length < 3) return polygon;

@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import Link from 'next/link';
 import { Sun, Users, Activity, BarChart3, PlusCircle, ArrowRight, Building2, UserCheck, XCircle, Award, Zap, Search, X, ExternalLink, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { AnalyticsMetrics, CanceledProject, LossReasonDataPoint, StatusDataPoint, ConcessionariaDataPoint, TeamMemberPerformance, ProcuracaoAlert } from '@/types';
 import {
   BarChart,
   Bar,
@@ -25,7 +26,7 @@ const COLORS = ['#38bdf8', '#d97706', '#059669', '#6366f1', '#64748b', '#dc2626'
 const LOSS_COLORS = ['#ef4444', '#f97316', '#f59e0b', '#8b5cf6', '#64748b'];
 
 function DashboardContent() {
-  const { data: metrics, error, isLoading, mutate } = useSWR('/api/analytics', fetcher);
+  const { data: metrics, error, isLoading, mutate } = useSWR<AnalyticsMetrics>('/api/analytics', fetcher);
   const [showCanceledModal, setShowCanceledModal] = useState(false);
   const [canceledFilter, setCanceledFilter] = useState("");
 
@@ -79,7 +80,7 @@ function DashboardContent() {
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-                {metrics.procuracaoAlerts.map((alert: any) => (
+                {metrics.procuracaoAlerts.map((alert: ProcuracaoAlert) => (
                   <div key={alert.id} className="p-3.5 rounded-xl bg-card border border-amber-500/30 flex items-center justify-between gap-3 shadow-sm">
                     <div className="truncate">
                       <span className="font-extrabold text-foreground text-xs block truncate">{alert.clientName}</span>
@@ -198,8 +199,8 @@ function DashboardContent() {
                   <div className="h-[180px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={metrics.statusData.filter((d: any) => d.value > 0)} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={4} dataKey="value">
-                          {metrics.statusData.filter((d: any) => d.value > 0).map((entry: any, index: number) => (
+                        <Pie data={metrics.statusData.filter((d: StatusDataPoint) => d.value > 0)} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={4} dataKey="value">
+                          {metrics.statusData.filter((d: StatusDataPoint) => d.value > 0).map((entry: StatusDataPoint, index: number) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
@@ -242,8 +243,8 @@ function DashboardContent() {
 
               {metrics.lossReasonData?.length > 0 ? (
                 <div className="space-y-3">
-                  {metrics.lossReasonData.map((item: any, idx: number) => {
-                    const totalLoss = metrics.lossReasonData.reduce((a: number, b: any) => a + b.value, 0);
+                  {metrics.lossReasonData.map((item: LossReasonDataPoint, idx: number) => {
+                    const totalLoss = metrics.lossReasonData.reduce((a: number, b: LossReasonDataPoint) => a + b.value, 0);
                     const pct = totalLoss > 0 ? Math.round((item.value / totalLoss) * 100) : 0;
                     return (
                       <div key={item.name} className="space-y-1">
@@ -303,7 +304,7 @@ function DashboardContent() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40 font-medium">
-                      {metrics.concessionariaData.map((item: any) => (
+                      {metrics.concessionariaData.map((item: ConcessionariaDataPoint) => (
                         <tr key={item.name} className="hover:bg-secondary/30 transition-colors">
                           <td className="py-2.5 px-2 font-bold text-foreground truncate max-w-[140px]">{item.name}</td>
                           <td className="py-2.5 px-2 text-center font-extrabold text-foreground">{item.total}</td>
@@ -354,7 +355,7 @@ function DashboardContent() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40 font-medium">
-                    {metrics.teamPerformance.map((member: any) => (
+                    {metrics.teamPerformance.map((member: TeamMemberPerformance) => (
                       <tr key={member.id} className="hover:bg-secondary/30 transition-colors">
                         <td className="py-2.5 px-2 font-bold text-foreground truncate">{member.name}</td>
                         <td className="py-2.5 px-2 text-center">
@@ -418,7 +419,7 @@ function DashboardContent() {
             {/* Lista de Projetos Cancelados */}
             <div className="flex-1 overflow-y-auto p-5 space-y-3">
               {(() => {
-                const list = (metrics?.canceledProjectsList || []).filter((p: any) => {
+                const list = (metrics?.canceledProjectsList || []).filter((p: CanceledProject) => {
                   if (!canceledFilter.trim()) return true;
                   const term = canceledFilter.toLowerCase();
                   return (
@@ -437,7 +438,7 @@ function DashboardContent() {
                   );
                 }
 
-                return list.map((proj: any) => (
+                return list.map((proj: CanceledProject) => (
                   <div
                     key={proj.id}
                     className="p-4 rounded-xl border border-border bg-card hover:bg-secondary/20 transition-all flex flex-col md:flex-row md:items-center justify-between gap-3"

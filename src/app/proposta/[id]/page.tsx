@@ -17,6 +17,24 @@ export default function PublicProposalPage({ params }: { params: Promise<{ id: s
 
   const { data: project, error, isLoading } = useSWR(`/api/projects/${id}`, fetcher);
   const [accepted, setAccepted] = useState(false);
+  const [acceptLoading, setAcceptLoading] = useState(false);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
+
+  const handleAcceptProposal = async () => {
+    setAcceptLoading(true);
+    setAcceptError(null);
+    try {
+      const res = await fetch(`/api/projects/${id}/accept`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao registrar aceite.');
+      setAccepted(true);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao registrar aceite.';
+      setAcceptError(message);
+    } finally {
+      setAcceptLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -45,14 +63,17 @@ export default function PublicProposalPage({ params }: { params: Promise<{ id: s
 
   const totalKwp = project.totalKwp || 0;
   const estimatedCost = project.estimatedCost || (totalKwp * 3800); // R$ 3.800/kWp estimado
-  const monthlyGeneration = Math.round(totalKwp * 4.0 * 30 * 0.85); // 85% eficiência
-  const monthlySavings = Math.round(monthlyGeneration * 0.95); // R$ 0.95/kWh
 
   const financials = calculateAdvancedFinancials({
     totalKwp,
     initialInvestmentCost: estimatedCost,
     tariffPerKwh: 0.95
   });
+
+  // Usa a geração mensal calculada por calculateAdvancedFinancials (inclui perdas de 15%)
+  // para que todos os números na proposta sejam consistentes entre si.
+  const monthlyGeneration = financials.baseMonthlyGeneration;
+  const monthlySavings = Math.round(financials.annualCashflow[0]?.netSavings / 12 || monthlyGeneration * 0.95);
 
   const handleWhatsApp = () => {
     const msg = generateProposalWhatsAppMessage({
@@ -108,18 +129,27 @@ export default function PublicProposalPage({ params }: { params: Promise<{ id: s
               Preparado para <strong>{project.client?.name || "Cliente"}</strong> em {new Date(project.createdAt).toLocaleDateString("pt-BR")}.
             </p>
 
-            <div className="pt-2 flex flex-wrap items-center gap-3">
+            <div className="pt-2 flex flex-col gap-2">
               {accepted ? (
                 <div className="bg-emerald-500 text-white font-extrabold text-sm px-5 py-3 rounded-2xl shadow-lg flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5" /> Proposta Aceita pelo Cliente!
                 </div>
               ) : (
                 <button
-                  onClick={() => setAccepted(true)}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-sm px-6 py-3.5 rounded-2xl shadow-xl transition-all flex items-center gap-2"
+                  onClick={handleAcceptProposal}
+                  disabled={acceptLoading}
+                  className="bg-primary hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed text-primary-foreground font-extrabold text-sm px-6 py-3.5 rounded-2xl shadow-xl transition-all flex items-center gap-2"
                 >
-                  <CheckCircle2 className="w-5 h-5" /> Aceitar Proposta Online
+                  {acceptLoading ? (
+                    <Zap className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-5 h-5" />
+                  )}
+                  {acceptLoading ? 'Registrando...' : 'Aceitar Proposta Online'}
                 </button>
+              )}
+              {acceptError && (
+                <p className="text-xs font-bold text-red-400">{acceptError}</p>
               )}
             </div>
           </div>

@@ -1,8 +1,7 @@
 /**
- /**
-  * Mapping of average electricity tariffs (R$/kWh) by Brazilian Concessionária / State UF
-  * Includes TE + TUSD + average taxes (PIS/COFINS/ICMS).
-  */
+ * Mapping of average electricity tariffs (R$/kWh) by Brazilian Concessionária / State UF.
+ * Includes TE + TUSD + average taxes (PIS/COFINS/ICMS).
+ */
 
 export const DEFAULT_TARIFF_RATE = 0.95;
 

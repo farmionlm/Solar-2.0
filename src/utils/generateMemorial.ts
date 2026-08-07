@@ -119,13 +119,20 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
   doc.text(`Fabricante: ${project.moduleManufacturer || "-"}`, 14, yPos); yPos += 5;
   doc.text(`Modelo: ${project.moduleModel || "-"}`, 14, yPos); yPos += 5;
   doc.text(`Quantidade de módulos: ${project.totalModules || 0}`, 14, yPos); yPos += 5;
-  const calculatedArea = (project.totalModules || 0) * 3;
+  // Usa a área real do módulo cadastrada no projeto; fallback de 2,6 m² (padrão para módulos 550W+)
+  const areaPerModule = project.moduleArea || 2.6;
+  const calculatedArea = (project.totalModules || 0) * areaPerModule;
   doc.text(`Área Total (m2): ${calculatedArea.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 14, yPos); yPos += 5;
   doc.text(`Potência máxima: ${project.modulePower || 0} WP`, 14, yPos); yPos += 5;
   doc.text(`Corrente máxima: ${project.moduleCurrent || "-"} A`, 14, yPos); yPos += 10;
 
   if (project.inverters && project.inverters.length > 0) {
     project.inverters.forEach((inv: Inverter, index: number) => {
+      // Guard de overflow: se yPos estiver próximo do fim da página A4 (>250mm), adiciona nova página
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
       setFontBold();
       doc.text(`4.2 – Inversor ${String(index + 1).padStart(2, "0")}`, 14, yPos);
       yPos += 8;
@@ -164,7 +171,9 @@ export const generateMemorialPDF = (client: ClientDetail, project: Project) => {
 
   setFontNormal();
   doc.text("Sobre o local:", 14, yPos); yPos += 5;
-  const calculatedArea2 = (project.totalModules || 0) * 3;
+  // Reutiliza a mesma área por módulo da seção anterior para consistência
+  const areaPerModule2 = project.moduleArea || 2.6;
+  const calculatedArea2 = (project.totalModules || 0) * areaPerModule2;
   doc.text(`Área mínima que o sistema ocupará é de ${calculatedArea2.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} m².`, 14, yPos); yPos += 10;
 
   doc.text("Arranjo dos painéis:", 14, yPos); yPos += 6;

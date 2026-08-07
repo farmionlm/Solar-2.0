@@ -112,8 +112,9 @@ export function validateDisjuntorCompatibility(
     voltage = 380;
     phasesFactor = 1.732;
   } else {
+    // Bifásico 220V: P = V × I × 2 (duas fases, fator 2.0 — não √3 que é exclusivo do trifásico)
     voltage = 220;
-    phasesFactor = 1.732;
+    phasesFactor = 2.0;
   }
 
   const estimatedCurrentAmps = Math.ceil(powerWatts / (voltage * phasesFactor));
