@@ -54,12 +54,12 @@ function DashboardContent() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading || (!metrics && !error) ? (
         <div className="p-12 text-center text-foreground font-medium flex flex-col items-center justify-center gap-3">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           Carregando métricas em tempo real...
         </div>
-      ) : error ? (
+      ) : error || !metrics ? (
         <div className="p-6 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-center text-sm font-semibold">
           Falha ao carregar dados do dashboard. Verifique sua conexão.
         </div>
